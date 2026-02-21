@@ -11,5 +11,146 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+
+enum BlockType {
+  WORKING
+  REST
+  EXTRA_TIME
+}
+
+enum EventType {
+  SEED
+  CALLBACK
+  LEAD
+  SALE
+}
+
+model Company {
+  id           Int           @id @default(autoincrement())
+  name         String
+  createdAt    DateTime      @default(now())
+  managers     Manager[]
+  teams        Team[]
+  agents       Agent[]
+  blockSchemas BlockSchema[]
+}
+
+model Manager {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  company   Company @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table
+  companyId Int
+  teams     Team[]
+}
+
+model Team {
+  id           Int            @id @default(autoincrement())
+  name         String
+  company      Company        @relation(fields: [companyId], references: [id])
+  companyId    Int
+  manager      Manager        @relation(fields: [managerId], references: [id])
+  managerId    Int
+  agents       Agent[]
+  calls        Call[]
+  assignments  ScheduledDay[]
+}
+
+model Agent {
+  id          Int            @id @default(autoincrement())
+  name        String
+  team        Team           @relation(fields: [teamId], references: [id])
+  teamId      Int
+  company     Company        @relation(fields: [companyId], references: [id])
+  companyId   Int
+  calls       Call[]
+  feelings    AgentState[]
+  assignments ScheduledDay[]
+  events      FunnelEvent[]
+}
+
+model Callee {
+  id            Int    @id @default(autoincrement())
+  phoneNumber   String @unique
+  totalAttempts Int    @default(0)
+  calls         Call[]
+}
+
+// --- TEMPORAL LOGIC (BLOCKS) ---
+
+model BlockSchema {
+  id                Int                @id @default(autoincrement())
+  name              String
+  company           Company            @relation(fields: [companyId], references: [id])
+  companyId         Int
+  isHotModification Boolean            @default(false)
+  originalSchemaId  Int?
+  originalSchema    BlockSchema?       @relation("SchemaHistory", fields: [originalSchemaId], references: [id])
+  modifiedSchemas   BlockSchema[]      @relation("SchemaHistory")
+  definitions       SchemaDefinition[]
+  assignments       ScheduledDay[]
+}
+
+model SchemaDefinition {
+  id          Int       @id @default(autoincrement())
+  schema      BlockSchema @relation(fields: [schemaId], references: [id])
+  schemaId    Int
+  startTime   DateTime  // Absolute time for that specific day
+  endTime     DateTime
+  blockType   BlockType @default(WORKING)
+  calls       Call[]
+}
+
+model ScheduledDay {
+  id        Int         @id @default(autoincrement())
+  date      DateTime    @db.Date
+  agent     Agent?      @relation(fields: [agentId], references: [id])
+  agentId   Int?
+  team      Team?       @relation(fields: [teamId], references: [id])
+  teamId    Int?
+  schema    BlockSchema @relation(fields: [schemaId], references: [id])
+  schemaId  Int
+}
+
+// --- PERFORMANCE DATA ---
+
+model Call {
+  id                Int              @id @default(autoincrement())
+  agent             Agent            @relation(fields: [agentId], references: [id])
+  agentId           Int
+  team              Team             @relation(fields: [teamId], references: [id])
+  teamId            Int
+  callee            Callee           @relation(fields: [calleeId], references: [id])
+  calleeId          Int
+  blockDefinition   SchemaDefinition? @relation(fields: [blockDefinitionId], references: [id])
+  blockDefinitionId Int?             // Null if "Extra Time"
+  
+  startAt           DateTime         @default(now())
+  endAt             DateTime?
+  durationSeconds   Int              @default(0)
+  isEffective       Boolean          @default(false)
+  
+  events            FunnelEvent[]
+}
+
+model FunnelEvent {
+  id        Int       @id @default(autoincrement())
+  type      EventType
+  timestamp DateTime  @default(now())
+  call      Call      @relation(fields: [callId], references: [id])
+  callId    Int
+  agent     Agent     @relation(fields: [agentId], references: [id])
+  agentId   Int
+}
+
+model AgentState {
+  id              Int      @id @default(autoincrement())
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  agentId         Int
+  timestamp       DateTime @default(now())
+  energyScore     Int      // 1-10
+  focusScore      Int      // 1-10
+  motivationScore Int      // 1-10
 }

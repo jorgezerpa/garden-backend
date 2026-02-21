@@ -13,6 +13,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  MAIN_ADMIN
+  MANAGER
+  AGENT
+}
 
 enum BlockType {
   WORKING
@@ -27,6 +32,30 @@ enum EventType {
   SALE
 }
 
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  passwordHash  String   // Store hashed passwords only
+  role          Role     @default(AGENT)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations to your existing entities
+  companyId     Int
+  company       Company  @relation(fields: [companyId], references: [id])
+  
+  // Optional links depending on the role
+  managerProfile Manager? @relation(fields: [managerId], references: [id])
+  managerId      Int?     @unique
+  
+  agentProfile   Agent?   @relation(fields: [agentId], references: [id])
+  agentId        Int?     @unique
+
+  // Constraint: One MAIN_ADMIN per company
+  // This is enforced via a unique partial index in the DB (see note below)
+}
+
 model Company {
   id           Int           @id @default(autoincrement())
   name         String
@@ -35,6 +64,7 @@ model Company {
   teams        Team[]
   agents       Agent[]
   blockSchemas BlockSchema[]
+  users        User[]
 }
 
 model Manager {
@@ -44,6 +74,7 @@ model Manager {
   company   Company @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table
   companyId Int
   teams     Team[]
+  user      User?
 }
 
 model Team {
@@ -51,8 +82,7 @@ model Team {
   name         String
   company      Company        @relation(fields: [companyId], references: [id])
   companyId    Int
-  manager      Manager        @relation(fields: [managerId], references: [id])
-  managerId    Int
+  manager      Manager[] // many to many relation -> a manager have teams, a team have managers 
   agents       Agent[]
   calls        Call[]
   assignments  ScheduledDay[]
@@ -62,13 +92,14 @@ model Agent {
   id          Int            @id @default(autoincrement())
   name        String
   team        Team           @relation(fields: [teamId], references: [id])
-  teamId      Int
+  teamId      Int            
   company     Company        @relation(fields: [companyId], references: [id])
   companyId   Int
   calls       Call[]
   feelings    AgentState[]
   assignments ScheduledDay[]
   events      FunnelEvent[]
+  user        User?
 }
 
 model Callee {
@@ -154,3 +185,41 @@ model AgentState {
   focusScore      Int      // 1-10
   motivationScore Int      // 1-10
 }
+
+/*
+Looking at this prisma schema:
+```
+```
+
+Let me know if it is possible to fetch the next information:
+
+I'm gonna need to fetch data as follows:
+- Per agent, per time (from-to values used to select a time gap)
+- Per agent, per block (from-to values used to search for in-range blocks)
+- Per selected agents, per time (from-to values used to select a time gap)
+- Per selected agents, per block (from-to values used to search for in-range blocks)
+- Per team, per time (from-to values used to select a time gap)
+- Per team, per block (from-to values used to search for in-range blocks)
+- ALL AGENTS DATA, per time (from-to values used to select a time gap)
+- ALL AGENTS DATA, per block (from-to values used to search for in-range blocks)
+
+I would need to fetch the next values (individually, then I prepare the views):
+• Total effective talk time
+• Number of logged calls
+• Number of calls longer than 5 minutes
+• Average call duration
+• Calls per hour
+• Active time vs idle time (time in call vs time of)
+• Long call ratio
+* total Seeds
+• total Callbacks
+• total Leads
+• total Sales
+* energy
+* focus
+* motivation
+
+When I say "fetch" I just want to now if it is possible to fetch each individual point, because that means I an create compound queires that give me specific views. 
+Also, for each point, give me a path to access to each point, for example: "Per agent, per time calls per hour: agentId->calls inside from-to -> divide results in hours and calculate counting the n. of calls perfomed" 
+If there is one point I can not access, let me know, but I think is possible access to all. 
+*/

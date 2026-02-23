@@ -111,14 +111,15 @@ model User {
 }
 
 model Company {
-  id           Int           @id @default(autoincrement())
-  name         String
-  createdAt    DateTime      @default(now())
-  managers     Manager[]
-  agents       Agent[]
-  calls        Call[]
-  blockSchemas BlockSchema[]
-  users        User[]
+  id            Int           @id @default(autoincrement())
+  name          String
+  createdAt     DateTime      @default(now())
+  managers      Manager[]
+  agents        Agent[]
+  calls         Call[]
+  blockSchemas  BlockSchema[]
+  users         User[]
+  temporalGoals TemporalGoals[]
 }
 
 model Manager {
@@ -128,6 +129,7 @@ model Manager {
   company   Company @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table
   companyId Int
   user      User?
+  temporalGoals TemporalGoals[]
 }
 
 
@@ -224,6 +226,30 @@ model AgentState {
   energyScore     Int      // 1-10
   focusScore      Int      // 1-10
   motivationScore Int      // 1-10
+}
+
+model TemporalGoals {
+  id                Int      @id @default(autoincrement())
+  
+  // Time Range
+  startTime         DateTime
+  endTime           DateTime
+  
+  // Productivity Targets
+  talkTimeMinutes   Int      @default(0)
+  seeds             Int      @default(0)
+  callbacks         Int      @default(0)
+  leads             Int      @default(0)
+  sales             Int      @default(0)
+  numberOfCalls     Int      @default(0)
+  numberOfLongCalls Int      @default(0)
+  // Relations
+  company           Company  @relation(fields: [companyId], references: [id])
+  companyId         Int
+  creator           Manager  @relation(fields: [creatorId], references: [id])
+  creatorId         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 /*

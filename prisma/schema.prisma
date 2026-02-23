@@ -115,8 +115,8 @@ model Company {
   name         String
   createdAt    DateTime      @default(now())
   managers     Manager[]
-  teams        Team[]
   agents       Agent[]
+  calls        Call[]
   blockSchemas BlockSchema[]
   users        User[]
 }
@@ -127,26 +127,14 @@ model Manager {
   email     String  @unique
   company   Company @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table
   companyId Int
-  teams     Team[]
   user      User?
 }
 
-model Team {
-  id           Int            @id @default(autoincrement())
-  name         String
-  company      Company        @relation(fields: [companyId], references: [id])
-  companyId    Int
-  manager      Manager[] // many to many relation -> a manager have teams, a team have managers 
-  agents       Agent[]
-  calls        Call[]
-  assignments  ScheduledDay[]
-}
+
 
 model Agent {
   id          Int            @id @default(autoincrement())
   name        String
-  team        Team           @relation(fields: [teamId], references: [id])
-  teamId      Int            
   company     Company        @relation(fields: [companyId], references: [id])
   companyId   Int
   calls       Call[]
@@ -193,8 +181,6 @@ model ScheduledDay {
   date      DateTime    @db.Date
   agent     Agent?      @relation(fields: [agentId], references: [id])
   agentId   Int?
-  team      Team?       @relation(fields: [teamId], references: [id])
-  teamId    Int?
   schema    BlockSchema @relation(fields: [schemaId], references: [id])
   schemaId  Int
 }
@@ -203,19 +189,19 @@ model ScheduledDay {
 
 model Call {
   id                Int              @id @default(autoincrement())
+  leadDeskId        String?             // Not unique because can variate per company. Also, this is temporary, will be better to create another table so we can handle multiple services aside leaddesk 
   agent             Agent            @relation(fields: [agentId], references: [id])
   agentId           Int
-  team              Team             @relation(fields: [teamId], references: [id])
-  teamId            Int
   callee            Callee           @relation(fields: [calleeId], references: [id])
   calleeId          Int
   blockDefinition   SchemaDefinition? @relation(fields: [blockDefinitionId], references: [id])
   blockDefinitionId Int?             // Null if "Extra Time"
-  
+  company           Company           @relation(fields: [companyId], references: [id])
+  companyId         Int
   startAt           DateTime         @default(now())
   endAt             DateTime?
   durationSeconds   Int              @default(0)
-  isEffective       Boolean          @default(false)
+  // isEffective       Boolean          @default(false)
   
   events            FunnelEvent[]
 }

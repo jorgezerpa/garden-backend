@@ -8,7 +8,17 @@ const AUTH = ""; // Leaddesk Auth Token
  * handleCallWebhook
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
-export const handleCallWebhook = async (lastCallId: string): Promise<Call> => {
+export const handleCallWebhook = async (lastCallId: string, companyApiKey:string): Promise<Call> => {
+    const company = await prisma.company.findFirst({
+        where: { 
+            // Note: You might need to add an 'apiKey' field to your Company model 
+            // Or use the name/unique identifier. For now, we search by name or a custom field.
+            name: companyApiKey 
+        }
+    });
+
+    if (!company) throw new Error("Company not found for provided API Key");
+
   // 1. Fetch full call details from Leaddesk API
   const response = await axios.get(`https://api.leaddesk.com`, {
     params: {
@@ -38,16 +48,11 @@ export const handleCallWebhook = async (lastCallId: string): Promise<Call> => {
     // We use ID from LD as our primary ID in this logic
     const agent = await tx.agent.upsert({
       where: { id: parseInt(ld.agent_id) },
-      update: { 
-        name: ld.agent_username,
-        teamId: parseInt(ld.agent_group_id) // Dynamically updating team if they switch groups
-        // @todo handle team history here too -> create and modify such table -> in necesary? or this is directly stored on the call? I think so
-      },
+      update: {},
       create: {
         id: parseInt(ld.agent_id),
         name: ld.agent_username,
-        teamId: parseInt(ld.agent_group_id), // @todo needs to create the team if not exists 
-        companyId: 1, // You'll need a way to determine companyId; using 1 as placeholder @todo -> another option could be: use the "other_" props on the response, is this user managed?
+        companyId: company.id, // taking it from auth params, another option could be: use the "other_" props on the response
       },
     });
 
@@ -56,14 +61,13 @@ export const handleCallWebhook = async (lastCallId: string): Promise<Call> => {
     // You can adjust this logic as needed.
     return await tx.call.create({
       data: {
-        // id: parseInt(ld.id), // Using Leaddesk's call ID @todo create a new column to store this id 
+        leadDeskId: ld.id,
         agentId: agent.id,
-        teamId: agent.teamId,
         calleeId: callee.id,
         startAt: new Date(ld.talk_start),
         endAt: new Date(ld.talk_end),
         durationSeconds: parseInt(ld.talk_time),
-        isEffective: ld.order_ids && ld.order_ids.length > 0, // Example logic @todo base this on duration or similars 
+        companyId: company.id
       },
     });
   });

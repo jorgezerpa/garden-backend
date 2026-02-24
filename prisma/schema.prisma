@@ -79,6 +79,12 @@ enum BlockType {
   EXTRA_TIME
 }
 
+enum SchemaType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 enum EventType {
   SEED
   CALLBACK
@@ -117,7 +123,7 @@ model Company {
   managers      Manager[]
   agents        Agent[]
   calls         Call[]
-  blockSchemas  BlockSchema[]
+  TimeSchemas   Schema[]
   users         User[]
   temporalGoals TemporalGoals[]
 }
@@ -130,9 +136,8 @@ model Manager {
   companyId Int
   user      User?
   temporalGoals TemporalGoals[]
+  schemas   Schema[]
 }
-
-
 
 model Agent {
   id          Int            @id @default(autoincrement())
@@ -141,7 +146,6 @@ model Agent {
   companyId   Int
   calls       Call[]
   feelings    AgentState[]
-  assignments ScheduledDay[]
   events      FunnelEvent[]
   user        User?
 }
@@ -153,39 +157,42 @@ model Callee {
   calls         Call[]
 }
 
-// --- TEMPORAL LOGIC (BLOCKS) ---
+// --- BLOCKS MASKS ---
+// Managers create time schedules by block, so the can filter the call querying by such blocks 
 
-model BlockSchema {
+model Schema {
   id                Int                @id @default(autoincrement())
   name              String
+  type              SchemaType         @default(DAILY)
   company           Company            @relation(fields: [companyId], references: [id])
   companyId         Int
-  isHotModification Boolean            @default(false)
-  originalSchemaId  Int?
-  originalSchema    BlockSchema?       @relation("SchemaHistory", fields: [originalSchemaId], references: [id])
-  modifiedSchemas   BlockSchema[]      @relation("SchemaHistory")
-  definitions       SchemaDefinition[]
-  assignments       ScheduledDay[]
+  creator           Manager            @relation(fields: [creatorId], references: [id])
+  creatorId         Int
+  schemaDays        SchemaDay[] // @dev how is this order handled? should I add an "index" column?
 }
 
-model SchemaDefinition {
+// a 7 day schema has 7 Schema days, a month schema have 30-31 shcema days, and so on
+// so, no matter the schema type, it always will be divided by blocks (in hours) by days by type(day,week,month)
+model SchemaDay {
   id          Int       @id @default(autoincrement())
-  schema      BlockSchema @relation(fields: [schemaId], references: [id])
+  schema      Schema @relation(fields: [schemaId], references: [id])
   schemaId    Int
-  startTime   DateTime  // Absolute time for that specific day
-  endTime     DateTime
-  blockType   BlockType @default(WORKING)
-  calls       Call[]
+  // --------
+  dayIndex    Int // MAX: 0 for DAILY, 6 for WEEKLY, 30-31 for MONTHLY  
+  blocks      SchemaBlock[]
+  @@unique([schemaId, dayIndex]) // avoids repetition of day index per schema (i.e 2 days 1)
 }
 
-model ScheduledDay {
-  id        Int         @id @default(autoincrement())
-  date      DateTime    @db.Date
-  agent     Agent?      @relation(fields: [agentId], references: [id])
-  agentId   Int?
-  schema    BlockSchema @relation(fields: [schemaId], references: [id])
-  schemaId  Int
+model SchemaBlock {
+  id                        Int         @id @default(autoincrement())
+  startMinutesFromMidnight  Int
+  endMinutesFromMidnight    Int
+  schemaDay                 SchemaDay   @relation(fields: [schemaDayId], references: [id])
+  schemaDayId               Int
+  blockType                 BlockType   @default(WORKING)
+  name                      String?     // (e.g., "Morning Blitz", "Afternoon Follow-ups")
 }
+
 
 // --- PERFORMANCE DATA ---
 
@@ -196,8 +203,6 @@ model Call {
   agentId           Int
   callee            Callee           @relation(fields: [calleeId], references: [id])
   calleeId          Int
-  blockDefinition   SchemaDefinition? @relation(fields: [blockDefinitionId], references: [id])
-  blockDefinitionId Int?             // Null if "Extra Time"
   company           Company           @relation(fields: [companyId], references: [id])
   companyId         Int
   startAt           DateTime         @default(now())

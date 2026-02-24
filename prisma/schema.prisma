@@ -237,8 +237,10 @@ model TemporalGoals {
   id                Int      @id @default(autoincrement())
   
   // Time Range
+  // @TODO instead of hardcode this, use this as a template, and create another table for assigments which is the one will use the agents dashboard to render the goals 
   startTime         DateTime
   endTime           DateTime
+
   
   // Productivity Targets
   talkTimeMinutes   Int      @default(0)

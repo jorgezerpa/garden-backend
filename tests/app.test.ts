@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app';
 import { prisma } from "../lib/prisma";
+import jwt from 'jsonwebtoken';
 
 interface TableNameRow { tablename: string; }
 
@@ -68,13 +69,36 @@ describe('AUTH system testing', () => {
     });
 
     // --- HAPPY PATH ---
-    it('successfully logs in with valid credentials', async () => {
+    it('successfully login in and returns a valid JWT', async () => {
       const response = await request(app)
         .post('/api/auth/login')
         .send({ email: "login@test.com", password: "securepassword" });
 
+      // 1. Assert Status
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ message: "Login successful", role: "MAIN_ADMIN" });
+
+      // 2. Assert the Shape of the body (Partial match)
+      expect(response.body).toEqual({
+        message: "Login successful",
+        token: expect.any(String), // This handles the dynamic nature of JWT
+        user: {
+          id: 1,
+          role: "MAIN_ADMIN",
+          companyId: 1
+        }
+      });
+
+      // 3. Deep Verification: Decode the token to ensure the payload is correct
+      const decoded = jwt.decode(response.body.token) as any;
+      
+      expect(decoded).toMatchObject({
+        sub: 1,
+        role: "MAIN_ADMIN",
+        companyId: 1
+      });
+      
+      // Verify it has an expiration claim
+      expect(decoded.exp).toBeDefined();
     });
 
     // --- ERROR PATHS ---

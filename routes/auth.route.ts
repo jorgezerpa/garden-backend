@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { createUser, findUserByEmail } from '../controllers/Auth.controller';
 import { registerCompany } from '../controllers/Company.controller';
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 const authRouter = Router();
 
@@ -55,8 +58,25 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const match = await compare(password, user.passwordHash);
     if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-    // Here you would typically generate a JWT
-    return res.status(200).json({ message: "Login successful", role: user.role });
+    const token = jwt.sign(
+      { 
+        sub: user.id,           // 'sub' is standard for Subject (User ID)
+        companyId: user.companyId, 
+        role: user.role 
+      },
+      JWT_SECRET,
+      { expiresIn: '8h' }       // Token expires in 8 hours
+    );
+
+    return res.status(200).json({ 
+      message: "Login successful", 
+      token, // Send this to the client
+      user: { // @dev@q is this redundant? I can take this from the JWT 
+        id: user.id,
+        role: user.role,
+        companyId: user.companyId
+      }
+    });
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }

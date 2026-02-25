@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { createUser, findUserByEmail } from '../controllers/Auth.controller';
+import { registerCompany } from '../controllers/Company.controller';
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 
 const authRouter = Router();
@@ -7,13 +8,14 @@ const authRouter = Router();
 // POST /api/auth/register
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, password, companyId, role } = req.body;
+    const { companyName, admin_email, admin_name, password } = req.body;
 
     // 1. Basic Sanitization & Validation
-    if (!email || !password || !companyId) {
+    // @todo assert email regex
+    if (!admin_email || !password) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = admin_email.toLowerCase().trim();
     
     // 2. Business Logic (Check if exists)
     const existing = await findUserByEmail(cleanEmail);
@@ -23,16 +25,17 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const saltRounds = 10;
     const passwordHash = await hash(password, saltRounds);
 
-    // 4. Controller Call
-    const newUser = await createUser({
-      email: cleanEmail,
+    // 4. Create company and user
+    const { company, user } = await registerCompany(
+      companyName,
+      admin_email,
       passwordHash,
-      companyId: Number(companyId),
-      role: role || 'MANAGER'
-    });
+      admin_name
+    )
 
-    return res.status(201).json({ id: newUser.id, email: newUser.email });
+    return res.status(201).json({ companyId: company.id, userId: user.id });
   } catch (error) {
+    console.error("DEBUG ERROR:", error)
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });

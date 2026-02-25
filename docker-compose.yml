@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  # The database service
+  db:
+    image: postgres:16-alpine
+    container_name: my_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: 12345
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: gardenDB
+    ports:
+      - "5432:5432" # Maps port 5432 on your machine to 5432 in the container
+    # volumes:
+    #   - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data: # Persists data even if you stop the container

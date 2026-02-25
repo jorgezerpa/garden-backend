@@ -11,10 +11,10 @@ const router = Router();
  */
 
 // Placeholder for your controller functions
-router.get('/leaddesk', leadDeskWebhookRouter);
+router.use('/leaddesk', leadDeskWebhookRouter);
 //
-router.get('/auth', authRouter); // login and register handler
-router.get('/admin', adminRouter); // login and register handler
+router.use('/auth', authRouter); // login and register handler
+router.use('/admin', adminRouter); // login and register handler
 // router.get('/datavis', leadDeskWebhookRouter); // login and register handler
 
 

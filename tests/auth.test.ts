@@ -59,7 +59,7 @@ describe('AUTH system testing', () => {
 
   describe("POST /api/auth/login", () => {
     beforeEach(async () => {
-      // Seed a user for login tests
+      // Seed a company for login tests
       await request(app).post('/api/auth/register').send({
         companyName: "Test Corp",
         admin_email: "login@test.com",

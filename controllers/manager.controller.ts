@@ -26,7 +26,7 @@ export const createManagerWithUser = async (data: {
       },
     });
 
-    return { manager, user };
+    return { managerId: manager.id, userId: user.id };
   });
 };
 

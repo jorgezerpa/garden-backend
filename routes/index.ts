@@ -3,6 +3,7 @@ import leadDeskWebhookRouter from './LeadDeskWebHook.route';
 import authRouter from './auth.route';
 import adminRouter from './admin.route';
 import schemaRouter from './schema.route';
+import dataVisRouter from './dataVis.route';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.use('/leaddesk', leadDeskWebhookRouter);
 router.use('/auth', authRouter); // login and register handler
 router.use('/admin', adminRouter); // login and register handler
 router.use('/schema', schemaRouter); // login and register handler
-// router.get('/datavis', leadDeskWebhookRouter); // login and register handler
+router.use('/datavis', dataVisRouter); // login and register handler
 
 
 export default router;

@@ -8,10 +8,12 @@ vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
 
 describe('DataVis Integration with Webhook Seeding', () => {
-  const apiKey = "Analytics_Corp";
-  const authHeader = `Basic ${Buffer.from(`${apiKey}:pass`).toString('base64')}`;
 
   beforeEach(async () => {
+    // 0. 
+    let publicKey = ''
+    let secretKey = ''
+    
     // 1. Reset Database
     const tablenames = await prisma.$queryRawUnsafe<{ tablename: string }[]>(
       `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public'`
@@ -23,30 +25,54 @@ describe('DataVis Integration with Webhook Seeding', () => {
     }
 
     // 2. Setup Company & Schema
-    const company = await prisma.company.create({ data: { name: apiKey } });
-    const manager = await prisma.manager.create({ data: { name: "Boss", email: "b@b.com", companyId: company.id } });
-    
+    const responseRegister = await request(app).post('/api/auth/register').send({
+      companyName: "Test Corp",
+      admin_email: "admin@test.com",
+      admin_name: "Tester",
+      password: "12345"
+    });
+
+    ({ publicKey, secretKey } = responseRegister.body);
+    const { companyId, userId } = responseRegister.body;
+
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { managerProfile: true } });
+    if(!user) throw("error in datavis tests while creating company")
+    const manager = user.managerProfile
+    if(!company || !manager) throw("error in datavis tests while creating company")
+
     // Seed a daily schema for block-performance tests
-    await prisma.schema.create({
-      data: {
-        id: 1, name: "Standard", companyId: company.id, creatorId: manager.id,
-        schemaDays: {
-          create: [{
-            dayIndex: 0,
-            blocks: {
-              create: [
-                { name: "Morning", startMinutesFromMidnight: 480, endMinutesFromMidnight: 720 },
-                { name: "Afternoon", startMinutesFromMidnight: 720, endMinutesFromMidnight: 1080 }
-              ]
-            }
-          }]
+    await request(app).post('/api/schema/create').send({
+      name: "Standard",
+      companyId: company.id,
+      creatorId: manager.id,
+      type: "DAILY",
+      days: [
+        {
+          dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (id DB are, but better be sure)
+          blocks: [
+            {
+              startMinutesFromMidnight: 480,
+              endMinutesFromMidnight: 720,
+              blockType: "WORKING",
+              name: "Morning block 1"
+            },
+            {
+              startMinutesFromMidnight: 720,
+              endMinutesFromMidnight: 1080,
+              blockType: "WORKING",
+              name: "Morning block 2"
+            },
+          ] 
         }
-      }
+      ]
     });
 
     // 3. SEED 100 CALLS VIA WEBHOOK
     // We'll spread 100 calls over 30 days (approx 3-4 calls per day)
     const startDate = new Date("2024-05-01T09:00:00Z");
+
+    const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
     
     for (let i = 0; i < 100; i++) {
       const callDate = new Date(startDate.getTime() + i * (7 * 60 * 60 * 1000)); // Every 7 hours
@@ -54,8 +80,8 @@ describe('DataVis Integration with Webhook Seeding', () => {
 
       mockedAxios.get.mockResolvedValueOnce({
         data: {
-          id: `LD-${i}`,
-          agent_id: "1",
+          id: `${i}`,
+          agent_id: "1", // @dev just 1 agent to check, I can add more, @TODO check if this is taking from agents table not users
           agent_username: "Agent_1",
           talk_time: talkTime.toString(),
           talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],
@@ -72,12 +98,15 @@ describe('DataVis Integration with Webhook Seeding', () => {
         
       // If the call was a "sale" based on our logic above, manually add a FunnelEvent 
       // (Assuming your webhook doesn't do this automatically yet)
-      if (i % 10 === 0) {
-        const lastCall = await prisma.call.findFirst({ orderBy: { id: 'desc' } });
-        await prisma.funnelEvent.create({
-          data: { type: 'SALE', agentId: 1, callId: lastCall!.id, timestamp: callDate }
-        });
-      }
+      // @DEV CHECK THIS LOGIC LATER ONCE ALL OTHER THINGS WORK
+      // if (i % 10 === 0) {
+      //   const lastCall = await prisma.call.findFirst({ orderBy: { id: 'desc' } });
+      //   await prisma.funnelEvent.create({
+      //     data: { type: 'SALE', agentId: 1, callId: lastCall!.id, timestamp: callDate }
+      //   });
+      // }
+
+
     }
   });
 

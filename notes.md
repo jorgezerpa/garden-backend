@@ -10,7 +10,9 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 
 ## Todos
 - Implement authentication middleware and write specific tests
-- Implement leaddesk webhook authentication 
+- [DONE] Implement leaddesk webhook authentication and api keys generation  
+- convert previous point into a middleware
+- all routes "companyId", "creator", etc params, should be taken from the auth token via middleware 
 - create "Add token" page on admin UI
 - Modify tests to work with the auth system
 - Connect api to frontend

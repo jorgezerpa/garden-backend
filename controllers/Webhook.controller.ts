@@ -52,7 +52,7 @@ export const handleCallWebhook = async (lastCallId: string, companyApiKey:string
       create: {
         id: parseInt(ld.agent_id),
         name: ld.agent_username,
-        companyId: company.id, // taking it from auth params, another option could be: use the "other_" props on the response
+        companyId: company.id, // @dev taking it from auth params, another option could be: use the "other_" props on the response
       },
     });
 

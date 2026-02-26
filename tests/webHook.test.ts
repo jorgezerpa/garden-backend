@@ -20,16 +20,19 @@ describe('LeadDesk Webhook Actual Data testing', () => {
       }
     }
 
-    // Setup Company using the name expected by controller via Basic Auth
-    await prisma.company.create({
-      data: { name: "REAL_LEADDESK_KEY" }
+    // Setup Company id 1, also admin id 1
+    await request(app).post('/api/auth/register').send({
+      companyName: "Test Corp",
+      admin_email: "admin@test.com",
+      admin_name: "Tester",
+      password: "12345"
     });
 
     vi.clearAllMocks();
   });
 
   describe("GET /api/leaddesk/webhook", () => {
-    const authHeader = `Basic ${Buffer.from('REAL_LEADDESK_KEY:secret').toString('base64')}`;
+    const authHeader = `Basic ${Buffer.from('REAL_LEADDESK_KEY:secret').toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
 
     it('successfully processes the exact LeadDesk payload structure', async () => {
       // 1. Precise LeadDesk Mock Data
@@ -49,19 +52,19 @@ describe('LeadDesk Webhook Actual Data testing', () => {
         comment: "test comment",
         agent_group_id: "13",
         agent_group_name: "test group",
-        call_ending_reason: "15",
+        call_ending_reason: "15", // @todo ask to mike -> this can be setted from LD dashboard? or is fixed? -> this could help me to know if call was seed, watering or harvest -> if it is, I could add a manager page where manually enter which codes means each evnt
         call_ending_reason_name: "test reason",
         handling_stop: "2016-02-02 14:20:30",
         direction: "out",
         call_type: "1",
         contact_id: "1",
         call_type_name: "semi",
-        order_ids: [1, 3]
+        order_ids: [1, 3] // @todo@q order ids means a sale was done? so this is harvest? like len>0 so harvest?
       };
 
-      mockedAxios.get.mockResolvedValue({ data: mockLeadDeskData });
+      mockedAxios.get.mockResolvedValue({ data: mockLeadDeskData }); // when controllers calls axios.get, will mock the returned value with this
 
-      // 2. Trigger Webhook
+      // 2. Trigger Webhook (simulating a call from Leadesk)
       const response = await request(app)
         .get('/api/leaddesk/webhook')
         .set('Authorization', authHeader)
@@ -97,7 +100,7 @@ describe('LeadDesk Webhook Actual Data testing', () => {
             data: { phoneNumber: "+358123123", totalAttempts: 5 }
         });
 
-        const mockData = {
+        const mockData = { // only used data, to simplify
             id: "5000",
             agent_id: "11",
             agent_username: "teuvotest",

@@ -126,6 +126,24 @@ model Company {
   TimeSchemas   Schema[]
   users         User[]
   temporalGoals TemporalGoals[]
+  apiKey        APIKeysAuth?
+}
+
+// 1-to-1 company-key (used to authenticate webhook call origin)
+// @dev@IMPORTANT probably not the most secure approach, research how is this managed in secure apps 
+model APIKeysAuth {
+  id            Int      @id @default(autoincrement())
+  
+  // Use UUIDs for the keys. 
+  // 'public' is a reserved keyword in some DBs, 'publicKey' is safer.
+  publicKey     String   @unique // uuid prefixed with a specific string exp: "prefix-uuid" 
+  secretKeyHash String   @unique // hashed secret 
+  // Link to company and ensure 1-to-1
+  company       Company  @relation(fields: [companyId], references: [id])
+  companyId     Int      @unique 
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Manager {

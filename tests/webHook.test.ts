@@ -5,9 +5,13 @@ import { prisma } from "../lib/prisma";
 import axios from 'axios';
 
 vi.mock('axios');
+
 const mockedAxios = axios as Mocked<typeof axios>;
 
 describe('LeadDesk Webhook Actual Data testing', () => {
+
+  let publicKey = ''
+  let secretKey = ''
 
   beforeEach(async () => {
     // Clean DB
@@ -21,20 +25,24 @@ describe('LeadDesk Webhook Actual Data testing', () => {
     }
 
     // Setup Company id 1, also admin id 1
-    await request(app).post('/api/auth/register').send({
+    const response = await request(app).post('/api/auth/register').send({
       companyName: "Test Corp",
       admin_email: "admin@test.com",
       admin_name: "Tester",
       password: "12345"
     });
 
+    // wrap in parenthesis to assign to the outer variables
+    ({ publicKey, secretKey } = response.body);
+
     vi.clearAllMocks();
   });
 
   describe("GET /api/leaddesk/webhook", () => {
-    const authHeader = `Basic ${Buffer.from('REAL_LEADDESK_KEY:secret').toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
-
+    
     it('successfully processes the exact LeadDesk payload structure', async () => {
+      const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
+
       // 1. Precise LeadDesk Mock Data
       const mockLeadDeskData = {
         id: "4999",
@@ -95,6 +103,8 @@ describe('LeadDesk Webhook Actual Data testing', () => {
     });
 
     it('successfully increments totalAttempts for an existing callee', async () => {
+        const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
+
         // Pre-seed a callee
         await prisma.callee.create({
             data: { phoneNumber: "+358123123", totalAttempts: 5 }

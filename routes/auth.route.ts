@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { createUser, findUserByEmail } from '../controllers/Auth.controller';
-import { registerCompany } from '../controllers/Company.controller';
+import { findUserByEmail } from '../controllers/Auth.controller';
+import { registerCompany, generateKeyPair } from '../controllers/Company.controller';
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 import jwt from 'jsonwebtoken';
 
@@ -36,7 +36,10 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       admin_name
     )
 
-    return res.status(201).json({ companyId: company.id, userId: user.id });
+    // 5. Generate initial key pair @dev would be better to allow manager to manually trigger this with a route like "generate_hash"? even if its the first time. SO we can give him feedback to store the pk or he can do it in a secure place
+    // @todo@IMPORTANT yes, do what says above, but by now, just generate it automatically for development speed
+    const { publicKey, secretKey } = await generateKeyPair(company.id)
+    return res.status(201).json({ companyId: company.id, userId: user.id, publicKey, secretKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
   } catch (error) {
     console.error("DEBUG ERROR:", error)
     return res.status(500).json({ error: "Internal Server Error" });

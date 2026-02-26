@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { handleCallWebhook } from '../controllers/Webhook.controller';
+import { randomBytes, createHash, randomUUID, privateDecrypt } from "crypto";
 
 const leadDeskWebhookRouter = Router();
 
@@ -15,9 +16,11 @@ leadDeskWebhookRouter.get('/webhook', async (req: Request, res: Response) => {
             // 2. Decode Base64 (Format is "Basic base64(username:password)")
             const base64Credentials = authHeader.split(' ')[1];
             const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-            const [apiKey, password] = credentials.split(':'); // apiKey is the "username"
 
-            // @todo check password here 
+            // Values will be checked on controller
+            // @TODO this could be a middleware 
+            const [publicKey, secretKey] = credentials.split(':'); // apiKey is the "username" 
+            const secretHash = createHash("sha256").update(secretKey).digest("hex");
 
             // 3. Get the last_call_id from the query parameters (GET request)
             const lastCallId = req.query.last_call_id as string;
@@ -27,7 +30,7 @@ leadDeskWebhookRouter.get('/webhook', async (req: Request, res: Response) => {
             }
 
             // 4. Execute the service logic
-            const result = await handleCallWebhook(lastCallId, apiKey);
+            const result = await handleCallWebhook(lastCallId, publicKey, secretHash);
 
             // 5. Respond to LeadDesk (Documentation says they don't use the return value, but 200 is best)
             res.status(200).json({ status: 'success', callId: result.id });

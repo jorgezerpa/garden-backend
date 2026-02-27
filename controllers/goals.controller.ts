@@ -46,13 +46,22 @@ export const updateTemporalGoal = async (
   });
 };
 
+
 /**
- * Deletes a goal by ID
+ * Deletes a goal by ID, ensuring all linked assignations 
+ * are removed first to prevent foreign key constraint errors.
  */
 export const deleteTemporalGoal = async (id: number): Promise<TemporalGoals> => {
-  // @IMPORTANT@TODO NOT CASCADE DELETE, should delete all assignations first 
-  return await prisma.temporalGoals.delete({
-    where: { id },
+  return await prisma.$transaction(async (tx) => {
+    // 1. Delete all assignations linked to this specific goal
+    await tx.goalsAssignation.deleteMany({
+      where: { goalId: id },
+    });
+
+    // 2. Now delete the goal itself
+    return await tx.temporalGoals.delete({
+      where: { id },
+    });
   });
 };
 
@@ -130,7 +139,7 @@ export const deleteGoalAssignation = async (id: number): Promise<GoalsAssignatio
 export const deleteGoalAssignationByDate = async (companyId: number, date: Date): Promise<GoalsAssignation> => {
   const targetDate = new Date(date);
   targetDate.setUTCHours(0, 0, 0, 0);
-
+  
   return await prisma.goalsAssignation.delete({
     where: { companyId_date: { companyId, date: targetDate } },
   });

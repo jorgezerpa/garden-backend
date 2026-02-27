@@ -178,4 +178,124 @@ describe('Main administration system testing', () => {
       });
     });
   });
+
+
+
+  describe("Goal Assignation Endpoints", () => {
+    let createdGoalId: number;
+
+    beforeEach(async () => {
+      // Create a goal to use for assignation tests
+      const goalResponse = await request(app)
+        .post('/api/admin/goals/create')
+        .send({
+          name: "Assignation Test Goal",
+          companyId: 1,
+          creatorId: 1,
+          sales: 5
+        });
+      createdGoalId = goalResponse.body.id;
+    });
+
+    describe("POST /api/admin/upsert-assignation", () => {
+      it('successfully creates a new assignation', async () => {
+        const response = await request(app)
+          .post('/api/admin/upsert-assignation')
+          .send({
+            companyId: 1,
+            date: "2026-05-20",
+            goalId: createdGoalId
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.body.goalId).toBe(createdGoalId);
+        // Ensure date was normalized to midnight
+        expect(new Date(response.body.date).getUTCHours()).toBe(0);
+      });
+
+      it('updates an existing assignation for the same date (upsert logic)', async () => {
+        // First creation
+        await request(app).post('/api/admin/upsert-assignation').send({
+          companyId: 1, date: "2026-05-20", goalId: createdGoalId
+        });
+
+        // Update to same date with (hypothetically) different goal or same goal
+        const response = await request(app)
+          .post('/api/admin/upsert-assignation')
+          .send({
+            companyId: 1,
+            date: "2026-05-20",
+            goalId: createdGoalId
+          });
+
+        expect(response.status).toBe(200);
+      });
+
+      it('returns 400 if parameters are missing', async () => {
+        const response = await request(app)
+          .post('/api/admin/upsert-assignation')
+          .send({ companyId: 1 }); // missing date and goalId
+        expect(response.status).toBe(400);
+      });
+    });
+
+    describe("GET /api/admin/assignation", () => {
+      it('fetches assignations within a date range', async () => {
+        // Create an assignation
+        await request(app).post('/api/admin/upsert-assignation').send({
+          companyId: 1, date: "2026-01-15", goalId: createdGoalId
+        });
+
+        const response = await request(app)
+          .get('/api/admin/assignation?companyId=1&from=2026-01-01&to=2026-01-31');
+
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBeGreaterThan(0);
+        expect(response.body[0]).toHaveProperty('goal'); // Checks the 'include' logic in controller
+      });
+
+      it('returns 400 if range params are missing', async () => {
+        const response = await request(app).get('/api/admin/assignation?companyId=1');
+        expect(response.status).toBe(400);
+      });
+    });
+
+    describe("DELETE /api/admin/delete-assignation/:id", () => {
+      it('deletes by ID via params', async () => {
+        const assignation = await request(app)
+          .post('/api/admin/upsert-assignation')
+          .send({ companyId: 1, date: "2026-12-01", goalId: createdGoalId });
+
+        const response = await request(app)
+          .delete(`/api/admin/delete-assignation-by-id/${assignation.body.id}`);
+        
+        expect(response.status).toBe(200);
+      });
+
+      it('deletes by companyId and date via query', async () => {
+        await request(app)
+          .post('/api/admin/upsert-assignation')
+          .send({ companyId: 1, date: "2026-12-05", goalId: createdGoalId });
+
+        const response = await request(app)
+          .delete('/api/admin/delete-assignation-by-date') // ID 0 is ignored if query params exist based on your router logic
+          .query({ companyId: 1, date: "2026-12-05" });
+
+        expect(response.status).toBe(200);
+      });
+
+      it('returns 500 if trying to delete non-existent assignation (by id)', async () => {
+        const response = await request(app).delete('/api/admin/delete-assignation-by-id/9999');
+        expect(response.status).toBe(500);
+      });
+
+      it('returns 500 if trying to delete non-existent assignation (by date)', async () => {
+        const response = await request(app).delete('/api/admin/delete-assignation-by-date').query({ companyId: 1, date: "2026-12-01" });
+        expect(response.status).toBe(500);
+      });
+
+    });
+  });
+
 });

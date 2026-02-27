@@ -155,6 +155,7 @@ adminRouter.delete('/goals/delete/:id', async (req: Request, res: Response) => {
 
 
 /////////////////////////////////////
+// goals assignation routes 
 /////////////////////////////////////
 
 // GET /api/admin/assignation?companyId=1&from=2023-01-01&to=2023-01-31
@@ -200,17 +201,28 @@ adminRouter.post('/upsert-assignation', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/admin/delete-assignation/:id
-// OR DELETE /api/admin/delete-assignation?companyId=1&date=2023-01-01
-adminRouter.delete('/delete-assignation/:id', async (req: Request, res: Response) => {
+adminRouter.delete('/delete-assignation-by-id/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { companyId, date } = req.query;
+
+    // @todo sanitization of id  (if needed)
 
     // Logic for deleting by Primary Key ID
     if (id) {
       const deleted = await GoalsController.deleteGoalAssignation(Number(id));
       return res.status(200).json(deleted);
     }
+
+    return res.status(400).json({ error: "Provide either an ID or companyId and date" });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Deletion failed" });
+  }
+});
+
+// OR DELETE /api/admin/delete-assignation?companyId=1&date=2023-01-01
+adminRouter.delete('/delete-assignation-by-date', async (req: Request, res: Response) => {
+  try {
+    const { companyId, date } = req.query;
 
     // Logic for deleting by composite Unique (Company + Date)
     if (companyId && date) {

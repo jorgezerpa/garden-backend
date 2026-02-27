@@ -87,13 +87,13 @@ export default adminRouter;
 adminRouter.post('/goals/create', async (req: Request, res: Response) => {
   try {
     const { 
-      startTime, endTime, talkTimeMinutes, seeds, 
+      talkTimeMinutes, seeds, 
       callbacks, leads, sales, numberOfCalls, 
       numberOfLongCalls, companyId, creatorId, name
     } = req.body;
 
     // Basic validation
-    if (!startTime || !endTime || !companyId || !creatorId) {
+    if (!companyId || !creatorId) {
       return res.status(400).json({ error: "Missing required timing or relation fields" });
     }
 
@@ -133,9 +133,7 @@ adminRouter.put('/goals/update/:id', async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const updateData = req.body;
 
-    // Convert date strings to Date objects if they are present in the update
-    if (updateData.startTime) updateData.startTime = new Date(updateData.startTime);
-    if (updateData.endTime) updateData.endTime = new Date(updateData.endTime);
+    // @todo sanitization 
 
     const updatedGoal = await GoalsController.updateTemporalGoal(id, updateData);
     return res.status(200).json(updatedGoal);
@@ -203,7 +201,7 @@ adminRouter.post('/upsert-assignation', async (req: Request, res: Response) => {
 
 // DELETE /api/admin/delete-assignation/:id
 // OR DELETE /api/admin/delete-assignation?companyId=1&date=2023-01-01
-adminRouter.delete('/delete-assignation/:id?', async (req: Request, res: Response) => {
+adminRouter.delete('/delete-assignation/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { companyId, date } = req.query;

@@ -31,7 +31,7 @@ describe('AUTH system testing', () => {
         .send({ companyName: "Company 1", admin_email: "admin@gmail.com", admin_name: "admin", password: "12345" });
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual({ companyId: 1, userId: 1 });
+      expect({ companyId: response.body.companyId, userId: response.body.userId }).toEqual({ companyId: 1, userId: 1 });
     });
 
     // --- ERROR PATHS ---

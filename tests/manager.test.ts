@@ -112,8 +112,7 @@ describe('Main administration system testing', () => {
         const response = await request(app)
           .post('/api/admin/goals/create')
           .send({
-            startTime: "2024-01-01T08:00:00Z",
-            endTime: "2024-01-01T17:00:00Z",
+            name: "Goal 1",
             companyId: 1,
             creatorId: 1,
             sales: 10
@@ -140,9 +139,13 @@ describe('Main administration system testing', () => {
     describe("PUT /api/admin/goals/update/:id", () => {
       it('updates goal metrics', async () => {
         // Create a goal
-        const goal = await request(app).post('/api/admin/goals/create').send({
-          startTime: "2024-01-01T08:00:00Z", endTime: "2024-01-01T17:00:00Z",
-          companyId: 1, creatorId: 1
+        const goal = await request(app)
+          .post('/api/admin/goals/create')
+          .send({
+            name: "Goal 1",
+            companyId: 1,
+            creatorId: 1,
+            sales: 10
         });
 
         const response = await request(app)
@@ -156,9 +159,13 @@ describe('Main administration system testing', () => {
 
     describe("DELETE /api/admin/goals/delete/:id", () => {
       it('removes a goal', async () => {
-        const goal = await request(app).post('/api/admin/goals/create').send({
-          startTime: "2024-01-01T08:00:00Z", endTime: "2024-01-01T17:00:00Z",
-          companyId: 1, creatorId: 1
+        const goal = await request(app)
+          .post('/api/admin/goals/create')
+          .send({
+            name: "Goal 1",
+            companyId: 1,
+            creatorId: 1,
+            sales: 10
         });
 
         const response = await request(app).delete(`/api/admin/goals/delete/${goal.body.id}`);

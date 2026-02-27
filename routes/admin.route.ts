@@ -89,7 +89,7 @@ adminRouter.post('/goals/create', async (req: Request, res: Response) => {
     const { 
       startTime, endTime, talkTimeMinutes, seeds, 
       callbacks, leads, sales, numberOfCalls, 
-      numberOfLongCalls, companyId, creatorId 
+      numberOfLongCalls, companyId, creatorId, name
     } = req.body;
 
     // Basic validation
@@ -98,8 +98,7 @@ adminRouter.post('/goals/create', async (req: Request, res: Response) => {
     }
 
     const goal = await GoalsController.createTemporalGoal({
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      name,
       talkTimeMinutes: Number(talkTimeMinutes) || 0,
       seeds: Number(seeds) || 0,
       callbacks: Number(callbacks) || 0,
@@ -151,6 +150,80 @@ adminRouter.delete('/goals/delete/:id', async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     await GoalsController.deleteTemporalGoal(id);
     return res.status(204).send();
+  } catch (err: any) {
+    return res.status(500).json({ error: "Deletion failed" });
+  }
+});
+
+
+/////////////////////////////////////
+/////////////////////////////////////
+
+// GET /api/admin/assignation?companyId=1&from=2023-01-01&to=2023-01-31
+adminRouter.get('/assignation', async (req: Request, res: Response) => {
+  try {
+    const { companyId, from, to } = req.query;
+
+    if (!companyId || !from || !to) {
+      return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
+    }
+
+    const assignations = await GoalsController.getAssignationsByRange(
+      Number(companyId),
+      new Date(from as string),
+      new Date(to as string)
+    );
+
+    return res.status(200).json(assignations);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/upsert-assignation
+adminRouter.post('/upsert-assignation', async (req: Request, res: Response) => {
+  try {
+    const { companyId, date, goalId } = req.body;
+
+    if (!companyId || !date || !goalId) {
+      return res.status(400).json({ error: "Missing companyId, date, or goalId" });
+    }
+
+    const result = await GoalsController.upsertGoalAssignation(
+      Number(companyId),
+      new Date(date),
+      Number(goalId)
+    );
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/delete-assignation/:id
+// OR DELETE /api/admin/delete-assignation?companyId=1&date=2023-01-01
+adminRouter.delete('/delete-assignation/:id?', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { companyId, date } = req.query;
+
+    // Logic for deleting by Primary Key ID
+    if (id) {
+      const deleted = await GoalsController.deleteGoalAssignation(Number(id));
+      return res.status(200).json(deleted);
+    }
+
+    // Logic for deleting by composite Unique (Company + Date)
+    if (companyId && date) {
+      const deleted = await GoalsController.deleteGoalAssignationByDate(
+        Number(companyId),
+        new Date(date as string)
+      );
+      return res.status(200).json(deleted);
+    }
+
+    return res.status(400).json({ error: "Provide either an ID or companyId and date" });
   } catch (err: any) {
     return res.status(500).json({ error: "Deletion failed" });
   }

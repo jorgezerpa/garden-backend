@@ -117,16 +117,17 @@ model User {
 }
 
 model Company {
-  id            Int           @id @default(autoincrement())
-  name          String
-  createdAt     DateTime      @default(now())
-  managers      Manager[]
-  agents        Agent[]
-  calls         Call[]
-  TimeSchemas   Schema[]
-  users         User[]
-  temporalGoals TemporalGoals[]
-  apiKey        APIKeysAuth?
+  id                Int           @id @default(autoincrement())
+  name              String
+  createdAt         DateTime      @default(now())
+  managers          Manager[]
+  agents            Agent[]
+  calls             Call[]
+  TimeSchemas       Schema[]
+  users             User[]
+  temporalGoals     TemporalGoals[] // goals list 
+  GoalsAssignation  GoalsAssignation[] // assigns 1 TemporalGoal to a specific day (date)
+  apiKey            APIKeysAuth?
 }
 
 // 1-to-1 company-key (used to authenticate webhook call origin)
@@ -269,13 +270,8 @@ model AgentState {
 
 model TemporalGoals {
   id                Int      @id @default(autoincrement())
-  
-  // Time Range
-  // @TODO instead of hardcode this, use this as a template, and create another table for assigments which is the one will use the agents dashboard to render the goals 
-  startTime         DateTime
-  endTime           DateTime
+  name              String // i.e hard goals, newbies goals...
 
-  
   // Productivity Targets
   talkTimeMinutes   Int      @default(0)
   seeds             Int      @default(0)
@@ -291,6 +287,19 @@ model TemporalGoals {
   creatorId         Int
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  goalsAssignation  GoalsAssignation[]
+}
+
+model GoalsAssignation {
+  id                Int           @id         @default(autoincrement())
+  company           Company  @relation(fields: [companyId], references: [id])
+  companyId         Int
+  goal              TemporalGoals @relation(fields: [goalId], references: [id])
+  goalId            Int
+  date              DateTime // day at which the goals are assigned 
+
+  @@unique([companyId, date])
 }
 
 /*

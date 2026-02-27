@@ -18,6 +18,8 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - Connect api to frontend
 - create endpoint and frontend view to shared team performance for big screen
 -
-- Track in database the n of times a SPECIFIC AGENT calls a callee to count "waterings"
+- [DONE] Track in database the n of times a SPECIFIC AGENT calls a callee to count "waterings"
 - Create table to track goals assignation to a specific period of time 
-- 
+
+## REMEMBER
+- Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest 

@@ -67,6 +67,18 @@ export const handleCallWebhook = async (lastCallId: string, companyApiKey:string
       },
     });
 
+    await tx.agentToCallee.upsert({
+      where: { agentId_calleeId: {  agentId: agent.id, calleeId: callee.id } },
+      update: {
+        totalAttemps: { increment: 1 }
+      },
+      create: {
+        agentId: agent.id,
+        calleeId: callee.id,
+        totalAttemps: 1
+      }
+    })
+
     // 3. Create the Call record
     // Note: I'm mapping 'isEffective' based on existence of orders or specific reason names
     // You can adjust this logic as needed.

@@ -158,21 +158,37 @@ model Manager {
 }
 
 model Agent {
-  id          Int            @id @default(autoincrement())
-  name        String
-  company     Company        @relation(fields: [companyId], references: [id])
-  companyId   Int
-  calls       Call[]
-  feelings    AgentState[]
-  events      FunnelEvent[]
-  user        User?
+  id                      Int            @id @default(autoincrement())
+  name                    String
+  company                 Company        @relation(fields: [companyId], references: [id])
+  companyId               Int
+  calls                   Call[]
+  feelings                AgentState[]
+  events                  FunnelEvent[]
+  user                    User?
+  totalAttempsPerCallee   agentToCallee[]
 }
 
 model Callee {
-  id            Int    @id @default(autoincrement())
-  phoneNumber   String @unique
-  totalAttempts Int    @default(0)
-  calls         Call[]
+  id                     Int            @id @default(autoincrement())
+  phoneNumber            String         @unique
+  totalAttempts          Int            @default(0)
+  calls                  Call[]
+  totalAttempsPerAgent   agentToCallee[]  
+}
+
+// tracks the number of times an agent calls the same number
+// @dev maybe in future, would be better to track "per campaign" too
+model agentToCallee {
+  id              Int    @id @default(autoincrement())
+  agent           Agent  @relation(fields: [agentId], references: [id])
+  agentId         Int
+  callee          Callee @relation(fields: [calleeId], references: [id])
+  calleeId        Int
+  totalAttemps    Int    @default(0)
+
+  @@unique([agentId, calleeId])
+  
 }
 
 // --- BLOCKS MASKS ---

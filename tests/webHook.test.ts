@@ -127,7 +127,10 @@ describe('LeadDesk Webhook Actual Data testing', () => {
             .query({ last_call_id: '5000' });
 
         const callee = await prisma.callee.findUnique({ where: { phoneNumber: "+358123123" } });
+        const perAgentCounter = await prisma.agentToCallee.findUnique({ where: { agentId_calleeId: { agentId: Number(mockData.agent_id), calleeId: callee?.id as number } } })
+
         expect(callee?.totalAttempts).toBe(6); // 5 + 1
+        expect(perAgentCounter?.totalAttemps).toBe(1)
     });
   });
 });

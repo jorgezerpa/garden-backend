@@ -66,7 +66,6 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         sub: user.id,           // 'sub' is standard for Subject (User ID)
         companyId: user.companyId, 
         role: user.role, 
-        // level:  --> @todo add this: 1 -> MAIN ADMIN, 2 -> MANAGER, 3 -> AGENT
       },
       JWT_SECRET,
       { expiresIn: '8h' }       // Token expires in 8 hours

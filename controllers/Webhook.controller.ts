@@ -8,27 +8,12 @@ const AUTH = ""; // Leaddesk Auth Token
  * handleCallWebhook
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
-export const handleCallWebhook = async (lastCallId: string, companyApiKey:string, secretHash: string): Promise<Call> => {
-    const company = await prisma.company.findFirst({
-        where: { 
-            // Note: You might need to add an 'apiKey' field to your Company model 
-            // Or use the name/unique identifier. For now, we search by name or a custom field.
-            apiKey: {
-              publicKey: companyApiKey
-            }
-        },
-        include: {
-          apiKey: {
-            select: {
-              secretKeyHash: true
-            }
-          }
-        }
+export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<Call> => {
+    const company = await prisma.company.findUnique({
+        where: { id: companyId },
     });
 
-    // if (!company) throw new Error("Company not found for provided API Key"); // @audit@dev it is secure to return this reason? like, this is saying "Hey attacker! you can run this to see if you actually have a valid public key"
-    if (!company) throw new Error("Unauthorized");
-    if (company.apiKey?.secretKeyHash !== secretHash) throw new Error("Unauthorized") 
+    if (!company) throw new Error("Company not found");
 
   // 1. Fetch full call details from Leaddesk API
   const response = await axios.get(`https://api.leaddesk.com`, {

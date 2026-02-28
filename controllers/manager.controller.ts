@@ -50,12 +50,13 @@ export const getManagerById = async (id: number) => {
   });
 };
 
-export const getManagersPaginated = async (skip: number, take: number) => {
+export const getManagersPaginated = async (skip: number, take: number, companyId: number) => {
   const [total, data] = await prisma.$transaction([
     prisma.manager.count(),
     prisma.manager.findMany({
       skip,
       take,
+      where: { companyId },
       include: { company: { select: { name: true } } },
       orderBy: { id: 'asc' }
     })

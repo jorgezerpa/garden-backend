@@ -4,6 +4,8 @@ import authRouter from './auth.route';
 import adminRouter from './admin.route';
 import schemaRouter from './schema.route';
 import dataVisRouter from './dataVis.route';
+//
+import { authenticateJWT } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -13,12 +15,12 @@ const router = Router();
  */
 
 // Placeholder for your controller functions
-router.use('/leaddesk', leadDeskWebhookRouter);
 //
 router.use('/auth', authRouter); // login and register handler
-router.use('/admin', adminRouter); // login and register handler
-router.use('/schema', schemaRouter); // login and register handler
-router.use('/datavis', dataVisRouter); // login and register handler
+router.use('/admin', authenticateJWT, adminRouter); // login and register handler
+router.use('/schema', authenticateJWT, schemaRouter); // login and register handler
+router.use('/datavis', authenticateJWT, dataVisRouter); // login and register handler
+router.use('/leaddesk', leadDeskWebhookRouter);
 
 
 export default router;

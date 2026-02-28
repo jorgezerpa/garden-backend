@@ -3,11 +3,13 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from "../lib/prisma";
 import axios from 'axios';
+import { getJWT } from '../utils/authJWT';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
 
 describe('DataVis Integration with Webhook Seeding', () => {
+  let JWT = '';
 
   beforeEach(async () => {
     // 0. 
@@ -31,6 +33,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       admin_name: "Tester",
       password: "12345"
     });
+    
 
     ({ publicKey, secretKey } = responseRegister.body);
     const { companyId, userId } = responseRegister.body;
@@ -42,7 +45,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
     if(!company || !manager) throw("error in datavis tests while creating company")
 
     // Seed a daily schema for block-performance tests
-    await request(app).post('/api/schema/create').send({
+    await request(app).post('/api/schema/create').auth(JWT, { type: "bearer" }).send({
       name: "Standard",
       companyId: company.id,
       creatorId: manager.id,
@@ -105,15 +108,16 @@ describe('DataVis Integration with Webhook Seeding', () => {
       //     data: { type: 'SALE', agentId: 1, callId: lastCall!.id, timestamp: callDate }
       //   });
       // }
-
-
     }
+
+    JWT = await getJWT(app, "admin@test.com", "12345")
   });
 
   describe("Analytics Verification", () => {
     it('GET /daily-activity returns data spread across the month', async () => {
       const response = await request(app)
         .get('/api/datavis/daily-activity')
+        .auth(JWT, { type: "bearer" })
         .query({ companyId: 1, from: "2024-05-01", to: "2024-05-30" });
 
       expect(response.status).toBe(200);
@@ -125,6 +129,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
     it('GET /block-performance calculates stats correctly for seeded blocks', async () => {
       const response = await request(app)
         .get('/api/datavis/block-performance')
+        .auth(JWT, { type: "bearer" })
         .query({ companyId: 1, schemaId: 1, from: "2024-05-01", to: "2024-05-02" });
 
       expect(response.status).toBe(200);
@@ -136,6 +141,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
     it('GET /long-call-distribution categorizes our 100 calls', async () => {
       const response = await request(app)
         .get('/api/datavis/long-call-distribution')
+        .auth(JWT, { type: "bearer" })
         .query({ companyId: 1, from: "2024-05-01", to: "2024-06-01" });
 
       expect(response.status).toBe(200);
@@ -146,6 +152,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
     it('GET /seed-timeline-heatmap generates intensity values', async () => {
       const response = await request(app)
         .get('/api/datavis/seed-timeline-heatmap')
+        .auth(JWT, { type: "bearer" })
         .query({ companyId: 1, from: "2024-05-01", to: "2024-05-30" });
 
       expect(response.status).toBe(200);

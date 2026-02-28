@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../app';
 import { prisma } from "../lib/prisma";
+import { getJWT } from '../utils/authJWT';
 
 interface TableNameRow { tablename: string; }
 
 describe('Main administration system testing', () => {
+
+  let JWT = '';
 
   beforeEach(async () => {
     const tablenames = await prisma.$queryRawUnsafe<TableNameRow[]>(
@@ -27,14 +30,17 @@ describe('Main administration system testing', () => {
       admin_name: "Tester",
       password: "12345"
     });
+
+    JWT = await getJWT(app, "admin@test.com", "12345")
   });
 
   describe("Manager Endpoints", () => {
     
-    describe("POST /api/admin/addManager", () => {
+    describe("POST /api/admin/addManager", () => {``
       it('successfully adds a manager', async () => {
         const response = await request(app)
           .post('/api/admin/addManager')
+          .auth(JWT, { type: "bearer" })
           .send({ email: "manager@test.com", name: "John Doe", password: "12345", companyId: 1 });
 
         expect(response.status).toBe(201);
@@ -42,7 +48,7 @@ describe('Main administration system testing', () => {
       });
 
       it('returns 400 if fields are missing', async () => {
-        const response = await request(app).post('/api/admin/addManager').send({ name: "No Email" });
+        const response = await request(app).post('/api/admin/addManager').auth(JWT, { type: "bearer" }).send({ name: "No Email" });
         expect(response.status).toBe(400);
       });
     });
@@ -50,43 +56,44 @@ describe('Main administration system testing', () => {
     describe("PUT /api/admin/editManager/:id", () => {
       it('successfully updates a manager', async () => {
         // Create one first
-        await request(app).post('/api/admin/addManager').send({ 
+        await request(app).post('/api/admin/addManager').auth(JWT, { type: "bearer" }).send({ 
           email: "m@test.com", name: "Old Name", password: "123", companyId: 1 
         });
 
         const response = await request(app)
           .put('/api/admin/editManager/1')
+          .auth(JWT, { type: "bearer" })
           .send({ name: "New Name", email: "new@test.com" });
 
         expect(response.status).toBe(200);
       });
 
       it('returns 500 on update failure (invalid ID)', async () => {
-        const response = await request(app).put('/api/admin/editManager/999').send({ name: "Fail" });
+        const response = await request(app).put('/api/admin/editManager/999').auth(JWT, { type: "bearer" }).send({ name: "Fail" });
         expect(response.status).toBe(500);
       });
     });
 
     describe("GET /api/admin/getManager", () => {
       it('gets a manager by ID', async () => {
-        await request(app).post('/api/admin/addManager').send({ 
+        await request(app).post('/api/admin/addManager').auth(JWT, { type: "bearer" }).send({ 
           email: "find@test.com", name: "Find Me", password: "123", companyId: 1 
         });
 
-        const response = await request(app).get('/api/admin/getManager?id=2');
+        const response = await request(app).get('/api/admin/getManager?id=2').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(200);
         expect(response.body.email).toBe("find@test.com");
       });
 
       it('returns 404 if manager does not exist', async () => {
-        const response = await request(app).get('/api/admin/getManager?id=999');
+        const response = await request(app).get('/api/admin/getManager?id=999').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(404);
       });
     });
 
     describe("GET /api/admin/getManagersList", () => {
       it('returns paginated list', async () => {
-        const response = await request(app).get('/api/admin/getManagersList?page=1&limit=5');
+        const response = await request(app).get('/api/admin/getManagersList?page=1&limit=5').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body.data)).toBe(true);
         expect(response.body.total).toBe(1);
@@ -95,11 +102,11 @@ describe('Main administration system testing', () => {
 
     describe("DELETE /api/admin/removeManagers/:id", () => {
       it('deletes a manager', async () => {
-        await request(app).post('/api/admin/addManager').send({ 
+        await request(app).post('/api/admin/addManager').auth(JWT, { type: "bearer" }).send({ 
           email: "del@test.com", name: "Delete", password: "123", companyId: 1 
         });
 
-        const response = await request(app).delete('/api/admin/removeManagers/1');
+        const response = await request(app).delete('/api/admin/removeManagers/1').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(204);
       });
     });
@@ -111,6 +118,7 @@ describe('Main administration system testing', () => {
       it('successfully creates a goal', async () => {
         const response = await request(app)
           .post('/api/admin/goals/create')
+          .auth(JWT, { type: "bearer" })
           .send({
             name: "Goal 1",
             companyId: 1,
@@ -123,14 +131,14 @@ describe('Main administration system testing', () => {
       });
 
       it('returns 400 if required timing is missing', async () => {
-        const response = await request(app).post('/api/admin/goals/create').send({ companyId: 1 });
+        const response = await request(app).post('/api/admin/goals/create').auth(JWT, { type: "bearer" }).send({ companyId: 1 });
         expect(response.status).toBe(400);
       });
     });
 
     describe("GET /api/admin/goals/company/:companyId", () => {
       it('fetches goals for a specific company', async () => {
-        const response = await request(app).get('/api/admin/goals/company/1');
+        const response = await request(app).get('/api/admin/goals/company/1').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
       });
@@ -141,6 +149,7 @@ describe('Main administration system testing', () => {
         // Create a goal
         const goal = await request(app)
           .post('/api/admin/goals/create')
+          .auth(JWT, { type: "bearer" })
           .send({
             name: "Goal 1",
             companyId: 1,
@@ -150,6 +159,7 @@ describe('Main administration system testing', () => {
 
         const response = await request(app)
           .put(`/api/admin/goals/update/${goal.body.id}`)
+          .auth(JWT, { type: "bearer" })
           .send({ sales: 50 });
 
         expect(response.status).toBe(200);
@@ -161,6 +171,7 @@ describe('Main administration system testing', () => {
       it('removes a goal', async () => {
         const goal = await request(app)
           .post('/api/admin/goals/create')
+          .auth(JWT, { type: "bearer" })
           .send({
             name: "Goal 1",
             companyId: 1,
@@ -168,12 +179,12 @@ describe('Main administration system testing', () => {
             sales: 10
         });
 
-        const response = await request(app).delete(`/api/admin/goals/delete/${goal.body.id}`);
+        const response = await request(app).delete(`/api/admin/goals/delete/${goal.body.id}`).auth(JWT, { type: "bearer" });
         expect(response.status).toBe(204);
       });
 
       it('returns 500 if goal id does not exist', async () => {
-        const response = await request(app).delete('/api/admin/goals/delete/999');
+        const response = await request(app).delete('/api/admin/goals/delete/999').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(500);
       });
     });
@@ -188,6 +199,7 @@ describe('Main administration system testing', () => {
       // Create a goal to use for assignation tests
       const goalResponse = await request(app)
         .post('/api/admin/goals/create')
+        .auth(JWT, { type: "bearer" })
         .send({
           name: "Assignation Test Goal",
           companyId: 1,
@@ -201,6 +213,7 @@ describe('Main administration system testing', () => {
       it('successfully creates a new assignation', async () => {
         const response = await request(app)
           .post('/api/admin/upsert-assignation')
+          .auth(JWT, { type: "bearer" })
           .send({
             companyId: 1,
             date: "2026-05-20",
@@ -215,13 +228,14 @@ describe('Main administration system testing', () => {
 
       it('updates an existing assignation for the same date (upsert logic)', async () => {
         // First creation
-        await request(app).post('/api/admin/upsert-assignation').send({
+        await request(app).post('/api/admin/upsert-assignation').auth(JWT, { type: "bearer" }).send({
           companyId: 1, date: "2026-05-20", goalId: createdGoalId
         });
 
         // Update to same date with (hypothetically) different goal or same goal
         const response = await request(app)
           .post('/api/admin/upsert-assignation')
+          .auth(JWT, { type: "bearer" })
           .send({
             companyId: 1,
             date: "2026-05-20",
@@ -234,6 +248,7 @@ describe('Main administration system testing', () => {
       it('returns 400 if parameters are missing', async () => {
         const response = await request(app)
           .post('/api/admin/upsert-assignation')
+          .auth(JWT, { type: "bearer" })
           .send({ companyId: 1 }); // missing date and goalId
         expect(response.status).toBe(400);
       });
@@ -242,12 +257,12 @@ describe('Main administration system testing', () => {
     describe("GET /api/admin/assignation", () => {
       it('fetches assignations within a date range', async () => {
         // Create an assignation
-        await request(app).post('/api/admin/upsert-assignation').send({
+        await request(app).post('/api/admin/upsert-assignation').auth(JWT, { type: "bearer" }).send({
           companyId: 1, date: "2026-01-15", goalId: createdGoalId
         });
 
         const response = await request(app)
-          .get('/api/admin/assignation?companyId=1&from=2026-01-01&to=2026-01-31');
+          .get('/api/admin/assignation?companyId=1&from=2026-01-01&to=2026-01-31').auth(JWT, { type: "bearer" });
 
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
@@ -256,7 +271,7 @@ describe('Main administration system testing', () => {
       });
 
       it('returns 400 if range params are missing', async () => {
-        const response = await request(app).get('/api/admin/assignation?companyId=1');
+        const response = await request(app).get('/api/admin/assignation?companyId=1').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(400);
       });
     });
@@ -265,10 +280,11 @@ describe('Main administration system testing', () => {
       it('deletes by ID via params', async () => {
         const assignation = await request(app)
           .post('/api/admin/upsert-assignation')
+          .auth(JWT, { type: "bearer" })
           .send({ companyId: 1, date: "2026-12-01", goalId: createdGoalId });
 
         const response = await request(app)
-          .delete(`/api/admin/delete-assignation-by-id/${assignation.body.id}`);
+          .delete(`/api/admin/delete-assignation-by-id/${assignation.body.id}`).auth(JWT, { type: "bearer" });
         
         expect(response.status).toBe(200);
       });
@@ -276,22 +292,24 @@ describe('Main administration system testing', () => {
       it('deletes by companyId and date via query', async () => {
         await request(app)
           .post('/api/admin/upsert-assignation')
+          .auth(JWT, { type: "bearer" })
           .send({ companyId: 1, date: "2026-12-05", goalId: createdGoalId });
 
         const response = await request(app)
           .delete('/api/admin/delete-assignation-by-date') // ID 0 is ignored if query params exist based on your router logic
+          .auth(JWT, { type: "bearer" })
           .query({ companyId: 1, date: "2026-12-05" });
 
         expect(response.status).toBe(200);
       });
 
       it('returns 500 if trying to delete non-existent assignation (by id)', async () => {
-        const response = await request(app).delete('/api/admin/delete-assignation-by-id/9999');
+        const response = await request(app).delete('/api/admin/delete-assignation-by-id/9999').auth(JWT, { type: "bearer" });
         expect(response.status).toBe(500);
       });
 
       it('returns 500 if trying to delete non-existent assignation (by date)', async () => {
-        const response = await request(app).delete('/api/admin/delete-assignation-by-date').query({ companyId: 1, date: "2026-12-01" });
+        const response = await request(app).delete('/api/admin/delete-assignation-by-date').auth(JWT, { type: "bearer" }).query({ companyId: 1, date: "2026-12-01" });
         expect(response.status).toBe(500);
       });
 

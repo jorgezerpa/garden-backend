@@ -47,8 +47,6 @@ describe('DataVis Integration with Webhook Seeding', () => {
     // Seed a daily schema for block-performance tests
     await request(app).post('/api/schema/create').auth(JWT, { type: "bearer" }).send({
       name: "Standard",
-      companyId: company.id,
-      creatorId: manager.id,
       type: "DAILY",
       days: [
         {
@@ -118,7 +116,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/daily-activity')
         .auth(JWT, { type: "bearer" })
-        .query({ companyId: 1, from: "2024-05-01", to: "2024-05-30" });
+        .query({ from: "2024-05-01", to: "2024-05-30" });
 
       expect(response.status).toBe(200);
       // Since we did 100 calls every 7 hours, we should have nearly 30 days of data
@@ -130,7 +128,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/block-performance')
         .auth(JWT, { type: "bearer" })
-        .query({ companyId: 1, schemaId: 1, from: "2024-05-01", to: "2024-05-02" });
+        .query({ schemaId: 1, from: "2024-05-01", to: "2024-05-02" });
 
       expect(response.status).toBe(200);
       // Should find calls that fell into "Morning" (480-720 mins) or "Afternoon"
@@ -142,7 +140,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/long-call-distribution')
         .auth(JWT, { type: "bearer" })
-        .query({ companyId: 1, from: "2024-05-01", to: "2024-06-01" });
+        .query({ from: "2024-05-01", to: "2024-06-01" });
 
       expect(response.status).toBe(200);
       const tenPlus = response.body.find((b: any) => b.range === '10+ min');
@@ -153,7 +151,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/seed-timeline-heatmap')
         .auth(JWT, { type: "bearer" })
-        .query({ companyId: 1, from: "2024-05-01", to: "2024-05-30" });
+        .query({ from: "2024-05-01", to: "2024-05-30" });
 
       expect(response.status).toBe(200);
       // Check if intensities are in range 0-4

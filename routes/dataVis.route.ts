@@ -1,13 +1,15 @@
 import { Router, Request, Response } from 'express';
 import * as DataVisController from '../controllers/DataVis.controller';
 import { prisma } from "../lib/prisma"; // used for validations only. Should not be used to modifies DB
+import { JWTAuthRequest } from '../types/request';
 
 const dataVisRouter = Router();
 
 // GET /api/datavis/daily-activity?companyId=1&from=2024-05-01&to=2024-05-07
-dataVisRouter.get('/daily-activity', async (req: Request, res: Response) => {
+dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, from, to } = req.query;
+    const { from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
       return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
@@ -37,9 +39,10 @@ dataVisRouter.get('/daily-activity', async (req: Request, res: Response) => {
 });
 
 // BLOCKS VIEWS 
-dataVisRouter.get('/block-performance', async (req: Request, res: Response) => {
+dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, schemaId, from, to } = req.query;
+    const { schemaId, from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !schemaId || !from || !to) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -76,9 +79,10 @@ dataVisRouter.get('/block-performance', async (req: Request, res: Response) => {
 });
 
 
-dataVisRouter.get('/block-performance-filtered', async (req: Request, res: Response) => {
+dataVisRouter.get('/block-performance-filtered', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, schemaId, from, to, fromDayIndex, toDayIndex } = req.query;
+    const { schemaId, from, to, fromDayIndex, toDayIndex } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !schemaId || !from || !to || fromDayIndex === undefined || toDayIndex === undefined) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -123,9 +127,10 @@ dataVisRouter.get('/block-performance-filtered', async (req: Request, res: Respo
 
 
 // CALL DURATION 
-dataVisRouter.get('/long-call-distribution', async (req: Request, res: Response) => {
+dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, from, to } = req.query;
+    const { from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
       return res.status(400).json({ error: "Missing required parameters: companyId, from, to" });
@@ -152,9 +157,10 @@ dataVisRouter.get('/long-call-distribution', async (req: Request, res: Response)
 });
 
 // HEATMAP
-dataVisRouter.get('/seed-timeline-heatmap', async (req: Request, res: Response) => {
+dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, from, to } = req.query;
+    const { from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
       return res.status(400).json({ error: "Missing companyId, from, or to" });
@@ -182,9 +188,10 @@ dataVisRouter.get('/seed-timeline-heatmap', async (req: Request, res: Response) 
 
 
 // FUNNEL 
-dataVisRouter.get('/conversion-funnel', async (req: Request, res: Response) => {
+dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { companyId, from, to } = req.query;
+    const { from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
       return res.status(400).json({ error: "Missing required parameters" });
@@ -211,9 +218,10 @@ dataVisRouter.get('/conversion-funnel', async (req: Request, res: Response) => {
 });
 
 // STREAKS
-dataVisRouter.get('/consistency-streak', async (req: Request, res: Response) => {
+dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { goalId, companyId, from, to } = req.query;
+    const { goalId, from, to } = req.query;
+    const companyId = req.user?.companyId
 
     if (!goalId || !companyId || !from || !to) {
       return res.status(400).json({ error: "Missing required parameters" });

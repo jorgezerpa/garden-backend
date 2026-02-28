@@ -40,8 +40,6 @@ describe('Block schemas testing', () => {
     const validSchemaPayload = {
       name: "Standard Shift",
       type: "DAILY",
-      companyId: 1,
-      creatorId: 1,
       days: [
         {
           dayIndex: 0,
@@ -105,11 +103,11 @@ describe('Block schemas testing', () => {
       });
     });
 
-    describe("GET /api/schema/list/:companyId", () => {
+    describe("GET /api/schema/list", () => {
       it('returns a paginated list of schemas for a company', async () => {
         await request(app).post('/api/schema/create').auth(JWT, { type: "bearer" }).send(validSchemaPayload);
         
-        const response = await request(app).get('/api/schema/list/1?page=1&limit=10').auth(JWT, { type: "bearer" });
+        const response = await request(app).get('/api/schema/list?page=1&limit=10').auth(JWT, { type: "bearer" });
         
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('total');
@@ -164,9 +162,9 @@ describe('Block schemas testing', () => {
         expect(verify.status).toBe(404);
       });
 
-      it('returns 500 when deleting non-existent schema', async () => {
+      it('returns 404 when deleting non-existent schema', async () => {
         const response = await request(app).delete('/api/schema/999').auth(JWT, { type: "bearer" });
-        expect(response.status).toBe(500);
+        expect(response.status).toBe(404);
       });
     });
   

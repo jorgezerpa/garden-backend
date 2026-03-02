@@ -34,8 +34,9 @@ describe('DataVis Integration with Webhook Seeding', () => {
       password: "12345"
     });
     
-
-    ({ publicKey, secretKey } = responseRegister.body);
+    const responseKeysGeneration = await request(app).post('/api/auth/generate-key-pair').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" });
+    
+    ({ publicKey, secretKey } = responseKeysGeneration.body);
     const { companyId, userId } = responseRegister.body;
 
     const company = await prisma.company.findUnique({ where: { id: companyId } });

@@ -3,6 +3,8 @@ import { findUserByEmail } from '../controllers/Auth.controller';
 import { registerCompany, generateKeyPair } from '../controllers/Company.controller';
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 import jwt from 'jsonwebtoken';
+import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
+import { JWTAuthRequest } from '../types/request';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
@@ -36,10 +38,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       admin_name
     )
 
-    // 5. Generate initial key pair @dev would be better to allow manager to manually trigger this with a route like "generate_hash"? even if its the first time. SO we can give him feedback to store the pk or he can do it in a secure place
-    // @todo@IMPORTANT yes, do what says above, but by now, just generate it automatically for development speed
-    const { publicKey, secretKey } = await generateKeyPair(company.id)
-    return res.status(201).json({ companyId: company.id, userId: user.id, publicKey, secretKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+    return res.status(201).json({ companyId: company.id, userId: user.id });  
   } catch (error) {
     console.error("DEBUG ERROR:", error)
     return res.status(500).json({ error: "Internal Server Error" });
@@ -84,5 +83,23 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+// POST /api/auth/register
+authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing company" });
+    }
+
+    const { publicKey, secretKey } = await generateKeyPair(companyId)
+    return res.status(201).json({ publicKey, secretKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 export default authRouter;

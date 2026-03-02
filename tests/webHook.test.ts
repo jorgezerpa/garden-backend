@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from "../lib/prisma";
 import axios from 'axios';
+import { getJWT } from '../utils/authJWT';
 
 vi.mock('axios');
 
@@ -25,15 +26,15 @@ describe('LeadDesk Webhook Actual Data testing', () => {
     }
 
     // Setup Company id 1, also admin id 1
-    const response = await request(app).post('/api/auth/register').send({
+    await request(app).post('/api/auth/register').send({
       companyName: "Test Corp",
       admin_email: "admin@test.com",
       admin_name: "Tester",
       password: "12345"
     });
 
-    // wrap in parenthesis to assign to the outer variables
-    ({ publicKey, secretKey } = response.body);
+    const responseKeysGeneration = await request(app).post('/api/auth/generate-key-pair').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" });
+    ({ publicKey, secretKey } = responseKeysGeneration.body);
 
     vi.clearAllMocks();
   });

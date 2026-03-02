@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app';
 import { prisma } from "../lib/prisma";
 import jwt from 'jsonwebtoken';
+import { getJWT } from '../utils/authJWT';
 
 interface TableNameRow { tablename: string; }
 
@@ -133,5 +134,34 @@ describe('AUTH system testing', () => {
 
       expect(response.status).toBe(200);
     });
+  });
+
+  describe("POST /api/auth/generate-key-pair", () => {
+    beforeEach(async () => {
+      // Seed a company for login tests
+      await request(app).post('/api/auth/register').send({
+        companyName: "Test Corp",
+        admin_email: "login@test.com",
+        admin_name: "Tester",
+        password: "securepassword"
+      });
+    });
+
+    // --- HAPPY PATH ---
+    it('successfully generates a pair of keys', async () => {
+      const JWT = await getJWT(app, "login@test.com", "securepassword")
+      
+      const response = await request(app)
+        .post('/api/auth/generate-key-pair')
+        .auth(JWT, { type: "bearer" })
+
+      // 1. Assert Status
+      expect(response.status).toBe(201);
+
+      // Verify it has an expiration claim
+      expect(response.body.publicKey).toBeDefined();
+      expect(response.body.secretKey).toBeDefined();
+    });
+   
   });
 });

@@ -130,12 +130,12 @@ export const getAgentById = async (id: number) => {
 
 export const getAgentsPaginated = async (skip: number, take: number, companyId: number) => {
   const [total, data] = await prisma.$transaction([
-    prisma.agent.count(),
+    prisma.agent.count(), // @todo this returns 1 even if there is no 1 
     prisma.agent.findMany({
       skip,
       take,
       where: { companyId },
-      include: { company: { select: { name: true } } },
+      include: { company: { select: { name: true } }, user: { omit: { passwordHash:true } } },
       orderBy: { id: 'asc' }
     })
   ]);
@@ -149,6 +149,6 @@ export const deleteAgentAndUser = async (id: number) => {
     if (agent?.user) {
       await tx.user.delete({ where: { id: agent.user.id } });
     }
-    return await tx.manager.delete({ where: { id } });
+    return await tx.agent.delete({ where: { id } });
   });
 };

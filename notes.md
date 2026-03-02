@@ -21,6 +21,9 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Track in database the n of times a SPECIFIC AGENT calls a callee to count "waterings"
 - [DONE] Create table to track goals assignation to a specific period of time 
 - Not send the keys on register, instead, add an endpoint to generate them specifically for each app. (leaddesk, etc) and make the frontend ui for this
+- Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
+- some UI component does not seems okay in both modes light-dark
+- can not just delete users because calls will be like Batman (no parents) -> Implement a pause flag and filter on the query
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest 

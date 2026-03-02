@@ -153,7 +153,7 @@ adminRouter.get('/getAgentsList', async (req: JWTAuthRequest, res: Response) => 
   }
 });
 
-adminRouter.delete('/removeAgents/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/removeAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     await ManagerController.deleteAgentAndUser(id);

@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt';
 import * as ManagerController from '../controllers/manager.controller';
 import * as GoalsController from '../controllers/goals.controller';
 import { JWTAuthRequest } from '../types/request';
+import { UserStatus } from '../generated/prisma/enums';
 
 const adminRouter = Router();
 
@@ -125,13 +126,21 @@ adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, async (req: JWTAut
   }
 });
 
+// optional queries: includePaused, includeRemoved
 adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
+    
     if (!id) return res.status(400).json({ error: "ID is required" });
+    
+    // @todo@dev finish this filter implementation, I only write this commented 4 lines of below 
+    // const query = req.query;
+    // const statusToInclude:UserStatus[] = ["ACTIVE"] // by default only active
+    // if(query?.includePaused) statusToInclude.push("PAUSED") 
+    // if(query?.includeRemoved) statusToInclude.push("REMOVED") 
 
     const agent = await ManagerController.getAgentById(id);
-    return agent ? res.status(200).json(agent) : res.status(404).json({ error: "Not found" });
+    return (agent && agent.user?.status=="ACTIVE") ? res.status(200).json(agent) : res.status(404).json({ error: "Not found" });
   } catch (err) {
     return res.status(500).json({ error: "Search failed" });
   }

@@ -92,6 +92,12 @@ enum EventType {
   SALE
 }
 
+enum UserStatus {
+  PAUSED
+  ACTIVE
+  REMOVED // not return point, but we keep it due to historical reasons
+}
+
 model User {
   id            Int      @id @default(autoincrement())
   email         String   @unique
@@ -112,6 +118,7 @@ model User {
   agentProfile   Agent?   @relation(fields: [agentId], references: [id])
   agentId        Int?     @unique
 
+  status         UserStatus @default(ACTIVE) // REMOVED is used when "deleted" -> we can not delete it directly due to historical data. 
   // Constraint: One MAIN_ADMIN per company
   // This is enforced via a unique partial index in the DB (see note below)
 }

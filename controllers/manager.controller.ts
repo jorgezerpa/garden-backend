@@ -128,27 +128,58 @@ export const getAgentById = async (id: number) => {
   });
 };
 
+
 export const getAgentsPaginated = async (skip: number, take: number, companyId: number) => {
+
   const [total, data] = await prisma.$transaction([
-    prisma.agent.count(), // @todo this returns 1 even if there is no 1 
+    // Apply the filter here so the count matches the result set
+    prisma.agent.count({
+      where: {
+        companyId,
+        user: {
+          status: "ACTIVE",
+        },
+      },
+    }),
     prisma.agent.findMany({
       skip,
       take,
-      where: { companyId },
-      include: { company: { select: { name: true } }, user: { omit: { passwordHash:true } } },
-      orderBy: { id: 'asc' }
-    })
+      where: {
+        companyId,
+        user: {
+          status: "ACTIVE",
+        },
+      },
+      include: {
+        company: { select: { name: true } },
+        user: { omit: { passwordHash: true } },
+      },
+      orderBy: { id: 'asc' },
+    }),
   ]);
+
   return { total, data };
 };
 
+
+// export const deleteAgentAndUser = async (id: number) => {
+//   return await prisma.$transaction(async (tx) => {
+//     // Note: Due to your schema, we should delete the user profile associated
+//     const agent = await tx.agent.findUnique({ where: { id }, include: { user: true } });
+//     if (agent?.user) {
+//       await tx.user.delete({ where: { id: agent.user.id } });
+//     }
+//     return await tx.agent.delete({ where: { id } });
+//   });
+// };
+// WE CAN NOT DELETE to being able to keep historical data, so we just change user status to REMOVED
 export const deleteAgentAndUser = async (id: number) => {
-  return await prisma.$transaction(async (tx) => {
-    // Note: Due to your schema, we should delete the user profile associated
-    const agent = await tx.agent.findUnique({ where: { id }, include: { user: true } });
-    if (agent?.user) {
-      await tx.user.delete({ where: { id: agent.user.id } });
+  const agent = await prisma.agent.findUnique({ where: { id }, include: { user:true } })
+  console.log(agent)
+  return await prisma.user.update({
+    where: { id: agent?.user?.id },
+    data: {
+      status: "REMOVED"
     }
-    return await tx.agent.delete({ where: { id } });
   });
 };

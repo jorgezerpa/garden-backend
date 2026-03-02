@@ -108,11 +108,11 @@ describe('Admin CRUD testing', () => {
       });
     });
 
-    describe("DELETE /api/admin/removeAgents/:id", () => {
+    describe("DELETE /api/admin/removeAgent/:id", () => {
       it('deletes a agent', async () => {
         const agentId = await createAgent(app, JWT)
 
-        const response = await request(app).delete(`/api/admin/removeAgents/${agentId}`).auth(JWT, { type: "bearer" });
+        const response = await request(app).delete(`/api/admin/removeAgent/${agentId}`).auth(JWT, { type: "bearer" });
         expect(response.status).toBe(204);
       });
     });

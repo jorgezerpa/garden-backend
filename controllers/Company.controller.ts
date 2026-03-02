@@ -70,6 +70,14 @@ export const generateKeyPair = async (companyId: number) => {
   };
 };
 
+export const deleteKeyPair = async (companyId: number): Promise<void> => {
+  await prisma.aPIKeysAuth.delete({
+    where: {
+      companyId: companyId,
+    },
+  });
+};
+
 export const getPublicKey = async (companyId: number) => {
   // 3. Save to Database
   const r = await prisma.aPIKeysAuth.findUnique({

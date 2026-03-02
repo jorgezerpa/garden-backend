@@ -74,3 +74,81 @@ export const deleteManagerAndUser = async (id: number) => {
     return await tx.manager.delete({ where: { id } });
   });
 };
+
+
+////////////////////////////////
+////////////////////////////////
+////////////////////////////////
+
+export const createAgentWithUser = async (data: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  companyId: number;
+}) => {
+  // We use a transaction to ensure both User and Manager profiles are created
+  return await prisma.$transaction(async (tx) => {
+    const agent = await tx.agent.create({
+      data: {
+        name: data.name,
+        companyId: data.companyId,
+      },
+    });
+
+    const user = await tx.user.create({
+      data: {
+        email: data.email,
+        passwordHash: data.passwordHash,
+        role: 'AGENT',
+        companyId: data.companyId,
+        agentId: agent.id,
+      },
+    });
+
+    return { agentId: agent.id, userId: user.id };
+  });
+};
+
+// @todo should be able to update password too, in case agent forgets it 
+export const updateAgentData = async (id: number, data: { name?: string; email?: string }) => {
+  return await prisma.agent.update({
+    where: { id },
+    data: {
+      name: data.name,
+      // If email changes, the linked User email should also change
+      user: data.email ? { update: { email: data.email } } : undefined
+    }
+  });
+};
+
+export const getAgentById = async (id: number) => {
+  return await prisma.agent.findUnique({
+    where: { id },
+    include: { user: true, company: true }
+  });
+};
+
+export const getAgentsPaginated = async (skip: number, take: number, companyId: number) => {
+  const [total, data] = await prisma.$transaction([
+    prisma.agent.count(),
+    prisma.agent.findMany({
+      skip,
+      take,
+      where: { companyId },
+      include: { company: { select: { name: true } } },
+      orderBy: { id: 'asc' }
+    })
+  ]);
+  return { total, data };
+};
+
+export const deleteAgentAndUser = async (id: number) => {
+  return await prisma.$transaction(async (tx) => {
+    // Note: Due to your schema, we should delete the user profile associated
+    const agent = await tx.agent.findUnique({ where: { id }, include: { user: true } });
+    if (agent?.user) {
+      await tx.user.delete({ where: { id: agent.user.id } });
+    }
+    return await tx.manager.delete({ where: { id } });
+  });
+};

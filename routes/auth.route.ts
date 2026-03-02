@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { findUserByEmail } from '../controllers/Auth.controller';
-import { registerCompany, generateKeyPair } from '../controllers/Company.controller';
+import { registerCompany, generateKeyPair, getPublicKey } from '../controllers/Company.controller';
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 import jwt from 'jsonwebtoken';
 import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
@@ -85,7 +85,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 });
 
 
-// POST /api/auth/register
+// POST /api/auth/generate-key-pair
 authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
   try {
     const companyId = req.user?.companyId
@@ -96,6 +96,27 @@ authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN
 
     const { publicKey, secretKey } = await generateKeyPair(companyId)
     return res.status(201).json({ publicKey, secretKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/get-public-key
+authRouter.get('/get-public-key', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing company" });
+    }
+    
+    const { publicKey } = await getPublicKey(companyId)
+    
+    if (!publicKey) {
+      return res.status(400).json({ error: "No public key" });
+    }
+
+    return res.status(200).json({ publicKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }

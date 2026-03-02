@@ -154,6 +154,10 @@ describe('AUTH system testing', () => {
       const response = await request(app)
         .post('/api/auth/generate-key-pair')
         .auth(JWT, { type: "bearer" })
+      
+      const keyResponse = await request(app)
+      .get('/api/auth/get-public-key')
+      .auth(JWT, { type: "bearer" })
 
       // 1. Assert Status
       expect(response.status).toBe(201);
@@ -161,6 +165,7 @@ describe('AUTH system testing', () => {
       // Verify it has an expiration claim
       expect(response.body.publicKey).toBeDefined();
       expect(response.body.secretKey).toBeDefined();
+      expect(response.body.publicKey).toBe(keyResponse.body.publicKey);
     });
    
   });

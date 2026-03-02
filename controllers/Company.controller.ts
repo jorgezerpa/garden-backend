@@ -69,3 +69,14 @@ export const generateKeyPair = async (companyId: number) => {
     secretKey: rawSecretKey, 
   };
 };
+
+export const getPublicKey = async (companyId: number) => {
+  // 3. Save to Database
+  const r = await prisma.aPIKeysAuth.findUnique({
+    where: { companyId },
+  });
+
+  return {
+    publicKey: r?.publicKey
+  };
+};

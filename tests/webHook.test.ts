@@ -50,7 +50,8 @@ describe('LeadDesk Webhook Actual Data testing', () => {
       .send({
         email: `agent@test.com`,
         name: `John Due`,
-        password: "123456"
+        password: "123456",
+        leadDeskId: "1"
       })
 
       // 1. Precise LeadDesk Mock Data
@@ -120,13 +121,16 @@ describe('LeadDesk Webhook Actual Data testing', () => {
             data: { phoneNumber: "+358123123", totalAttempts: 5 }
         });
 
+        // create agent
         await request(app)
           .post('/api/admin/addAgent')
           .auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" })
           .send({
-            email: `agent}@test.com`,
+            email: `agent@test.com`,
             name: `John Due`,
-            password: "123456"
+            password: "123456",
+            leadDeskId: "1"
+
           })
 
         const mockData = { // only used data, to simplify

@@ -9,6 +9,7 @@ const AUTH = ""; // Leaddesk Auth Token
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
 export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<Call> => {
+    // 0. Check for company
     const company = await prisma.company.findUnique({
         where: { id: companyId },
     });
@@ -27,11 +28,21 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
 
   const ld = response.data; // Leaddesk data object
 
+  const agentToThird = await prisma.agentToThird.findUnique({
+    where: {
+      serviceIdentifier_agentServiceIdentifier: { serviceIdentifier: "LEADDESK", agentServiceIdentifier: String(ld.agent_id) }
+    }
+  })
+
+  if(!agentToThird) throw(new Error("Agent has no relation with this third party service"))
+
   const agent = await prisma.agent.findUnique({
-    where: { id: parseInt(ld.agent_id), companyId: company.id } // important to add companyId, because could be repeated @todo@dev add constraint companyId-agentId
+    where: { companyId: company.id, id: agentToThird.agentId },
+    include: { user: true } 
   })
 
   if(!agent) throw(new Error("Agent does not exists"))
+  if(agent.user?.status!="ACTIVE") throw(new Error("Agent is not active"))
 
   // 2. Database Sync Logic
   return await prisma.$transaction(async (tx) => {

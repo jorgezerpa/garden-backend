@@ -70,21 +70,31 @@ describe('Basic Mock Generator', () => {
 
     // 3. Create agents in smaller chunks to avoid DB deadlocks
     const agentData = Array.from({ length: 100 }, (_, i) => ({
-        email: `agent${i}@test.com`,
-        name: `John-${i} Due`,
-        password: "123456"
+        email: `agent${i+1}@test.com`,
+        name: `John-${i+1} Due`,
+        password: "123456",
+        leadDeskId: String(i+1)
     }));
 
-    // Using chunks of 10 to be safer
-    for (let i = 0; i < agentData.length; i += 10) {
-        const chunk = agentData.slice(i, i + 10);
-        await Promise.all(chunk.map(agent => 
-            request(app)
-                .post('/api/admin/addAgent')
-                .auth(token, { type: "bearer" })
-                .send(agent)
-        ));
-        console.log(`Created agents up to ${i + 10}`);
+    // USE THIS TO GENERATE USERS IN NO ORDER -> so leaddesk id does not match with id -> is useful and real life simulating. But, for debuggin, I prefer keep them sync
+    // for (let i = 0; i < agentData.length; i += 10) {
+    //     const chunk = agentData.slice(i, i + 10);
+    //     await Promise.all(chunk.map(agent => 
+    //         request(app)
+    //             .post('/api/admin/addAgent')
+    //             .auth(token, { type: "bearer" })
+    //             .send(agent)
+    //             .expect(201)
+    //     ));
+    //     // console.log(`Created agents up to ${i + 10}`);
+    // }
+
+    for (const agent of agentData) {
+      await request(app)
+          .post('/api/admin/addAgent')
+          .auth(token, { type: 'bearer' })
+          .send(agent)
+          .expect(201);
     }
 
     // 4. Simulate webhook calls
@@ -93,7 +103,7 @@ describe('Basic Mock Generator', () => {
     const startDate = new Date("2024-05-01T09:00:00Z");
     const authHeader = `Basic ${Buffer.from(`${responseKeysGeneration.body.publicKey}:${responseKeysGeneration.body.secretKey}`).toString('base64')}`;
 
-    console.log(`Starting webhook simulation for ${totalCalls} calls...`);
+    // console.log(`Starting webhook simulation for ${totalCalls} calls...`);
 
     for (let i = 0; i < totalCalls; i += chunkSize) {
         const currentChunkSize = Math.min(chunkSize, totalCalls - i);
@@ -109,7 +119,7 @@ describe('Basic Mock Generator', () => {
                 data: {
                     id: `${callIndex}`,
                     agent_id: Math.floor(Math.random() * 100) + 1, 
-                    agent_username: "Agent_1",
+                    agent_username: "Agent_X",
                     talk_time: talkTime.toString(),
                     talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],
                     talk_end: new Date(callDate.getTime() + talkTime * 1000).toISOString().replace('T', ' ').split('.')[0],
@@ -129,7 +139,7 @@ describe('Basic Mock Generator', () => {
 
         // 3. Execute the chunk in parallel
         await Promise.all(chunkPromises);
-        console.log(`Processed webhooks ${i + currentChunkSize}/${totalCalls}`);
+        // console.log(`Processed webhooks ${i + currentChunkSize}/${totalCalls}`);
     }
 
 }, 60000); // <--- INCREASED TIMEOUT

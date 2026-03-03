@@ -12,7 +12,7 @@ export async function createManager(app: Application, JWT: string):Promise<numbe
 
 export async function createAgent(app: Application, JWT: string):Promise<number>  {
     const creationResponse = await request(app).post('/api/admin/addAgent').auth(JWT, { type: "bearer" }).send({ 
-      email: "m@test.com", name: "Old Name", password: "123"
+      email: "m@test.com", name: "Old Name", password: "123", leadDeskId: "1"
     });
     const { agentId } = creationResponse.body
 

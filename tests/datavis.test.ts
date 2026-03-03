@@ -83,7 +83,8 @@ describe('DataVis Integration with Webhook Seeding', () => {
       .send({
         email: `agent@test.com`,
         name: `John Due`,
-        password: "123456"
+        password: "123456",
+        leadDeskId: "1"
       })
     
     for (let i = 0; i < 100; i++) {

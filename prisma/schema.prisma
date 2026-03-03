@@ -98,6 +98,10 @@ enum UserStatus {
   REMOVED // not return point, but we keep it due to historical reasons
 }
 
+enum THIRD_PARTY_SERVICES {
+  LEADDESK
+}
+
 model User {
   id            Int      @id @default(autoincrement())
   email         String   @unique
@@ -166,16 +170,34 @@ model Manager {
 }
 
 model Agent {
-  id                      Int            @id @default(autoincrement())
-  name                    String
-  company                 Company        @relation(fields: [companyId], references: [id])
-  companyId               Int
-  calls                   Call[]
-  feelings                AgentState[]
-  events                  FunnelEvent[]
-  user                    User?
-  totalAttempsPerCallee   agentToCallee[]
+  id                    Int             @id @default(autoincrement())
+  name                  String
+  company               Company         @relation(fields: [companyId], references: [id])
+  companyId             Int
+  calls                 Call[]
+  feelings              AgentState[]
+  events                FunnelEvent[]
+  user                  User?
+  totalAttempsPerCallee agentToCallee[]
+  agentToThird          AgentToThird[] 
 }
+
+model AgentToThird {
+  id                     Int                  @id @default(autoincrement())
+  serviceIdentifier      THIRD_PARTY_SERVICES 
+  agentServiceIdentifier String 
+
+  // Relation fields
+  agent                  Agent                @relation(fields: [agentId], references: [id])
+  agentId                Int
+
+  @@unique([agentId, serviceIdentifier]) // agent can have only 1 relation for the same service
+  @@unique([serviceIdentifier, agentServiceIdentifier]) // only 1 agent service identifier per service
+}
+
+
+
+
 
 model Callee {
   id                     Int            @id @default(autoincrement())
@@ -239,7 +261,7 @@ model SchemaBlock {
 
 model Call {
   id                Int              @id @default(autoincrement())
-  leadDeskId        String?             // Not unique because can variate per company. Also, this is temporary, will be better to create another table so we can handle multiple services aside leaddesk 
+  leadDeskId        String?           //@todo  // Not unique because can variate per company. Also, this is temporary, will be better to create another table so we can handle multiple services aside leaddesk 
   agent             Agent            @relation(fields: [agentId], references: [id])
   agentId           Int
   callee            Callee           @relation(fields: [calleeId], references: [id])

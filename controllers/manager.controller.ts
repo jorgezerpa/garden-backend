@@ -1,3 +1,4 @@
+import { THIRD_PARTY_SERVICES } from "../generated/prisma/enums";
 import {prisma} from "../lib/prisma"
 
 export const createManagerWithUser = async (data: {
@@ -110,21 +111,64 @@ export const createAgentWithUser = async (data: {
 };
 
 // @todo should be able to update password too, in case agent forgets it 
-export const updateAgentData = async (id: number, data: { name?: string; email?: string }) => {
+export const updateAgentData = async (
+  id: number, 
+  data: { 
+    name?: string; 
+    email?: string; 
+    thirdPartyService?: { 
+      agentServiceIdentifier: string; 
+      serviceIdentifier: THIRD_PARTY_SERVICES 
+    } 
+  }
+) => {
   return await prisma.agent.update({
     where: { id },
     data: {
       name: data.name,
-      // If email changes, the linked User email should also change
-      user: data.email ? { update: { email: data.email } } : undefined
+      // Nested update for User only if email is provided
+      user: data.email ? { update: { email: data.email } } : undefined,
+      
+      // We use the "upsert" approach or conditional logic for the relation
+      agentToThird: data.thirdPartyService ? {
+        upsert: {
+          where: { 
+            agentId_serviceIdentifier: { 
+              agentId: id, 
+              serviceIdentifier: data.thirdPartyService.serviceIdentifier 
+            } 
+          },
+          update: {
+            agentServiceIdentifier: data.thirdPartyService.agentServiceIdentifier
+          },
+          create: {
+            serviceIdentifier: data.thirdPartyService.serviceIdentifier,
+            agentServiceIdentifier: data.thirdPartyService.agentServiceIdentifier
+          }
+        }
+      } : undefined
     }
   });
+};
+
+export const upsertAgentThirdParty = async (id: number, data: { serviceIdentifier: THIRD_PARTY_SERVICES, agentServiceIdentifier: string }) => {
+  return await prisma.agentToThird.upsert({
+    where: { agentId_serviceIdentifier: { agentId: id, serviceIdentifier: data.serviceIdentifier } },
+    create: {
+      agentId: id, 
+      serviceIdentifier: data.serviceIdentifier, 
+      agentServiceIdentifier: data.agentServiceIdentifier,
+    },
+    update: {
+      agentServiceIdentifier: data.agentServiceIdentifier
+    }
+  })
 };
 
 export const getAgentById = async (id: number) => {
   return await prisma.agent.findUnique({
     where: { id },
-    include: { user: true, company: true }
+    include: { user: true, company: true, agentToThird: true }
   });
 };
 
@@ -153,6 +197,7 @@ export const getAgentsPaginated = async (skip: number, take: number, companyId: 
       include: {
         company: { select: { name: true } },
         user: { omit: { passwordHash: true } },
+        agentToThird: true
       },
       orderBy: { id: 'asc' },
     }),
@@ -175,7 +220,6 @@ export const getAgentsPaginated = async (skip: number, take: number, companyId: 
 // WE CAN NOT DELETE to being able to keep historical data, so we just change user status to REMOVED
 export const deleteAgentAndUser = async (id: number) => {
   const agent = await prisma.agent.findUnique({ where: { id }, include: { user:true } })
-  console.log(agent)
   return await prisma.user.update({
     where: { id: agent?.user?.id },
     data: {

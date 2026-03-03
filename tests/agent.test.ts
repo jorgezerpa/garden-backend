@@ -42,7 +42,7 @@ describe('Admin CRUD testing', () => {
         const response = await request(app)
           .post('/api/admin/addAgent')
           .auth(JWT, { type: "bearer" })
-          .send({ email: "agent@test.com", name: "John Doe", password: "12345" });
+          .send({ email: "agent@test.com", name: "John Doe", password: "12345", leadDeskId: "1" });
 
         expect(response.status).toBe(201);
         expect(response.body).toHaveProperty('agentId');
@@ -62,7 +62,7 @@ describe('Admin CRUD testing', () => {
         const response = await request(app)
           .put(`/api/admin/editAgent/${agentId}`)
           .auth(JWT, { type: "bearer" })
-          .send({ name: "New Name", email: "new@test.com" });
+          .send({ name: "New Name", email: "new@test.com", leadDeskId: "1" });
 
         expect(response.status).toBe(200);
       });

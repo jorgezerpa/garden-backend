@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import * as ManagerController from '../controllers/manager.controller';
 import * as GoalsController from '../controllers/goals.controller';
 import { JWTAuthRequest } from '../types/request';
-import { UserStatus } from '../generated/prisma/enums';
+import { THIRD_PARTY_SERVICES, UserStatus } from '../generated/prisma/enums';
 
 const adminRouter = Router();
 
@@ -87,15 +87,16 @@ adminRouter.delete('/removeManagers/:id', checkManagerBelongsToCompany, async (r
 
 
 ////////////////////////////////////
-////////////////////////////////////
+//////////////////////////////////// AGENTS CRUD
 ////////////////////////////////////
 
 adminRouter.post('/addAgent', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { email, name, password } = req.body;
+    const { email, name, password, leadDeskId } = req.body;
     const companyId = req.user?.companyId
 
-    if (!email || !name || !password || !companyId) {
+    const isMissingLeadDesk = leadDeskId === undefined || leadDeskId === null || String(leadDeskId).trim() === "";
+    if (!email || !name || !password || !companyId || isMissingLeadDesk) {
       return res.status(400).json({ error: "Missing required agent fields" });
     }
 
@@ -108,6 +109,9 @@ adminRouter.post('/addAgent', async (req: JWTAuthRequest, res: Response) => {
       companyId: Number(companyId)
     });
 
+    // relate user with a Leaddesk profile
+    await ManagerController.upsertAgentThirdParty(result.agentId, { agentServiceIdentifier: leadDeskId, serviceIdentifier:"LEADDESK" })
+
     return res.status(201).json(result);
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -117,9 +121,14 @@ adminRouter.post('/addAgent', async (req: JWTAuthRequest, res: Response) => {
 adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { name, email } = req.body;
+    const { name, email, leadDeskId } = req.body;
 
-    const updated = await ManagerController.updateAgentData(id, { name, email });
+    const updateObject: {name?:string, email?:string, thirdPartyService?: { agentServiceIdentifier: string, serviceIdentifier:THIRD_PARTY_SERVICES } } = {}
+    updateObject.name = name
+    updateObject.email = email
+    if(leadDeskId) updateObject.thirdPartyService = { agentServiceIdentifier: leadDeskId, serviceIdentifier:"LEADDESK" }
+
+    const updated = await ManagerController.updateAgentData(id, updateObject);
     return res.status(200).json(updated);
   } catch (err) {
     return res.status(500).json({ error: "Update failed" });

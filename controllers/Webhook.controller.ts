@@ -27,6 +27,12 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
 
   const ld = response.data; // Leaddesk data object
 
+  const agent = await prisma.agent.findUnique({
+    where: { id: parseInt(ld.agent_id), companyId: company.id } // important to add companyId, because could be repeated @todo@dev add constraint companyId-agentId
+  })
+
+  if(!agent) throw(new Error("Agent does not exists"))
+
   // 2. Database Sync Logic
   return await prisma.$transaction(async (tx) => {
     
@@ -37,19 +43,6 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
       create: { 
         phoneNumber: ld.number,
         totalAttempts: 1 
-      },
-    });
-
-    // Ensure the Agent exists (Upserting based on Leaddesk Agent ID)
-    // We use ID from LD as our primary ID in this logic
-    // @todo revert if user has not being created, this is the simpler approach by now for small call centers. 
-    const agent = await tx.agent.upsert({
-      where: { id: parseInt(ld.agent_id) },
-      update: {},
-      create: {
-        id: parseInt(ld.agent_id),
-        name: ld.agent_username,
-        companyId: company.id, // @dev taking it from auth params, another option could be: use the "other_" props on the response
       },
     });
 

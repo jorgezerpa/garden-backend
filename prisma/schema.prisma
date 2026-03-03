@@ -196,7 +196,6 @@ model agentToCallee {
   totalAttemps    Int    @default(0)
 
   @@unique([agentId, calleeId])
-  
 }
 
 // --- BLOCKS MASKS ---

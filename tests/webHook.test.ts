@@ -44,10 +44,19 @@ describe('LeadDesk Webhook Actual Data testing', () => {
     it('successfully processes the exact LeadDesk payload structure', async () => {
       const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
 
+      await request(app)
+      .post('/api/admin/addAgent')
+      .auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" })
+      .send({
+        email: `agent@test.com`,
+        name: `John Due`,
+        password: "123456"
+      })
+
       // 1. Precise LeadDesk Mock Data
       const mockLeadDeskData = {
         id: "4999",
-        agent_id: "11",
+        agent_id: "1",
         agent_username: "teuvotest",
         talk_time: "45",
         talk_start: "2016-01-01 12:13:14",
@@ -93,8 +102,8 @@ describe('LeadDesk Webhook Actual Data testing', () => {
       
       // Check data type conversions
       expect(dbCall?.durationSeconds).toBe(45); // Parsed from "45"
-      expect(dbCall?.agentId).toBe(11);          // Parsed from "11"
-      expect(dbCall?.agent.name).toBe("teuvotest");
+      expect(dbCall?.agentId).toBe(1);          // Parsed from "11"
+      expect(dbCall?.agent.name).toBe("John Due");
       expect(dbCall?.callee.phoneNumber).toBe("+358123123");
 
       // Check Date parsing (LeadDesk space format to JS Date)
@@ -111,9 +120,18 @@ describe('LeadDesk Webhook Actual Data testing', () => {
             data: { phoneNumber: "+358123123", totalAttempts: 5 }
         });
 
+        await request(app)
+          .post('/api/admin/addAgent')
+          .auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" })
+          .send({
+            email: `agent}@test.com`,
+            name: `John Due`,
+            password: "123456"
+          })
+
         const mockData = { // only used data, to simplify
             id: "5000",
-            agent_id: "11",
+            agent_id: "1",
             agent_username: "teuvotest",
             talk_time: "10",
             talk_start: "2024-01-01 10:00:00",

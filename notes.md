@@ -27,3 +27,4 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest 
+- agentId of the agent table must be the same than the one in leaddesk 

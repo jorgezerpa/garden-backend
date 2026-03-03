@@ -75,6 +75,16 @@ describe('DataVis Integration with Webhook Seeding', () => {
     const startDate = new Date("2024-05-01T09:00:00Z");
 
     const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
+
+    // register agent
+    await request(app)
+      .post('/api/admin/addAgent')
+      .auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" })
+      .send({
+        email: `agent@test.com`,
+        name: `John Due`,
+        password: "123456"
+      })
     
     for (let i = 0; i < 100; i++) {
       const callDate = new Date(startDate.getTime() + i * (7 * 60 * 60 * 1000)); // Every 7 hours
@@ -83,7 +93,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           id: `${i}`,
-          agent_id: "1", // @dev just 1 agent to check, I can add more, @TODO check if this is taking from agents table not users
+          agent_id: "1", 
           agent_username: "Agent_1",
           talk_time: talkTime.toString(),
           talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],

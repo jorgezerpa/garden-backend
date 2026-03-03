@@ -42,6 +42,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
 
     // Ensure the Agent exists (Upserting based on Leaddesk Agent ID)
     // We use ID from LD as our primary ID in this logic
+    // @todo revert if user has not being created, this is the simpler approach by now for small call centers. 
     const agent = await tx.agent.upsert({
       where: { id: parseInt(ld.agent_id) },
       update: {},

@@ -15,6 +15,10 @@ schemaRouter.post('/create', async (req: JWTAuthRequest, res: Response) => {
       return res.status(400).json({ error: "Missing required schema structure" });
     }
 
+    if(type!=="DAILY") return res.status(403).json({error:"Only daily schemas are allowed by now. We are working on weekly and monthly"})
+    if(days.length==0 || days.length > 1) return res.status(400).json({ error: "Invalid array length for schema type." })
+    if(days[0].dayIndex != 0) return res.status(400).json({ error: "Invalid dayIndex for daily type schema. Must be 0" })
+
     const result = await SchemaController.createSchema({
       name,
       type,

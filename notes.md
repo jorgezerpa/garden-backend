@@ -24,6 +24,11 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
 - some UI component does not seems okay in both modes light-dark
 - can not just delete users because calls will be like Batman (no parents) -> Implement a pause flag and filter on the query
+- Heatmap endpoint -> send items always from monday as first day
+- create new conversion funnel endpoint and adapt frontend grapch to it 
+- create endpoint for user comparisson page 
+- add inputs to get latest data date
+- modify blocks schemas. Now only 1 type -> daily
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest 

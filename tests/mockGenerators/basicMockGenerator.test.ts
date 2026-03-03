@@ -52,17 +52,24 @@ describe('Basic Mock Generator', () => {
               dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (id DB are, but better be sure)
               blocks: [
                 {
-                  startMinutesFromMidnight: 480,
-                  endMinutesFromMidnight: 720,
+                  startMinutesFromMidnight: 7*60,
+                  endMinutesFromMidnight: 12*60,
                   blockType: "WORKING",
                   name: "Morning block 1"
                 },
                 {
-                  startMinutesFromMidnight: 720,
-                  endMinutesFromMidnight: 1080,
-                  blockType: "WORKING",
-                  name: "Morning block 2"
+                  startMinutesFromMidnight: 12*60,
+                  endMinutesFromMidnight: 13*60,
+                  blockType: "REST",
+                  name: "Lunch break"
                 },
+                {
+                  startMinutesFromMidnight: 13*60,
+                  endMinutesFromMidnight: 17*60,
+                  blockType: "WORKING",
+                  name: "Afternoon block 1"
+                },
+
               ] 
             }
           ]

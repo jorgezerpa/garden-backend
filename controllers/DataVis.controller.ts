@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { EventType } from "../generated/prisma/client";
+import { EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
 
 
 // @todo -> add an input "users" so get the data of a specific users list 
@@ -62,63 +62,91 @@ export const getBlockPerformance = async (
   companyId: number,
   startDate: Date,
   endDate: Date,
-  schemaId: number
+  schemaId: number,
+  filters: { days: boolean[]; types: boolean[] }
 ) => {
-  // 1. Fetch the Schema with all its days and blocks
+
+  // 1. Map the 'types' boolean array to BlockType enums
+  // Index 0: WORKING, 1: REST, 2: EXTRA_TIME
+  const activeBlockTypes: BlockType[] = [];
+  if (filters.types[0]) activeBlockTypes.push(BlockType.WORKING);
+  if (filters.types[1]) activeBlockTypes.push(BlockType.REST);
+  if (filters.types[2]) activeBlockTypes.push(BlockType.EXTRA_TIME);
+
+  // 2. Fetch the Schema with the day and block filters applied at the DB level where possible
   const schema = await prisma.schema.findUnique({
     where: { id: schemaId },
     include: {
       schemaDays: {
-        include: { blocks: true }
+        include: {
+          blocks: {
+            // Filter by block type (Working/Rest/Extra)
+            where: { blockType: { in: activeBlockTypes } }
+          }
+        }
       }
     }
   });
 
   if (!schema) throw new Error("Schema not found");
 
-  // 2. Fetch all calls and events in the range for this company
+  // 3. Fetch all calls (we fetch all in range, then map them to the allowed filtered blocks)
+  const activeDays: WEEK_DAYS[] = [];
+  if (filters.days[0]) activeDays.push(WEEK_DAYS.MONDAY);
+  if (filters.days[1]) activeDays.push(WEEK_DAYS.TUESDAY);
+  if (filters.days[2]) activeDays.push(WEEK_DAYS.WEDNESDAY);
+  if (filters.days[3]) activeDays.push(WEEK_DAYS.THURSDAY);
+  if (filters.days[4]) activeDays.push(WEEK_DAYS.FRIDAY);
+  if (filters.days[5]) activeDays.push(WEEK_DAYS.SATURDAY);
+  if (filters.days[6]) activeDays.push(WEEK_DAYS.SUNDAY);
+  
   const calls = await prisma.call.findMany({
     where: {
       companyId,
-      startAt: { gte: startDate, lte: endDate }
+      startAt: { gte: startDate, lte: endDate },
+      dayOfTheWeek: {
+        in: activeDays // Prisma will generate: WHERE "dayOfTheWeek" IN ('MONDAY', 'TUESDAY'...)
+      }
     },
     include: { events: true }
   });
 
-  // 3. Initialize the results based on the Schema structure
-  // We want to return a flat list of all blocks defined in the schema
-  const blockStats = schema.schemaDays.flatMap(day => 
+  // 4. Initialize the results (Flat list of valid blocks)
+  const blockStats = schema.schemaDays.flatMap(day =>
     day.blocks.map(block => ({
+      id: block.id,
       dayIndex: day.dayIndex,
       startMinutes: block.startMinutesFromMidnight,
       endMinutes: block.endMinutesFromMidnight,
+      type: block.blockType,
       talkTime: 0,
       seeds: 0,
       sales: 0
     }))
   );
 
-  // 4. Map calls to blocks
+  // 5. Map calls to the filtered blocks
   calls.forEach(call => {
-    // Determine the day index relative to the start date
-    // (e.g., if call is on the same day as startDate, index is 0)
-    const diffTime = Math.abs(call.startAt.getTime() - startDate.getTime());
-    const dayIndex = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    // Determine the day of the week (0-6)
+    // Note: getDay() returns 0 for Sunday, 1 for Monday. 
+    // If your dayIndex 0 is Monday, we adjust:
+    const rawDay = call.startAt.getDay(); 
+    const dayIndex = rawDay === 0 ? 6 : rawDay - 1; 
 
-    // Determine minutes from midnight for the call
+    // Skip call if this day is filtered out
+    if (!filters.days[dayIndex]) return;
+
     const callMinutes = call.startAt.getHours() * 60 + call.startAt.getMinutes();
 
-    // Find the matching block in the schema
+    // Find the target block among the allowed blocks
     const targetBlock = blockStats.find(b => 
-      b.dayIndex === dayIndex &&
       callMinutes >= b.startMinutes &&
       callMinutes < b.endMinutes
     );
-
+    
     if (targetBlock) {
-      targetBlock.talkTime += (call.durationSeconds / 60); // In minutes
+      targetBlock.talkTime += (call.durationSeconds / 60);
       
-      // Count events within this call
       call.events.forEach(event => {
         if (event.type === EventType.SEED) targetBlock.seeds++;
         if (event.type === EventType.SALE) targetBlock.sales++;
@@ -126,102 +154,19 @@ export const getBlockPerformance = async (
     }
   });
 
-  // 5. Format for the frontend
-  return blockStats.map(b => ({
-    blockStartTimeMinutesFromMidnight: b.startMinutes,
-    blockEndTimeMinutesFromMidnight: b.endMinutes,
-    talkTime: Math.round(b.talkTime),
-    seeds: b.seeds,
-    sales: b.sales
-  }));
-};
-
-// filtered by specific dayIndex range 
-export const getBlockPerformanceFiltered = async (
-  companyId: number,
-  startDate: Date,
-  endDate: Date,
-  schemaId: number,
-  fromDayIndex: number,
-  toDayIndex: number
-) => {
-  // 1. Fetch the Schema with only the requested day range
-  const schema = await prisma.schema.findUnique({
-    where: { id: schemaId },
-    include: {
-      schemaDays: {
-        where: {
-          dayIndex: { gte: fromDayIndex, lte: toDayIndex }
-        },
-        include: { blocks: true }
-      }
-    }
-  });
-
-  if (!schema || schema.schemaDays.length === 0) {
-    throw new Error("No schema days found for the specified range.");
-  }
-
-  // 2. Fetch calls only for the date range
-  const calls = await prisma.call.findMany({
-    where: {
-      companyId,
-      startAt: { gte: startDate, lte: endDate }
-    },
-    include: { events: true }
-  });
-
-  // 3. Initialize results for the blocks in the requested days
-  const blockStats = schema.schemaDays.flatMap(day => 
-    day.blocks.map(block => ({
-      dayIndex: day.dayIndex,
-      startMinutes: block.startMinutesFromMidnight,
-      endMinutes: block.endMinutesFromMidnight,
-      talkTime: 0,
-      seeds: 0,
-      sales: 0,
-      blockName: block.name
-    }))
-  );
-
-  // 4. Map calls
-  calls.forEach(call => {
-    // Calculate which day index this call belongs to relative to the start of the filter
-    const diffTime = call.startAt.getTime() - startDate.getTime();
-    const dayIndexOffset = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    // The actual schema day index we are looking for
-    const targetDayIndex = dayIndexOffset; 
-
-    // Only process if the dayIndex is within our requested sub-range
-    if (targetDayIndex >= fromDayIndex && targetDayIndex <= toDayIndex) {
-      const callMinutes = call.startAt.getHours() * 60 + call.startAt.getMinutes();
-
-      const targetBlock = blockStats.find(b => 
-        b.dayIndex === targetDayIndex &&
-        callMinutes >= b.startMinutes &&
-        callMinutes < b.endMinutes
-      );
-
-      if (targetBlock) {
-        targetBlock.talkTime += (call.durationSeconds / 60);
-        call.events.forEach(event => {
-          if (event.type === EventType.SEED) targetBlock.seeds++;
-          if (event.type === EventType.SALE) targetBlock.sales++;
-        });
-      }
-    }
-  });
-
-  return blockStats.map(b => ({
-    dayIndex: b.dayIndex,
-    blockStartTimeMinutesFromMidnight: b.startMinutes,
-    blockEndTimeMinutesFromMidnight: b.endMinutes,
-    blockName: b.blockName,
-    talkTime: Math.round(b.talkTime * 100) / 100,
-    seeds: b.seeds,
-    sales: b.sales
-  }));
+  // 6. Final Formatting for Frontend
+  // We sort by dayIndex then startMinutes to ensure the chart flow is logical
+  return blockStats
+    .sort((a, b) => a.dayIndex - b.dayIndex || a.startMinutes - b.startMinutes)
+    .map(b => ({
+      blockStartTimeMinutesFromMidnight: b.startMinutes,
+      blockEndTimeMinutesFromMidnight: b.endMinutes,
+      talkTime: Math.round(b.talkTime),
+      seeds: b.seeds,
+      sales: b.sales,
+      dayIndex: b.dayIndex,
+      type: b.type
+    }));
 };
 
 // CALL DURATION
@@ -358,7 +303,7 @@ export const getConversionFunnel = async (
   // Usually, funnels are ordered: Seed -> Callback -> Lead -> Sale
   return [
     { name: 'Seeds', value: getCount(EventType.SEED) },
-    { name: 'Callbacks', value: getCount(EventType.CALLBACK) },
+    // { name: 'Callbacks', value: getCount(EventType.CALLBACK) },
     { name: 'Leads', value: getCount(EventType.LEAD) },
     { name: 'Sales', value: getCount(EventType.SALE) },
   ];
@@ -392,7 +337,6 @@ export const getConsistencyHistory = async (
       COUNT(fe_sale.id) as "sales"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe_seed ON fe_seed."callId" = c.id AND fe_seed."type" = ${EventType.SEED}
-    LEFT JOIN "FunnelEvent" fe_callback ON fe_callback."callId" = c.id AND fe_callback."type" = ${EventType.CALLBACK}
     LEFT JOIN "FunnelEvent" fe_lead ON fe_lead."callId" = c.id AND fe_lead."type" = ${EventType.LEAD}
     LEFT JOIN "FunnelEvent" fe_sale ON fe_sale."callId" = c.id AND fe_sale."type" = ${EventType.SALE}
     WHERE c."companyId" = ${companyId}

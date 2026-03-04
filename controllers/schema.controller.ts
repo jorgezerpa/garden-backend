@@ -69,6 +69,7 @@ export const getSchemasPaginated = async (companyId: number, skip: number, take:
     prisma.schema.count({ where: { companyId } }),
     prisma.schema.findMany({
       where: { companyId },
+      include: { schemaDays: { include: { blocks: true } } },
       skip,
       take,
       orderBy: { id: 'desc' },

@@ -41,6 +41,7 @@ describe('Basic Mock Generator', () => {
         .post('/api/auth/generate-key-pair')
         .auth(token, { type: "bearer" });
 
+    // create block schemas
     await request(app)
         .post('/api/schema/create')
         .auth(token, { type: "bearer" })
@@ -70,6 +71,87 @@ describe('Basic Mock Generator', () => {
                   name: "Afternoon block 1"
                 },
 
+              ] 
+            }
+          ]
+        }); 
+
+        await request(app)
+        .post('/api/schema/create')
+        .auth(token, { type: "bearer" })
+        .send({
+          name: "Hourly division",
+          type: "DAILY",
+          days: [
+            {
+              dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (in DB are, but better to be sure)
+              blocks: [
+                {
+                  startMinutesFromMidnight: 7*60,
+                  endMinutesFromMidnight: 8*60,
+                  blockType: "WORKING",
+                  name: "Morning block 1"
+                },
+                {
+                  startMinutesFromMidnight: 8*60,
+                  endMinutesFromMidnight: 9*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 8*60,
+                  endMinutesFromMidnight: 10*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 10*60,
+                  endMinutesFromMidnight: 11*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 11*60,
+                  endMinutesFromMidnight: 12*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 12*60,
+                  endMinutesFromMidnight: 13*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 13*60,
+                  endMinutesFromMidnight: 14*60,
+                  blockType: "REST",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 14*60,
+                  endMinutesFromMidnight: 15*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 15*60,
+                  endMinutesFromMidnight: 16*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 16*60,
+                  endMinutesFromMidnight: 17*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
+                {
+                  startMinutesFromMidnight: 17*60,
+                  endMinutesFromMidnight: 18*60,
+                  blockType: "WORKING",
+                  name: "Lunch break"
+                },
               ] 
             }
           ]
@@ -111,7 +193,6 @@ describe('Basic Mock Generator', () => {
     const authHeader = `Basic ${Buffer.from(`${responseKeysGeneration.body.publicKey}:${responseKeysGeneration.body.secretKey}`).toString('base64')}`;
 
     // console.log(`Starting webhook simulation for ${totalCalls} calls...`);
-
     for (let i = 0; i < totalCalls; i += chunkSize) {
         const currentChunkSize = Math.min(chunkSize, totalCalls - i);
         const chunkPromises = [];
@@ -147,6 +228,50 @@ describe('Basic Mock Generator', () => {
         // 3. Execute the chunk in parallel
         await Promise.all(chunkPromises);
         // console.log(`Processed webhooks ${i + currentChunkSize}/${totalCalls}`);
+    }
+
+    // randomly repeat calls to count as "callbacks" (Skipping every other index: 1, 3, 5...)
+    // We keep chunkSize for parallel execution but adjust the callIndex logic
+    for (let i = 0; i < totalCalls; i += chunkSize) {
+        const currentChunkSize = Math.min(chunkSize, totalCalls - i);
+        const chunkPromises = [];
+
+        for (let j = 0; j < currentChunkSize; j++) {
+            const callIndex = i + j;
+
+            // Skip even indexes (0, 2, 4...) to only process 1, 3, 5, 7...
+            if (callIndex % 2 === 0) continue;
+
+            const callDate = new Date(startDate.getTime() + callIndex * (7 * 60 * 60 * 1000));
+            const talkTime = 60 + (callIndex * 10);
+
+            // 1. Prepare the Mock for this specific odd-indexed call
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    id: `${callIndex}`,
+                    agent_id: Math.floor(Math.random() * 100) + 1, 
+                    agent_username: "Agent_X",
+                    talk_time: talkTime.toString(),
+                    talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],
+                    talk_end: new Date(callDate.getTime() + talkTime * 1000).toISOString().replace('T', ' ').split('.')[0],
+                    number: `+3580000${callIndex}`,
+                    order_ids: callIndex % 10 === 0 ? [1] : []
+                }
+            });
+
+            // 2. Add the request promise
+            chunkPromises.push(
+                request(app)
+                    .get('/api/leaddesk/webhook')
+                    .set('Authorization', authHeader)
+                    .query({ last_call_id: `LD-${callIndex}` })
+            );
+        }
+
+        // 3. Execute the odd-indexed chunk in parallel
+        if (chunkPromises.length > 0) {
+            await Promise.all(chunkPromises);
+        }
     }
 
 }, 60000); // <--- INCREASED TIMEOUT

@@ -85,11 +85,10 @@ enum SchemaType {
   MONTHLY
 }
 
-enum EventType {
-  SEED
-  CALLBACK
-  LEAD
-  SALE
+enum EventType { // @dev useful comments for report, below
+  SEED // CALLBACK. books a call as a "Callback" -> Since I have now exact way to now this, I will just count each call as a seed, by now.
+  LEAD // WATERING. Callback is performed AKA agent calls a callee more than 1 time: Every call from this increases +1 LEAD
+  SALE // HARVEST. Agent books a call as a deal -> the call data has order_ids.length more than 1
 }
 
 enum UserStatus {
@@ -100,6 +99,16 @@ enum UserStatus {
 
 enum THIRD_PARTY_SERVICES {
   LEADDESK
+}
+
+enum WEEK_DAYS {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }
 
 model User {
@@ -274,6 +283,10 @@ model Call {
   // isEffective       Boolean          @default(false)
   
   events            FunnelEvent[]
+
+  // 
+  dayOfTheWeek      WEEK_DAYS 
+
 }
 
 model FunnelEvent {
@@ -285,6 +298,8 @@ model FunnelEvent {
   agent     Agent     @relation(fields: [agentId], references: [id])
   agentId   Int
 }
+
+// @todo make "funnelEventCountPerUser" and "funnelEventCount" models for quicker fetches for related graphics @IMPORTANT 
 
 model AgentState {
   id              Int      @id @default(autoincrement())

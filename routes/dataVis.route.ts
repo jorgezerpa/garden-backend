@@ -41,10 +41,10 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
 // BLOCKS VIEWS 
 dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { schemaId, from, to } = req.query;
+    const { schemaId, from, to, days, types } = req.query; 
     const companyId = req.user?.companyId
 
-    if (!companyId || !schemaId || !from || !to) {
+    if (!companyId || !schemaId || !from || !to || !days || !types) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
@@ -65,11 +65,15 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
       return res.status(400).json({ error: "Date range exceeds maximum schema limit of 31 days" });
     }
 
+    const parsedDays = parseBoolArray(days);
+    const parsedTypes = parseBoolArray(types);
+
     const data = await DataVisController.getBlockPerformance(
       Number(companyId),
       start,
       new Date(end.setHours(23, 59, 59, 999)),
-      sId
+      sId, 
+      { days: parsedDays, types: parsedTypes }
     );
 
     return res.status(200).json(data);
@@ -79,51 +83,6 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 });
 
 
-dataVisRouter.get('/block-performance-filtered', async (req: JWTAuthRequest, res: Response) => {
-  try {
-    const { schemaId, from, to, fromDayIndex, toDayIndex } = req.query;
-    const companyId = req.user?.companyId
-
-    if (!companyId || !schemaId || !from || !to || fromDayIndex === undefined || toDayIndex === undefined) {
-      return res.status(400).json({ error: "Missing required parameters" });
-    }
-
-    const start = new Date(from as string);
-    const end = new Date(to as string);
-    const fIdx = Number(fromDayIndex);
-    const tIdx = Number(toDayIndex);
-
-    // 1. Calculate actual days in the date range
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const daysInRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-    // 2. Edge Case Check: Ensure requested indexes don't exceed the actual dates provided
-    // e.g., if range is Feb 1 to Feb 28, but user asks for dayIndex 29
-    if (tIdx >= daysInRange) {
-      return res.status(400).json({ 
-        error: `The requested toDayIndex (${tIdx}) exceeds the provided date range of ${daysInRange} days.` 
-      });
-    }
-
-    // 3. Simple logic check
-    if (fIdx > tIdx) {
-      return res.status(400).json({ error: "fromDayIndex cannot be greater than toDayIndex" });
-    }
-
-    const data = await DataVisController.getBlockPerformanceFiltered(
-      Number(companyId),
-      start,
-      new Date(end.setHours(23, 59, 59, 999)),
-      Number(schemaId),
-      fIdx,
-      tIdx
-    );
-
-    return res.status(200).json(data);
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
 
 
 // CALL DURATION 
@@ -245,3 +204,13 @@ dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Respon
 });
 
 export default dataVisRouter;
+
+
+/// helpers
+// 1. Helper function to ensure we have an array and convert strings to booleans
+    const parseBoolArray = (val: any): boolean[] => {
+      // If it's a single value (string), wrap it in an array; if it's already an array, use it.
+      const arr = Array.isArray(val) ? val : [val];
+      // Convert "true" -> true, others -> false
+      return arr.map(item => String(item).toLowerCase() === 'true');
+    };

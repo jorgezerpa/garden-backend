@@ -1,6 +1,6 @@
 import axios from "axios";
 import { prisma } from "../lib/prisma";
-import { Call } from "../generated/prisma/client";
+import { Call, WEEK_DAYS } from "../generated/prisma/client";
 
 const AUTH = ""; // Leaddesk Auth Token
 
@@ -28,6 +28,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
 
   const ld = response.data; // Leaddesk data object
 
+  // 2. Search for agent using third-party service id 
   const agentToThird = await prisma.agentToThird.findUnique({
     where: {
       serviceIdentifier_agentServiceIdentifier: { serviceIdentifier: "LEADDESK", agentServiceIdentifier: String(ld.agent_id) }
@@ -44,7 +45,8 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
   if(!agent) throw(new Error("Agent does not exists"))
   if(agent.user?.status!="ACTIVE") throw(new Error("Agent is not active"))
 
-  // 2. Database Sync Logic
+
+  // 3. Database Sync Logic
   return await prisma.$transaction(async (tx) => {
     
     // Ensure the Callee (Customer) exists
@@ -57,7 +59,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
       },
     });
 
-    await tx.agentToCallee.upsert({
+    const agentToCallee = await tx.agentToCallee.upsert({
       where: { agentId_calleeId: {  agentId: agent.id, calleeId: callee.id } },
       update: {
         totalAttemps: { increment: 1 }
@@ -72,7 +74,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     // 3. Create the Call record
     // Note: I'm mapping 'isEffective' based on existence of orders or specific reason names
     // You can adjust this logic as needed.
-    return await tx.call.create({
+    const call = await tx.call.create({
       data: {
         leadDeskId: ld.id,
         agentId: agent.id,
@@ -80,8 +82,44 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
         startAt: new Date(ld.talk_start),
         endAt: new Date(ld.talk_end),
         durationSeconds: parseInt(ld.talk_time),
-        companyId: company.id
+        companyId: company.id,
+        dayOfTheWeek: mapDateToWeekDayEnum(ld.talk_start)
       },
     });
+
+    // 4. Update Events:
+    // if no callee, then is first time is called -> SEED
+    // if callee is registered, but is the first time the agent calls them -> SEED
+    // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
+    // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
+    // Independantly if is a SEED or LEAD, if an order was concreted, then is a SALE
+    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "SEED"}})
+    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "LEAD"}})
+    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "SALE"}})
+
+    return call
+
   });
+};
+
+
+// helpers 
+/**
+ * Maps JS getDay() (0-6) to WEEK_DAYS enum strings.
+ * JS getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+ */
+export const mapDateToWeekDayEnum = (dateString: string): WEEK_DAYS => {
+  const dayIndex = new Date(dateString).getDay();
+  
+  const mapping: Record<number, WEEK_DAYS> = {
+    0: WEEK_DAYS.SUNDAY,
+    1: WEEK_DAYS.MONDAY,
+    2: WEEK_DAYS.TUESDAY,
+    3: WEEK_DAYS.WEDNESDAY,
+    4: WEEK_DAYS.THURSDAY,
+    5: WEEK_DAYS.FRIDAY,
+    6: WEEK_DAYS.SATURDAY,
+  };
+
+  return mapping[dayIndex];
 };

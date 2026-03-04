@@ -15,6 +15,8 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
       return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
     }
 
+    //   // const [year, month, day] = d.date.split('-').map(Number);
+  // new Date(year, month - 1, day, 0, 0, 0, 0)
     const startDate = new Date(from as string);
     const endDate = new Date(to as string);
     const parsedAgents = agents ? parseNumberArray(agents) : []

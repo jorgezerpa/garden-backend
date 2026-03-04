@@ -315,11 +315,14 @@ const calculateLevel = (val: number, min: number, max: number): number => {
 
 export const getSeedTimelineHeatmapPerDay = async (
   companyId: number,
-  targetDate: Date, // e.g., 2024-05-20
+  targetDate: Date,
   filters: { agents: number[] }
 ) => {
-  // 1. Define the start and end of that specific day
+  
+  // 1. Explicitly parse the YYYY-MM-DD string to avoid timezone shifts
+  // This ensures we are looking at the 24h window of that specific calendar date
   const startOfDay = new Date(targetDate);
+
   startOfDay.setHours(0, 0, 0, 0);
   
   const endOfDay = new Date(targetDate);
@@ -330,14 +333,14 @@ export const getSeedTimelineHeatmapPerDay = async (
     ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
     : Prisma.empty;
 
-  // 3. Fetch hourly seeds
-  // We use EXTRACT(HOUR FROM ...) to group by the 24-hour clock
+  // 3. Fetch hourly seeds (Added explicit casting for Enum)
   const hourlyData: { hour: number; seeds: number }[] = await prisma.$queryRaw`
     SELECT 
       EXTRACT(HOUR FROM c."startAt") as "hour",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
-    LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id AND fe."type" = ${EventType.SEED}
+    LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id 
+      AND fe."type" = ${EventType.SEED}::"EventType"
     WHERE c."companyId" = ${companyId}
       AND c."startAt" >= ${startOfDay}
       AND c."startAt" <= ${endOfDay}
@@ -346,29 +349,31 @@ export const getSeedTimelineHeatmapPerDay = async (
     ORDER BY "hour" ASC
   `;
 
-  // 4. Map results to a 24-hour dictionary
+  // 4. Map results
   const hourMap = new Map(hourlyData.map(d => [Number(d.hour), Number(d.seeds)]));
-
-  // 5. Scaling logic (using the max seeds found in any single hour)
+  // 5. Scaling logic
   const seedValues = Array.from(hourMap.values());
   const maxSeeds = seedValues.length > 0 ? Math.max(...seedValues) : 0;
 
   const calculateLevel = (val: number, max: number): number => {
-    if (val === 0 || max === 0) return 0;
-    // Relative scale: 0 to 4 based on the peak hour of that day
+    if (val === 0) return 0;
+    // If there is only 1 seed or max is same as val, give it a visible intensity
+    if (max === 0 || val === max) return 3; 
+    
     const level = Math.floor((val / max) * 5);
-    return Math.min(level, 4);
+    // Ensure that if there's at least 1 seed, intensity is at least 1
+    return Math.max(1, Math.min(level, 4));
   };
 
-  // 6. Generate the fixed 24-item array
+  // 6. Generate 24-hour array
   return Array.from({ length: 24 }, (_, hour) => {
     const seeds = hourMap.get(hour) || 0;
     
     return {
-      hour: hour, // 0, 1, 2... 23
+      hour: hour,
       intensity: calculateLevel(seeds, maxSeeds),
       seeds: seeds,
-      label: `${hour}:00` // Useful for frontend tooltips
+      label: `${hour.toString().padStart(2, '0')}:00`
     };
   });
 };

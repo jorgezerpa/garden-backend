@@ -231,9 +231,10 @@ export const getLongCallDistribution = async (
 };
 
 
-// HEATMAP
-// You take the min and max values of each and divide the difference by the 5 levels of intensity, so the intensity will the current cluster in which the value is. More specifically, calc. the intesity of seeds, then the intesity of talk time, and the avg of both is the intensity seeing here. 
-// @todo this shoould be taked from which calculation? maybe from goals? maybe both and a toggle of intensityType on params?
+// HEATMAP yearly divided by days. 
+// Calculating intensity based on the number of seeds.
+// The intensity level (0-4) is determined by where the daily seed count falls 
+// within the range of the minimum and maximum seed counts found in the period.
 export const getSeedTimelineHeatmap = async (
   companyId: number,
   startDate: Date,
@@ -245,11 +246,10 @@ export const getSeedTimelineHeatmap = async (
     ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
     : Prisma.empty;
 
-  // 2. Fetch daily talkTime and seeds
+  // 2. Fetch daily seeds (talkTime removed)
   const dailyData: any[] = await prisma.$queryRaw`
     SELECT 
       DATE(c."startAt") as "date",
-      SUM(c."durationSeconds") / 60.0 as "talkTime",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id AND fe."type" = ${EventType.SEED}
@@ -264,33 +264,26 @@ export const getSeedTimelineHeatmap = async (
   if (dailyData.length === 0) return [];
 
   // 3. Extract values for scaling
-  const talkTimeValues = dailyData.map(d => Number(d.talkTime));
   const seedValues = dailyData.map(d => Number(d.seeds));
-
-  const minTalk = Math.min(...talkTimeValues);
-  const maxTalk = Math.max(...talkTimeValues);
   const minSeeds = Math.min(...seedValues);
   const maxSeeds = Math.max(...seedValues);
 
   const calculateLevel = (val: number, min: number, max: number): number => {
     if (max === min) return 0;
     const range = max - min;
+    // (value - min) / range gives a 0.0 to 1.0 scale
     const level = Math.floor(((val - min) / range) * 5);
-    return Math.min(level, 4); 
+    return Math.min(level, 4); // Ensures we stay in the 0-4 intensity range
   };
 
-  // 4. Map and calculate average intensity
+  // 4. Map and calculate seed intensity
   return dailyData.map(day => {
-    const talkIntensity = calculateLevel(Number(day.talkTime), minTalk, maxTalk);
-    const seedIntensity = calculateLevel(Number(day.seeds), minSeeds, maxSeeds);
-    
-    const avgIntensity = Math.round((talkIntensity + seedIntensity) / 2);
+    const intensity = calculateLevel(Number(day.seeds), minSeeds, maxSeeds);
 
     return {
       date: day.date,
-      intensity: avgIntensity,
-      seeds: Number(day.seeds),
-      talkTime: Math.round(Number(day.talkTime))
+      intensity: intensity,
+      seeds: Number(day.seeds)
     };
   });
 };

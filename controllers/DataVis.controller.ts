@@ -119,6 +119,9 @@ export const getBlockPerformance = async (
       startAt: { gte: startDate, lte: endDate },
       dayOfTheWeek: {
         in: activeDays // Prisma will generate: WHERE "dayOfTheWeek" IN ('MONDAY', 'TUESDAY'...)
+      },
+      agentId: {
+        in: filters.agents?.length > 0 ? filters.agents : undefined
       }
     },
     include: { events: true }
@@ -189,8 +192,12 @@ export const getLongCallDistribution = async (
   endDate: Date,
   filters: { agents: number[] }
 ) => {
-  // We use queryRaw because grouping by custom ranges (bins) 
-  // is much faster in SQL than fetching every call record.
+  // 1. Prepare conditional SQL fragment
+  const agentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND "agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // 2. Execute query with the dynamic filter injected
   const distribution: any[] = await prisma.$queryRaw`
     SELECT 
       CASE 
@@ -212,11 +219,11 @@ export const getLongCallDistribution = async (
     WHERE "companyId" = ${companyId}
       AND "startAt" >= ${startDate}
       AND "startAt" <= ${endDate}
+      ${agentFilter}
     GROUP BY "range", "sortOrder"
     ORDER BY "sortOrder" ASC
   `;
 
-  // Format the output to ensure numbers are not returned as BigInt strings
   return distribution.map(row => ({
     range: row.range,
     count: Number(row.count)
@@ -225,7 +232,6 @@ export const getLongCallDistribution = async (
 
 
 // HEATMAP
-// @todo make another of this but: by hours instead of days and add a filter by users on both
 // You take the min and max values of each and divide the difference by the 5 levels of intensity, so the intensity will the current cluster in which the value is. More specifically, calc. the intesity of seeds, then the intesity of talk time, and the avg of both is the intensity seeing here. 
 // @todo this shoould be taked from which calculation? maybe from goals? maybe both and a toggle of intensityType on params?
 export const getSeedTimelineHeatmap = async (
@@ -234,7 +240,12 @@ export const getSeedTimelineHeatmap = async (
   endDate: Date,
   filters: { agents: number[] }
 ) => {
-  // 1. Fetch daily talkTime and seeds using raw SQL for efficiency
+  // 1. Prepare conditional SQL fragment
+  const agentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // 2. Fetch daily talkTime and seeds
   const dailyData: any[] = await prisma.$queryRaw`
     SELECT 
       DATE(c."startAt") as "date",
@@ -245,13 +256,14 @@ export const getSeedTimelineHeatmap = async (
     WHERE c."companyId" = ${companyId}
       AND c."startAt" >= ${startDate}
       AND c."startAt" <= ${endDate}
+      ${agentFilter}
     GROUP BY DATE(c."startAt")
     ORDER BY DATE(c."startAt") ASC
   `;
 
   if (dailyData.length === 0) return [];
 
-  // 2. Extract values to find Min/Max for scaling intensity
+  // 3. Extract values for scaling
   const talkTimeValues = dailyData.map(d => Number(d.talkTime));
   const seedValues = dailyData.map(d => Number(d.seeds));
 
@@ -260,20 +272,18 @@ export const getSeedTimelineHeatmap = async (
   const minSeeds = Math.min(...seedValues);
   const maxSeeds = Math.max(...seedValues);
 
-  // Helper to calculate intensity (0-4)
   const calculateLevel = (val: number, min: number, max: number): number => {
     if (max === min) return 0;
-    const step = (max - min) / 5;
-    const level = Math.floor((val - min) / step);
-    return Math.min(level, 4); // Ensure it doesn't exceed 4
+    const range = max - min;
+    const level = Math.floor(((val - min) / range) * 5);
+    return Math.min(level, 4); 
   };
 
-  // 3. Map the data and calculate average intensity
+  // 4. Map and calculate average intensity
   return dailyData.map(day => {
     const talkIntensity = calculateLevel(Number(day.talkTime), minTalk, maxTalk);
     const seedIntensity = calculateLevel(Number(day.seeds), minSeeds, maxSeeds);
     
-    // Average intensity of both metrics
     const avgIntensity = Math.round((talkIntensity + seedIntensity) / 2);
 
     return {
@@ -298,7 +308,10 @@ export const getConversionFunnel = async (
     by: ['type'],
     where: {
       agent: {
-        companyId: companyId
+        companyId: companyId,
+      },
+      agentId: {
+        in: filters.agents?.length > 0 ? filters.agents : undefined
       },
       timestamp: {
         gte: startDate,
@@ -341,15 +354,18 @@ export const getConsistencyHistory = async (
 
   if (!goal) throw new Error("Target goal not found");
 
-  // 2. Fetch daily performance stats
-  // We need: talkTime, seeds, callbacks, leads, sales, and totalCalls
+  // 2. Prepare the Agent Filter
+  const agentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // 3. Fetch daily performance stats
   const dailyStats: any[] = await prisma.$queryRaw`
     SELECT 
       DATE(c."startAt") as "date",
       SUM(c."durationSeconds") / 60.0 as "talkTime",
       COUNT(c.id) as "calls",
       COUNT(fe_seed.id) as "seeds",
-      COUNT(fe_callback.id) as "callbacks",
       COUNT(fe_lead.id) as "leads",
       COUNT(fe_sale.id) as "sales"
     FROM "Call" c
@@ -359,36 +375,36 @@ export const getConsistencyHistory = async (
     WHERE c."companyId" = ${companyId}
       AND c."startAt" >= ${startDate}
       AND c."startAt" <= ${endDate}
+      ${agentFilter}
     GROUP BY DATE(c."startAt")
     ORDER BY DATE(c."startAt") ASC
   `;
 
-  // 3. Calculation logic
+  // 4. Calculation logic
   return dailyStats.map(day => {
     const scores: number[] = [];
 
-    // Helper to calculate individual metric score
-    const addScore = (current: number, target: number) => {
-      if (target > 0) {
+    const addScore = (current: number, target: number | null) => {
+      // Ensure target exists and is greater than 0
+      if (target && target > 0) {
         const s = (current / target) * 100;
-        scores.push(Math.min(s, 100)); // Cap at 100 for consistency streak view
+        scores.push(Math.min(s, 100));
       }
     };
 
     addScore(Number(day.talkTime), goal.talkTimeMinutes);
     addScore(Number(day.seeds), goal.seeds);
-    addScore(Number(day.callbacks), goal.callbacks);
     addScore(Number(day.leads), goal.leads);
     addScore(Number(day.sales), goal.sales);
     addScore(Number(day.calls), goal.numberOfCalls);
 
-    // Final score is the average of active goal metrics
     const finalScore = scores.length > 0 
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
       : 0;
 
     return {
-      day: day.date.toISOString().split('T')[0].split('-')[2], // Extracts 'DD'
+      // Robust date extraction to handle potential string/Date return types
+      day: new Date(day.date).toISOString().split('T')[0].split('-')[2],
       score: finalScore
     };
   });

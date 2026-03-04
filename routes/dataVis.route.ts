@@ -8,7 +8,7 @@ const dataVisRouter = Router();
 // GET /api/datavis/daily-activity?companyId=1&from=2024-05-01&to=2024-05-07
 dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, agents } = req.query;
     const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
@@ -17,6 +17,7 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
 
     const startDate = new Date(from as string);
     const endDate = new Date(to as string);
+    const parsedAgents = agents ? parseNumberArray(agents) : []
     
     // Set endDate to the very end of that day to capture all evening calls
     endDate.setHours(23, 59, 59, 999);
@@ -28,7 +29,8 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
     const report = await DataVisController.getDailyActivity(
       Number(companyId),
       startDate,
-      endDate
+      endDate,
+      { agents: parsedAgents }
     );
 
     return res.status(200).json(report);
@@ -41,7 +43,7 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
 // BLOCKS VIEWS 
 dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { schemaId, from, to, days, types } = req.query; 
+    const { schemaId, from, to, days, types, agents } = req.query; 
     const companyId = req.user?.companyId
 
     if (!companyId || !schemaId || !from || !to || !days || !types) {
@@ -67,13 +69,14 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 
     const parsedDays = parseBoolArray(days);
     const parsedTypes = parseBoolArray(types);
+    const parsedAgents = agents ? parseNumberArray(agents) : []
 
     const data = await DataVisController.getBlockPerformance(
       Number(companyId),
       start,
       new Date(end.setHours(23, 59, 59, 999)),
       sId, 
-      { days: parsedDays, types: parsedTypes }
+      { days: parsedDays, types: parsedTypes, agents: parsedAgents }
     );
 
     return res.status(200).json(data);
@@ -88,7 +91,7 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 // CALL DURATION 
 dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, agents } = req.query;
     const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
@@ -103,10 +106,13 @@ dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Re
       return res.status(400).json({ error: "Invalid date format" });
     }
 
+    const parsedAgents = agents ? parseNumberArray(agents) : []
+
     const data = await DataVisController.getLongCallDistribution(
       Number(companyId),
       startDate,
-      endDate
+      endDate,
+      { agents: parsedAgents }
     );
 
     return res.status(200).json(data);
@@ -118,7 +124,7 @@ dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Re
 // HEATMAP
 dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, agents } = req.query;
     const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
@@ -133,10 +139,12 @@ dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Res
       return res.status(400).json({ error: "Invalid date parameters" });
     }
 
+    const parsedAgents = agents ? parseNumberArray(agents) : []
     const heatmapData = await DataVisController.getSeedTimelineHeatmap(
       Number(companyId),
       start,
-      end
+      end,
+      { agents: parsedAgents }
     );
 
     return res.status(200).json(heatmapData);
@@ -149,7 +157,7 @@ dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Res
 // FUNNEL 
 dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, agents } = req.query;
     const companyId = req.user?.companyId
 
     if (!companyId || !from || !to) {
@@ -164,10 +172,12 @@ dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Respons
       return res.status(400).json({ error: "Invalid date format" });
     }
 
+    const parsedAgents = agents ? parseNumberArray(agents) : []
     const funnelData = await DataVisController.getConversionFunnel(
       Number(companyId),
       start,
-      end
+      end,
+      { agents: parsedAgents }
     );
 
     return res.status(200).json(funnelData);
@@ -179,7 +189,7 @@ dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Respons
 // STREAKS
 dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { goalId, from, to } = req.query;
+    const { goalId, from, to, agents } = req.query;
     const companyId = req.user?.companyId
 
     if (!goalId || !companyId || !from || !to) {
@@ -190,11 +200,13 @@ dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Respon
     const end = new Date(to as string);
     end.setHours(23, 59, 59, 999);
 
+    const parsedAgents = agents ? parseNumberArray(agents) : []
     const history = await DataVisController.getConsistencyHistory(
       Number(goalId),
       Number(companyId),
       start,
-      end
+      end,
+      { agents: parsedAgents }
     );
 
     return res.status(200).json(history);
@@ -207,10 +219,22 @@ export default dataVisRouter;
 
 
 /// helpers
-// 1. Helper function to ensure we have an array and convert strings to booleans
+// Helper function to ensure we have an array and convert strings to booleans
     const parseBoolArray = (val: any): boolean[] => {
       // If it's a single value (string), wrap it in an array; if it's already an array, use it.
       const arr = Array.isArray(val) ? val : [val];
       // Convert "true" -> true, others -> false
       return arr.map(item => String(item).toLowerCase() === 'true');
+    };
+
+    // Helper function to ensure we have an array and convert strings to numbers
+    const parseNumberArray = (val: any): number[] => {
+      // If it's a single value (string), wrap it in an array; if it's already an array, use it.
+      const arr = Array.isArray(val) ? val : [val];
+
+      return arr.map(item => {
+          const number = Number(item)
+          if(isNaN(number)) throw("Not numerical value") // @todo I'm not sure if this is the correct way to check for NaN
+          return number
+      });
     };

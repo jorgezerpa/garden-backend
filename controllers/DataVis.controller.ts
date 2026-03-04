@@ -6,7 +6,8 @@ import { EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
 export const getDailyActivity = async (
   companyId: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  filters: { agents: number[] }
 ) => {
   // 1. Aggregate Call data (Talk Time and Total Calls) by Date
   // Note: We use queryRaw because grouping by a "Date" part of a "DateTime" 
@@ -63,7 +64,7 @@ export const getBlockPerformance = async (
   startDate: Date,
   endDate: Date,
   schemaId: number,
-  filters: { days: boolean[]; types: boolean[] }
+  filters: { days: boolean[]; types: boolean[], agents: number[] }
 ) => {
 
   // 1. Map the 'types' boolean array to BlockType enums
@@ -173,7 +174,8 @@ export const getBlockPerformance = async (
 export const getLongCallDistribution = async (
   companyId: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  filters: { agents: number[] }
 ) => {
   // We use queryRaw because grouping by custom ranges (bins) 
   // is much faster in SQL than fetching every call record.
@@ -217,7 +219,8 @@ export const getLongCallDistribution = async (
 export const getSeedTimelineHeatmap = async (
   companyId: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  filters: { agents: number[] }
 ) => {
   // 1. Fetch daily talkTime and seeds using raw SQL for efficiency
   const dailyData: any[] = await prisma.$queryRaw`
@@ -274,7 +277,8 @@ export const getSeedTimelineHeatmap = async (
 export const getConversionFunnel = async (
   companyId: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  filters: { agents: number[] }
 ) => {
   // We use groupBy on the FunnelEvent table.
   // We filter by companyId by joining with the Agent table.
@@ -315,7 +319,8 @@ export const getConsistencyHistory = async (
   goalId: number,
   companyId: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  filters: { agents: number[] }
 ) => {
   // 1. Fetch the benchmark goals
   const goal = await prisma.temporalGoals.findUnique({

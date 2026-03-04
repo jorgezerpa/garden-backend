@@ -124,26 +124,56 @@ dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Re
 // HEATMAP
 dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to, agents } = req.query;
+    const { year, agents } = req.query;
     const companyId = req.user?.companyId
 
-    if (!companyId || !from || !to) {
+    if (!companyId || !year) {
       return res.status(400).json({ error: "Missing companyId, from, or to" });
     }
 
-    const start = new Date(from as string);
-    const end = new Date(to as string);
-    end.setHours(23, 59, 59, 999);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ error: "Invalid date parameters" });
+    if (isNaN(Number(year))) {
+      return res.status(400).json({ error: "Invalid year parameter" });
     }
 
     const parsedAgents = agents ? parseNumberArray(agents) : []
     const heatmapData = await DataVisController.getSeedTimelineHeatmap(
       Number(companyId),
-      start,
-      end,
+      Number(year),
+      { agents: parsedAgents }
+    );
+
+    return res.status(200).json(heatmapData);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+dataVisRouter.get('/seed-timeline-heatmap-per-day', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { day, agents } = req.query;
+    const companyId = req.user?.companyId
+
+    if (!companyId || !day) {
+      return res.status(400).json({ error: "Missing companyId or day" });
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (typeof day !== 'string' || !dateRegex.test(day)) {
+      return res.status(400).json({ 
+        error: "Invalid date format. Please use YYYY-MM-DD" 
+      });
+    }
+
+    const date = new Date(day)
+
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({ error: "The provided date is invalid" });
+    }
+
+    const parsedAgents = agents ? parseNumberArray(agents) : []
+    const heatmapData = await DataVisController.getSeedTimelineHeatmapPerDay(
+      Number(companyId),
+      date,
       { agents: parsedAgents }
     );
 

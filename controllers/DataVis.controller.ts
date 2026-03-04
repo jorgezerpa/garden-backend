@@ -230,23 +230,24 @@ export const getLongCallDistribution = async (
   }));
 };
 
-
 // HEATMAP yearly divided by days. 
-// Calculating intensity based on the number of seeds.
-// The intensity level (0-4) is determined by where the daily seed count falls 
-// within the range of the minimum and maximum seed counts found in the period.
+// Calculating intensity based on the number of seeds for a specific year
+// The intensity level (0-4) is determined by where the daily seed count falls within the range of the minimum and maximum seed counts found in the period.
 export const getSeedTimelineHeatmap = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  year: number,
   filters: { agents: number[] }
 ) => {
-  // 1. Prepare conditional SQL fragment
+  // 1. Define the full year range
+  const startDate = new Date(year, 0, 1); // Jan 1st
+  const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31st
+
+  // 2. SQL Filter
   const agentFilter = filters.agents && filters.agents.length > 0 
     ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
     : Prisma.empty;
 
-  // 2. Fetch daily seeds (talkTime removed)
+  // 3. Fetch data
   const dailyData: any[] = await prisma.$queryRaw`
     SELECT 
       DATE(c."startAt") as "date",
@@ -261,29 +262,101 @@ export const getSeedTimelineHeatmap = async (
     ORDER BY DATE(c."startAt") ASC
   `;
 
-  if (dailyData.length === 0) return [];
+  // 4. Create a Map of existing data for quick lookup
+  // We use date strings as keys to avoid timezone comparison headaches
+  const dataMap = new Map(
+    dailyData.map(d => [new Date(d.date).toISOString().split('T')[0], Number(d.seeds)])
+  );
 
-  // 3. Extract values for scaling
-  const seedValues = dailyData.map(d => Number(d.seeds));
-  const minSeeds = Math.min(...seedValues);
-  const maxSeeds = Math.max(...seedValues);
+  // 5. Determine Min/Max for scaling (from the existing data only)
+  const seedValues = Array.from(dataMap.values());
+  const minSeeds = seedValues.length > 0 ? Math.min(...seedValues) : 0;
+  const maxSeeds = seedValues.length > 0 ? Math.max(...seedValues) : 0;
 
   const calculateLevel = (val: number, min: number, max: number): number => {
-    if (max === min) return 0;
+    if (val === 0 || max === min) return 0;
     const range = max - min;
-    // (value - min) / range gives a 0.0 to 1.0 scale
     const level = Math.floor(((val - min) / range) * 5);
-    return Math.min(level, 4); // Ensures we stay in the 0-4 intensity range
+    return Math.min(level, 4);
   };
 
-  // 4. Map and calculate seed intensity
-  return dailyData.map(day => {
-    const intensity = calculateLevel(Number(day.seeds), minSeeds, maxSeeds);
+  // 6. Generate the full year array (Backfilling)
+  const fullYearData = [];
+  const currentDate = new Date(startDate);
 
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const seeds = dataMap.get(dateStr) || 0;
+    
+    fullYearData.push({
+      date: dateStr,
+      intensity: calculateLevel(seeds, minSeeds, maxSeeds),
+      seeds: seeds
+    });
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return fullYearData;
+};
+
+export const getSeedTimelineHeatmapPerDay = async (
+  companyId: number,
+  targetDate: Date, // e.g., 2024-05-20
+  filters: { agents: number[] }
+) => {
+  // 1. Define the start and end of that specific day
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // 2. Prepare conditional SQL fragment
+  const agentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // 3. Fetch hourly seeds
+  // We use EXTRACT(HOUR FROM ...) to group by the 24-hour clock
+  const hourlyData: { hour: number; seeds: number }[] = await prisma.$queryRaw`
+    SELECT 
+      EXTRACT(HOUR FROM c."startAt") as "hour",
+      COUNT(fe.id) as "seeds"
+    FROM "Call" c
+    LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id AND fe."type" = ${EventType.SEED}
+    WHERE c."companyId" = ${companyId}
+      AND c."startAt" >= ${startOfDay}
+      AND c."startAt" <= ${endOfDay}
+      ${agentFilter}
+    GROUP BY "hour"
+    ORDER BY "hour" ASC
+  `;
+
+  // 4. Map results to a 24-hour dictionary
+  const hourMap = new Map(hourlyData.map(d => [Number(d.hour), Number(d.seeds)]));
+
+  // 5. Scaling logic (using the max seeds found in any single hour)
+  const seedValues = Array.from(hourMap.values());
+  const maxSeeds = seedValues.length > 0 ? Math.max(...seedValues) : 0;
+
+  const calculateLevel = (val: number, max: number): number => {
+    if (val === 0 || max === 0) return 0;
+    // Relative scale: 0 to 4 based on the peak hour of that day
+    const level = Math.floor((val / max) * 5);
+    return Math.min(level, 4);
+  };
+
+  // 6. Generate the fixed 24-item array
+  return Array.from({ length: 24 }, (_, hour) => {
+    const seeds = hourMap.get(hour) || 0;
+    
     return {
-      date: day.date,
-      intensity: intensity,
-      seeds: Number(day.seeds)
+      hour: hour, // 0, 1, 2... 23
+      intensity: calculateLevel(seeds, maxSeeds),
+      seeds: seeds,
+      label: `${hour}:00` // Useful for frontend tooltips
     };
   });
 };

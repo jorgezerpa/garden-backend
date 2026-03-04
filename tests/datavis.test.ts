@@ -140,7 +140,7 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/block-performance')
         .auth(JWT, { type: "bearer" })
-        .query({ schemaId: 1, from: "2024-05-01", to: "2024-05-02" });
+        .query({ schemaId: 1, from: "2024-05-01", to: "2024-05-02", days: [true, true, true, true, true, true, true], types: [true, true, true] });
 
       expect(response.status).toBe(200);
       // Should find calls that fell into "Morning" (480-720 mins) or "Afternoon"
@@ -163,12 +163,27 @@ describe('DataVis Integration with Webhook Seeding', () => {
       const response = await request(app)
         .get('/api/datavis/seed-timeline-heatmap')
         .auth(JWT, { type: "bearer" })
-        .query({ from: "2024-05-01", to: "2024-05-30" });
+        .query({ year: 2024 }); //@todo test "Agents" filter on all endpoints
 
       expect(response.status).toBe(200);
       // Check if intensities are in range 0-4
       const intensities = response.body.map((d: any) => d.intensity);
       expect(Math.max(...intensities)).toBeLessThanOrEqual(4);
+      expect(response.body.length).toEqual(366);
     });
+
+    it('GET /seed-timeline-heatmap-per-day generates intensity values', async () => {
+      const response = await request(app)
+        .get('/api/datavis/seed-timeline-heatmap-per-day')
+        .auth(JWT, { type: "bearer" })
+        .query({ day: "2024-05-04" }); //@todo test "Agents" filter on all endpoints
+
+      expect(response.status).toBe(200);
+      // Check if intensities are in range 0-4
+      const intensities = response.body.map((d: any) => d.intensity);
+      expect(Math.max(...intensities)).toBeLessThanOrEqual(4);
+      expect(response.body.length).toEqual(24);
+    });
+
   });
 });

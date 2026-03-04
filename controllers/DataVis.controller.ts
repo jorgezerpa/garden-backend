@@ -1,17 +1,24 @@
 import { prisma } from "../lib/prisma";
-import { EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
+import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
 
-
-// @todo -> add an input "users" so get the data of a specific users list 
 export const getDailyActivity = async (
   companyId: number,
   startDate: Date,
   endDate: Date,
   filters: { agents: number[] }
 ) => {
-  // 1. Aggregate Call data (Talk Time and Total Calls) by Date
-  // Note: We use queryRaw because grouping by a "Date" part of a "DateTime" 
-  // column is more efficient in raw SQL than fetching everything and grouping in JS.
+  // 1. Prepare the Dynamic Filter for Agents
+  // If agents array is empty, we use a "1=1" style true condition or skip it.
+  const agentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND "agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // For the Seed query, we need to prefix the column with the table alias 'fe'
+  const seedAgentFilter = filters.agents && filters.agents.length > 0 
+    ? Prisma.sql`AND fe."agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+  // 2. Aggregate Call data
   const dailyCalls: any[] = await prisma.$queryRaw`
     SELECT 
       DATE("startAt") as "date",
@@ -21,12 +28,12 @@ export const getDailyActivity = async (
     WHERE "companyId" = ${companyId}
       AND "startAt" >= ${startDate}
       AND "startAt" <= ${endDate}
+      ${agentFilter}
     GROUP BY DATE("startAt")
     ORDER BY DATE("startAt") ASC
   `;
 
-  // 2. Aggregate FunnelEvent data (Seeds) by Date
-  // We filter specifically for SEED events linked to agents in that company
+  // 3. Aggregate FunnelEvent data (Seeds)
   const dailySeeds: any[] = await prisma.$queryRaw`
     SELECT 
       DATE(fe."timestamp") as "date",
@@ -37,16 +44,21 @@ export const getDailyActivity = async (
       AND fe."type" = ${EventType.SEED}
       AND fe."timestamp" >= ${startDate}
       AND fe."timestamp" <= ${endDate}
+      ${seedAgentFilter}
     GROUP BY DATE(fe."timestamp")
   `;
 
-  // 3. Merge the datasets into the final structure
-  // We use the dailyCalls as the base
+  // 4. Merge the datasets
   return dailyCalls.map(callDay => {
-    const dayString = callDay.date.toISOString().split('T')[0];
-    const seedData = dailySeeds.find(s => 
-      s.date.toISOString().split('T')[0] === dayString
-    );
+    // Note: Some SQL drivers return "date" as a string or a Date object. 
+    // Ensuring it's a Date object before calling toISOString.
+    const dateObj = new Date(callDay.date);
+    const dayString = dateObj.toISOString().split('T')[0];
+    
+    const seedData = dailySeeds.find(s => {
+      const sDateObj = new Date(s.date);
+      return sDateObj.toISOString().split('T')[0] === dayString;
+    });
 
     return {
       date: dayString,

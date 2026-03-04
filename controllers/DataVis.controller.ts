@@ -48,6 +48,7 @@ export const getDailyActivity = async (
     GROUP BY DATE(fe."timestamp")
   `;
 
+
   // 4. Merge the datasets
   return dailyCalls.map(callDay => {
     // Note: Some SQL drivers return "date" as a string or a Date object. 
@@ -273,12 +274,23 @@ export const getSeedTimelineHeatmap = async (
   const minSeeds = seedValues.length > 0 ? Math.min(...seedValues) : 0;
   const maxSeeds = seedValues.length > 0 ? Math.max(...seedValues) : 0;
 
-  const calculateLevel = (val: number, min: number, max: number): number => {
-    if (val === 0 || max === min) return 0;
-    const range = max - min;
-    const level = Math.floor(((val - min) / range) * 5);
-    return Math.min(level, 4);
-  };
+const calculateLevel = (val: number, min: number, max: number): number => {
+  // If there are no seeds, intensity is always 0
+  if (val === 0) return 0;
+
+  // If max and min are the same but val > 0, it means all active days 
+  // have the same count. We return a mid-to-high intensity (e.g., level 2 or 3).
+  if (max === min) return 2; 
+
+  const range = max - min;
+  
+  // Normalizing the value: (val - min) / range gives a 0.0 to 1.0 scale
+  // Multiplying by 4 (to get 0, 1, 2, 3, 4) or 5 (then floor)
+  const level = Math.floor(((val - min) / range) * 5);
+
+  // Ensure we stay within 0-4 bounds
+  return Math.max(1, Math.min(level, 4)); 
+};
 
   // 6. Generate the full year array (Backfilling)
   const fullYearData = [];

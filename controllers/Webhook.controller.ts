@@ -93,9 +93,9 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
     // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
     // Independantly if is a SEED or LEAD, if an order was concreted, then is a SALE
-    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "SEED"}})
-    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "LEAD"}})
-    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: {agentId: agent.id,callId: call.id, type: "SALE"}})
+    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "SEED"}})
+    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "LEAD"}})
+    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "SALE"}})
 
     return call
 

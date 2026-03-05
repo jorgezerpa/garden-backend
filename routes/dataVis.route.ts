@@ -215,10 +215,10 @@ dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Respons
 // STREAKS
 dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { goalId, from, to, agents } = req.query;
+    const { goalId, from, to, agents, days } = req.query;
     const companyId = req.user?.companyId
 
-    if (!goalId || !companyId || !from || !to) {
+    if (!goalId || !companyId || !from || !to || !days) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
@@ -227,12 +227,13 @@ dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Respon
     end.setHours(23, 59, 59, 999);
 
     const parsedAgents = agents ? parseNumberArray(agents) : []
+    const parsedDays = days ? parseBoolArray(days) : [];
     const history = await DataVisController.getConsistencyHistory(
       Number(goalId),
       Number(companyId),
       start,
       end,
-      { agents: parsedAgents }
+      { agents: parsedAgents, days: parsedDays }
     );
 
     return res.status(200).json(history);

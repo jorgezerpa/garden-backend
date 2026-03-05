@@ -423,7 +423,7 @@ export const getConsistencyHistory = async (
   companyId: number,
   startDate: Date,
   endDate: Date,
-  filters: { agents: number[] }
+  filters: { agents: number[], days: boolean[] }
 ) => {
   // 1. Fetch the benchmark goals
   const goal = await prisma.temporalGoals.findUnique({
@@ -432,9 +432,26 @@ export const getConsistencyHistory = async (
 
   if (!goal) throw new Error("Target goal not found");
 
+  const dayEnumMap: WEEK_DAYS[] = [
+    WEEK_DAYS.MONDAY,
+    WEEK_DAYS.TUESDAY,
+    WEEK_DAYS.WEDNESDAY,
+    WEEK_DAYS.THURSDAY,
+    WEEK_DAYS.FRIDAY,
+    WEEK_DAYS.SATURDAY,
+    WEEK_DAYS.SUNDAY,
+  ];
+
+  const activeDays = dayEnumMap.filter((_, index) => filters.days[index]);
+
   // 2. Prepare the Agent Filter
   const agentFilter = filters.agents && filters.agents.length > 0 
     ? Prisma.sql`AND c."agentId" IN (${Prisma.join(filters.agents)})` 
+    : Prisma.empty;
+
+    // Filter by the dayOfTheWeek column using the activeDays array
+  const dayFilter = activeDays.length > 0
+    ? Prisma.sql`AND c."dayOfTheWeek" IN (${Prisma.join(activeDays)})`
     : Prisma.empty;
 
   // 3. Fetch daily performance stats
@@ -454,6 +471,7 @@ export const getConsistencyHistory = async (
       AND c."startAt" >= ${startDate}
       AND c."startAt" <= ${endDate}
       ${agentFilter}
+      ${dayFilter}
     GROUP BY DATE(c."startAt")
     ORDER BY DATE(c."startAt") ASC
   `;

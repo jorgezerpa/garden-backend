@@ -1,6 +1,75 @@
 import { prisma } from "../lib/prisma";
 import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
 
+export const getGeneralInsights = async (
+  companyId: number,
+  startDate: Date,
+  endDate: Date,
+  filters: { agents: number[] }
+) => {
+  // 1. Common Filter for Agent IDs
+  const agentFilter = filters.agents?.length > 0 ? { in: filters.agents } : undefined;
+
+  // 2. Aggregate Call Data (TalkTime, Total Calls, Avg Duration)
+  const callMetrics = await prisma.call.aggregate({
+    where: {
+      companyId,
+      startAt: { gte: startDate, lte: endDate },
+      agentId: agentFilter,
+    },
+    _sum: {
+      durationSeconds: true,
+    },
+    _count: {
+      id: true,
+    },
+    _avg: {
+      durationSeconds: true,
+    },
+  });
+
+  // 3. Aggregate Funnel Events (Seeds, Leads, Sales)
+  const eventCounts = await prisma.funnelEvent.groupBy({
+    by: ['type'],
+    where: {
+      agent: { companyId },
+      agentId: agentFilter,
+      timestamp: { gte: startDate, lte: endDate },
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  // Helper to extract count from grouped results
+  const getEventCount = (type: EventType) => 
+    eventCounts.find((e) => e.type === type)?._count.id || 0;
+
+  const totalSeeds = getEventCount(EventType.SEED);
+  const totalLeads = getEventCount(EventType.LEAD);
+  const totalSales = getEventCount(EventType.SALE);
+  
+  const totalCalls = callMetrics._count.id || 0;
+  const totalTalkTime = callMetrics._sum.durationSeconds || 0;
+  const avgCallDuration = Math.round(callMetrics._avg.durationSeconds || 0);
+
+  // 4. Calculate Conversion Rate (Seeds to Sales)
+  // Formula: (Sales / Seeds) * 100
+  const conversionRate = totalSeeds > 0 
+    ? parseFloat(((totalSales / totalSeeds) * 100).toFixed(2)) 
+    : 0;
+
+  return {
+    totalTalkTime,      // In seconds
+    totalCalls,
+    totalSeeds,
+    totalLeads,
+    totalSales,
+    conversionRate,     // Percentage
+    avgCallDuration,    // In seconds
+  };
+};
+
 export const getDailyActivity = async (
   companyId: number,
   startDate: Date,

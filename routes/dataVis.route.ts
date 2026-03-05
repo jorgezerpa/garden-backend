@@ -5,6 +5,41 @@ import { JWTAuthRequest } from '../types/request';
 
 const dataVisRouter = Router();
 
+// GET /api/datavis/general-insights
+dataVisRouter.get('/general-insights', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { from, to, agents } = req.query;
+    const companyId = req.user?.companyId
+
+    if (!companyId || !from || !to) {
+      return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
+    }
+
+    const startDate = new Date(from as string);
+    const endDate = new Date(to as string);
+    const parsedAgents = agents ? parseNumberArray(agents) : []
+    
+    // Set endDate to the very end of that day to capture all evening calls
+    endDate.setHours(23, 59, 59, 999);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+    }
+
+    const report = await DataVisController.getGeneralInsights(
+      Number(companyId),
+      startDate,
+      endDate,
+      { agents: parsedAgents }
+    );
+
+    return res.status(200).json(report);
+  } catch (err: any) {
+    console.error("DataVis Error:", err);
+    return res.status(500).json({ error: "Internal server error processing visualization" });
+  }
+});
+
 // GET /api/datavis/daily-activity?companyId=1&from=2024-05-01&to=2024-05-07
 dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) => {
   try {

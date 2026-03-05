@@ -315,18 +315,13 @@ const calculateLevel = (val: number, min: number, max: number): number => {
 
 export const getSeedTimelineHeatmapPerDay = async (
   companyId: number,
-  targetDate: Date,
+  targetDate: String,
   filters: { agents: number[] }
 ) => {
-  
   // 1. Explicitly parse the YYYY-MM-DD string to avoid timezone shifts
   // This ensures we are looking at the 24h window of that specific calendar date
-  const startOfDay = new Date(targetDate);
-
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date(targetDate);
-  endOfDay.setHours(23, 59, 59, 999);
+  const startOfDay = new Date(`${targetDate}T00:00:00.000Z`);
+  const endOfDay = new Date(`${targetDate}T23:59:59.999Z`);
 
   // 2. Prepare conditional SQL fragment
   const agentFilter = filters.agents && filters.agents.length > 0 
@@ -336,7 +331,7 @@ export const getSeedTimelineHeatmapPerDay = async (
   // 3. Fetch hourly seeds (Added explicit casting for Enum)
   const hourlyData: { hour: number; seeds: number }[] = await prisma.$queryRaw`
     SELECT 
-      EXTRACT(HOUR FROM c."startAt") as "hour",
+      EXTRACT(HOUR FROM (c."startAt"::timestamp)) as "hour",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id 

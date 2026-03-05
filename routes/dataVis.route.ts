@@ -166,16 +166,10 @@ dataVisRouter.get('/seed-timeline-heatmap-per-day', async (req: JWTAuthRequest, 
       });
     }
 
-    const date = new Date(day)
-
-    if (isNaN(date.getTime())) {
-      return res.status(400).json({ error: "The provided date is invalid" });
-    }
-
     const parsedAgents = agents ? parseNumberArray(agents) : []
     const heatmapData = await DataVisController.getSeedTimelineHeatmapPerDay(
       Number(companyId),
-      date,
+      day,
       { agents: parsedAgents }
     );
 

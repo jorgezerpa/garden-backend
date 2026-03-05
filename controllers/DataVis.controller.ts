@@ -162,11 +162,14 @@ export const getDailyActivity = async (
 // BLOCK VIEWS 
 export const getBlockPerformance = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  from: string,
+  to: string,
   schemaId: number,
   filters: { days: boolean[]; types: boolean[], agents: number[] }
 ) => {
+  // 0. Format start and end date 
+  const startDate = new Date(`${from}T00:00:00.000Z`);
+  const endDate = new Date(`${to}T23:59:59.999Z`);
 
   // 1. Map the 'types' boolean array to BlockType enums
   // Index 0: WORKING, 1: REST, 2: EXTRA_TIME
@@ -183,7 +186,8 @@ export const getBlockPerformance = async (
         include: {
           blocks: {
             // Filter by block type (Working/Rest/Extra)
-            where: { blockType: { in: activeBlockTypes } }
+            where: { blockType: { in: activeBlockTypes } },
+            orderBy: { startMinutesFromMidnight: "asc" }
           }
         }
       }
@@ -217,10 +221,9 @@ export const getBlockPerformance = async (
   });
 
   // 4. Initialize the results (Flat list of valid blocks)
-  const blockStats = schema.schemaDays.flatMap(day =>
+  let blockStats = schema.schemaDays.flatMap(day =>
     day.blocks.map(block => ({
       id: block.id,
-      dayIndex: day.dayIndex,
       startMinutes: block.startMinutesFromMidnight,
       endMinutes: block.endMinutesFromMidnight,
       type: block.blockType,
@@ -230,19 +233,13 @@ export const getBlockPerformance = async (
     }))
   );
 
+  if(activeBlockTypes.includes(BlockType.EXTRA_TIME)) blockStats = fillGapsWithExtraTime(blockStats)
+
   // 5. Map calls to the filtered blocks
-  calls.forEach(call => {
-    // Determine the day of the week (0-6)
-    // Note: getDay() returns 0 for Sunday, 1 for Monday. 
-    // If your dayIndex 0 is Monday, we adjust:
-    const rawDay = call.startAt.getDay(); 
-    const dayIndex = rawDay === 0 ? 6 : rawDay - 1; 
-
-    // Skip call if this day is filtered out
-    if (!filters.days[dayIndex]) return;
-
-    const callMinutes = call.startAt.getHours() * 60 + call.startAt.getMinutes();
-
+  calls.forEach((call, i) => {
+    
+    const callMinutes = call.startAt.getUTCHours() * 60 + call.startAt.getUTCMinutes(); // minutes from midnight
+    
     // Find the target block among the allowed blocks
     const targetBlock = blockStats.find(b => 
       callMinutes >= b.startMinutes &&
@@ -260,16 +257,13 @@ export const getBlockPerformance = async (
   });
 
   // 6. Final Formatting for Frontend
-  // We sort by dayIndex then startMinutes to ensure the chart flow is logical
   return blockStats
-    .sort((a, b) => a.dayIndex - b.dayIndex || a.startMinutes - b.startMinutes)
     .map(b => ({
       blockStartTimeMinutesFromMidnight: b.startMinutes,
       blockEndTimeMinutesFromMidnight: b.endMinutes,
       talkTime: Math.round(b.talkTime),
       seeds: b.seeds,
       sales: b.sales,
-      dayIndex: b.dayIndex,
       type: b.type
     }));
 };
@@ -592,4 +586,59 @@ export const getConsistencyHistory = async (
       score: finalScore
     };
   });
+};
+
+
+///// HELPERS 
+export const fillGapsWithExtraTime = (
+  blocks: { startMinutes: number; endMinutes: number; [key: string]: any }[]
+): {
+    id: number,
+    startMinutes: number,
+    endMinutes: number,
+    type: BlockType,
+    talkTime: number,
+    seeds: number,
+    sales: number
+}[]  =>  {
+  const fullDay: any = [];
+  const TOTAL_MINUTES = 24 * 60; // 1440
+  let currentTime = 0;
+
+  // Ensure blocks are sorted by start time
+  const sortedBlocks = [...blocks].sort((a, b) => a.startMinutes - b.startMinutes);
+
+  for (const block of sortedBlocks) {
+    // 1. If there's a gap between the current pointer and the start of the next block
+    if (block.startMinutes > currentTime) {
+      fullDay.push({
+        startMinutes: currentTime,
+        endMinutes: block.startMinutes,
+        type: "EXTRA_TIME", // Use your enum BlockType.EXTRA_TIME here
+        talkTime: 0,
+        seeds: 0,
+        sales: 0,
+      });
+    }
+
+    // 2. Add the existing block
+    fullDay.push(block);
+
+    // 3. Move the pointer to the end of this block
+    currentTime = Math.max(currentTime, block.endMinutes);
+  }
+
+  // 4. If there's a gap between the last block and the end of the day (Midnight)
+  if (currentTime < TOTAL_MINUTES) {
+    fullDay.push({
+      startMinutes: currentTime,
+      endMinutes: TOTAL_MINUTES,
+      type: "EXTRA_TIME",
+      talkTime: 0,
+      seeds: 0,
+      sales: 0,
+    });
+  }
+
+  return fullDay;
 };

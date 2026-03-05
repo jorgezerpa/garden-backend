@@ -105,22 +105,19 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const start = new Date(from as string);
-    const end = new Date(to as string);
-    const sId = Number(schemaId);
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (typeof from !== 'string' || !dateRegex.test(from) || typeof to !== 'string' || !dateRegex.test(to)) {
+      return res.status(400).json({ 
+        error: "Invalid date format. Please use YYYY-MM-DD" 
+      });
+    }
 
-    // Logic Check: Validate date range vs Schema constraints
-    const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const sId = Number(schemaId);
     
     // We fetch the schema type to validate
     const schemaMeta = await prisma.schema.findUnique({ where: { id: sId }, select: { type: true } });
     
     if (!schemaMeta) return res.status(404).json({ error: "Schema not found" });
-
-    // Ensure range doesn't exceed 31 days as per instructions
-    if (diffDays > 31) {
-      return res.status(400).json({ error: "Date range exceeds maximum schema limit of 31 days" });
-    }
 
     const parsedDays = parseBoolArray(days);
     const parsedTypes = parseBoolArray(types);
@@ -128,8 +125,8 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 
     const data = await DataVisController.getBlockPerformance(
       Number(companyId),
-      start,
-      new Date(end.setHours(23, 59, 59, 999)),
+      from,
+      to,
       sId, 
       { days: parsedDays, types: parsedTypes, agents: parsedAgents }
     );

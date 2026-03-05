@@ -99,7 +99,7 @@ describe('Basic Mock Generator', () => {
                   name: "Lunch break"
                 },
                 {
-                  startMinutesFromMidnight: 8*60,
+                  startMinutesFromMidnight: 9*60,
                   endMinutesFromMidnight: 10*60,
                   blockType: "WORKING",
                   name: "Lunch break"

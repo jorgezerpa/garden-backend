@@ -5,6 +5,24 @@ import { JWTAuthRequest } from '../types/request';
 
 const dataVisRouter = Router();
 
+// GET /api/datavis/get-last-call-date
+dataVisRouter.get('/get-last-call-date', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing companyId" });
+    }
+
+    const result = await DataVisController.getLastRegister(companyId)
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    console.error("DataVis Error:", err);
+    return res.status(500).json({ error: "Internal server error processing visualization" });
+  }
+});
+
 // GET /api/datavis/general-insights
 dataVisRouter.get('/general-insights', async (req: JWTAuthRequest, res: Response) => {
   try {

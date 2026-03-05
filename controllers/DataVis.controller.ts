@@ -1,6 +1,25 @@
 import { prisma } from "../lib/prisma";
 import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
 
+export const getLastRegister = async (companyId: number) => {
+  const lastCall = await prisma.call.findFirst({
+    where: {
+      companyId: companyId,
+    },
+    orderBy: {
+      startAt: "desc",
+    },
+    select: {
+      startAt: true,
+    },
+  });
+
+  return {
+    // Returns the ISO string date or null if no calls exist
+    lastCallDate: lastCall?.startAt || null,
+  };
+};
+
 export const getGeneralInsights = async (
   companyId: number,
   startDate: Date,

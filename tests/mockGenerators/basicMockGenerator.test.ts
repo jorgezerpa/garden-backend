@@ -157,6 +157,60 @@ describe('Basic Mock Generator', () => {
           ]
         }); 
 
+    // Create goals 
+    await request(app)
+        .post('/api/admin/goals/create')
+        .auth(token, { type: "bearer" })
+        .send({
+          name: "Daily Goals Week Day - Per User",
+          sales: 10,
+          talkTime: 30,
+          seeds: 5,
+          callbacks: 20,
+          leads:3,
+          numberOfCalls:10,
+          numberOfLongCalls: 4,      
+        });
+    await request(app)
+        .post('/api/admin/goals/create')
+        .auth(token, { type: "bearer" })
+        .send({
+          name: "Daily Goals Week Day - Team",
+          sales: 100,
+          talkTime: 100,
+          seeds: 50,
+          callbacks: 200,
+          leads:30,
+          numberOfCalls:100,
+          numberOfLongCalls: 40,      
+        });
+    await request(app)
+        .post('/api/admin/goals/create')
+        .auth(token, { type: "bearer" })
+        .send({
+          name: "Daily Goals Week End - Per user",
+          sales: 5,
+          talkTime: 20,
+          seeds: 3,
+          callbacks: 10,
+          leads: 1,
+          numberOfCalls:7,
+          numberOfLongCalls: 2,
+        });
+    await request(app)
+        .post('/api/admin/goals/create')
+        .auth(token, { type: "bearer" })
+        .send({
+          name: "Daily Goals Week End - Team",
+          sales: 503,
+          talkTime: 220,
+          seeds: 34,
+          callbacks: 140,
+          leads: 61,
+          numberOfCalls:27,
+          numberOfLongCalls: 52,
+        });
+
     // 3. Create agents in smaller chunks to avoid DB deadlocks
     const agentData = Array.from({ length: 100 }, (_, i) => ({
         email: `agent${i+1}@test.com`,

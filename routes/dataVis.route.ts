@@ -5,6 +5,41 @@ import { JWTAuthRequest } from '../types/request';
 
 const dataVisRouter = Router();
 
+// GET /api/datavis/get-agents-comparisson
+dataVisRouter.get('/get-agents-comparisson', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { 
+    from, 
+    to, 
+    sortKey, 
+    direction, 
+    page, 
+    pageSize, 
+    agents
+  } = req.query;
+
+  const companyId = req.user?.companyId
+
+  const report = await DataVisController.getAgentsSorted(
+      Number(companyId),
+      from as string, // e.g., "2026-03-01"
+      to as string,   // e.g., "2026-03-07"
+      {
+        sortKey: (sortKey as any) || 'talkTime',
+        direction: (direction as any) || 'desc',
+        page: Number(page) || 1,
+        pageSize: Number(pageSize) || 10,
+        agentIds: agents ? parseNumberArray(agents) : []
+      }
+    );
+
+    return res.status(200).json(report);
+  } catch (err: any) {
+    console.error("DataVis Error:", err);
+    return res.status(500).json({ error: "Internal server error processing visualization" });
+  }
+});
+
 // GET /api/datavis/get-last-call-date
 dataVisRouter.get('/get-last-call-date', async (req: JWTAuthRequest, res: Response) => {
   try {

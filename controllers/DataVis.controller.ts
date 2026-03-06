@@ -588,6 +588,82 @@ export const getConsistencyHistory = async (
   });
 };
 
+export const getAgentsSorted = async (
+  companyId: number,
+  from: string, // "YYYY-MM-DD"
+  to: string,   // "YYYY-MM-DD"
+  params: {
+    sortKey: 'talkTime' | 'seeds' | 'conversion' | 'consistency' | 'longCallRatio';
+    direction: 'asc' | 'desc';
+    page: number;
+    pageSize: number;
+    agentIds?: number[];
+  }
+) => {
+  const { sortKey, direction, page, pageSize, agentIds } = params;
+  const offset = (page - 1) * pageSize;
+
+  // 1. Precise Date Windows (UTC)
+  const startDate = new Date(`${from}T00:00:00.000Z`);
+  const endDate = new Date(`${to}T23:59:59.999Z`);
+
+  // 2. Dynamic Agent Filter
+  const agentFilter = agentIds && agentIds.length > 0 
+    ? Prisma.sql`AND a.id IN (${Prisma.join(agentIds)})` 
+    : Prisma.empty;
+
+  /**
+   * 3. The Query Logic:
+   * - We aggregate 'Call' data and 'FunnelEvent' data per agent.
+   * - Long Call Ratio: (Calls > 300s / Total Calls) * 100
+   * - Conversion: (Sales / Seeds) * 100
+   */
+  const agentsData: any[] = await prisma.$queryRaw`
+    SELECT 
+      a.id,
+      a.name,
+      COALESCE(SUM(c."durationSeconds") / 60, 0)::INT as "talkTime",
+      COUNT(DISTINCT fe_seed.id)::INT as "seeds",
+      -- Conversion Calculation
+      CASE 
+        WHEN COUNT(DISTINCT fe_seed.id) > 0 
+        THEN ROUND((COUNT(DISTINCT fe_sale.id)::NUMERIC / COUNT(DISTINCT fe_seed.id)::NUMERIC) * 100, 1)
+        ELSE 0 
+      END as "conversion",
+      -- Long Call Ratio ( > 5 minutes / 300 seconds)
+      CASE 
+        WHEN COUNT(c.id) > 0 
+        THEN ROUND((COUNT(CASE WHEN c."durationSeconds" >= 300 THEN 1 END)::NUMERIC / COUNT(c.id)::NUMERIC) * 100, 1)
+        ELSE 0 
+      END as "longCallRatio",
+      -- Placeholder for consistency logic (requires Goal comparison)
+      85 as "consistency"
+    FROM "Agent" a
+    LEFT JOIN "Call" c ON c."agentId" = a.id 
+      AND c."startAt" >= ${startDate} 
+      AND c."startAt" <= ${endDate}
+    LEFT JOIN "FunnelEvent" fe_seed ON fe_seed."callId" = c.id AND fe_seed."type" = 'SEED'
+    LEFT JOIN "FunnelEvent" fe_sale ON fe_sale."callId" = c.id AND fe_sale."type" = 'SALE'
+    WHERE a."companyId" = ${companyId}
+    ${agentFilter}
+    GROUP BY a.id, a.name
+    ORDER BY "${Prisma.raw(sortKey)}" ${Prisma.raw(direction.toUpperCase())}
+    LIMIT ${pageSize}
+    OFFSET ${offset}
+  `;
+
+  return agentsData.map(agent => ({
+    id: agent.id,
+    name: agent.name,
+    talkTime: Number(agent.talkTime),
+    seeds: Number(agent.seeds),
+    conversion: Number(agent.conversion),
+    consistency: Number(agent.consistency),
+    longCallRatio: Number(agent.longCallRatio)
+  }));
+};
+
+
 
 ///// HELPERS 
 export const fillGapsWithExtraTime = (
@@ -642,3 +718,5 @@ export const fillGapsWithExtraTime = (
 
   return fullDay;
 };
+
+

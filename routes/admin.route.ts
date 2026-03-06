@@ -4,11 +4,12 @@ import * as ManagerController from '../controllers/manager.controller';
 import * as GoalsController from '../controllers/goals.controller';
 import { JWTAuthRequest } from '../types/request';
 import { THIRD_PARTY_SERVICES, UserStatus } from '../generated/prisma/enums';
+import { allowedRoles } from '../middleware/authJWT.middleware';
 
 const adminRouter = Router();
 
 // POST /api/admin/addManager -> handles manager CRUD
-adminRouter.post('/addManager', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.post('/addManager', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { email, name, password } = req.body;
     const companyId = req.user?.companyId
@@ -32,7 +33,7 @@ adminRouter.post('/addManager', async (req: JWTAuthRequest, res: Response) => {
 });
 
 // PUT /api/admin/editManager
-adminRouter.put('/editManager/:id', checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.put('/editManager/:id', allowedRoles(["MAIN_ADMIN"]), checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { name, email } = req.body;
@@ -45,7 +46,7 @@ adminRouter.put('/editManager/:id', checkManagerBelongsToCompany, async (req: JW
 });
 
 // GET /api/admin/getManager?id=X
-adminRouter.get('/getManager/:id', checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/getManager/:id', allowedRoles(["MAIN_ADMIN"]), checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (!id) return res.status(400).json({ error: "ID is required" });
@@ -58,7 +59,7 @@ adminRouter.get('/getManager/:id', checkManagerBelongsToCompany, async (req: JWT
 });
 
 // GET /api/admin/getManagersList?page=1&limit=10
-adminRouter.get('/getManagersList', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/getManagersList', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -75,7 +76,7 @@ adminRouter.get('/getManagersList', async (req: JWTAuthRequest, res: Response) =
 });
 
 // DELETE /api/admin/removeManagers/:id
-adminRouter.delete('/removeManagers/:id', checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/removeManagers/:id', allowedRoles(["MAIN_ADMIN"]), checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     await ManagerController.deleteManagerAndUser(id);
@@ -90,7 +91,7 @@ adminRouter.delete('/removeManagers/:id', checkManagerBelongsToCompany, async (r
 //////////////////////////////////// AGENTS CRUD
 ////////////////////////////////////
 
-adminRouter.post('/addAgent', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.post('/addAgent', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { email, name, password, leadDeskId } = req.body;
     const companyId = req.user?.companyId
@@ -118,7 +119,7 @@ adminRouter.post('/addAgent', async (req: JWTAuthRequest, res: Response) => {
   }
 });
 
-adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { name, email, leadDeskId } = req.body;
@@ -136,7 +137,7 @@ adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, async (req: JWTAut
 });
 
 // optional queries: includePaused, includeRemoved
-adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     
@@ -155,7 +156,7 @@ adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuth
   }
 });
 
-adminRouter.get('/getAgentsList', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/getAgentsList', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -171,7 +172,7 @@ adminRouter.get('/getAgentsList', async (req: JWTAuthRequest, res: Response) => 
   }
 });
 
-adminRouter.delete('/removeAgent/:id', checkAgentBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/removeAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     await ManagerController.deleteAgentAndUser(id);
@@ -184,7 +185,7 @@ adminRouter.delete('/removeAgent/:id', checkAgentBelongsToCompany, async (req: J
 /////// GOALS ROUTES /////////
 
 // POST /api/admin/goals/create
-adminRouter.post('/goals/create', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.post('/goals/create', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { 
       talkTimeMinutes, seeds, 
@@ -219,7 +220,7 @@ adminRouter.post('/goals/create', async (req: JWTAuthRequest, res: Response) => 
 });
 
 // GET /api/admin/goals/company/:companyId
-adminRouter.get('/goals/company', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/goals/company', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const companyId = req.user?.companyId;
     if(!companyId) return res.status(400).json({ error: "Missing required timing or relation fields" });
@@ -231,7 +232,7 @@ adminRouter.get('/goals/company', async (req: JWTAuthRequest, res: Response) => 
 });
 
 // PUT /api/admin/goals/update/:id
-adminRouter.put('/goals/update/:id', checkGoalBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.put('/goals/update/:id', checkGoalBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     const updateData = req.body;
@@ -245,7 +246,7 @@ adminRouter.put('/goals/update/:id', checkGoalBelongsToCompany, async (req: JWTA
 });
 
 // DELETE /api/admin/goals/delete/:id
-adminRouter.delete('/goals/delete/:id', checkGoalBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/goals/delete/:id', checkGoalBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     await GoalsController.deleteTemporalGoal(id);
@@ -261,7 +262,7 @@ adminRouter.delete('/goals/delete/:id', checkGoalBelongsToCompany, async (req: J
 /////////////////////////////////////
 
 // GET /api/admin/assignation?companyId=1&from=2023-01-01&to=2023-01-31
-adminRouter.get('/assignation', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.get('/assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { from, to } = req.query;
     const companyId = req.user?.companyId
@@ -283,7 +284,7 @@ adminRouter.get('/assignation', async (req: JWTAuthRequest, res: Response) => {
 });
 
 // POST /api/admin/upsert-assignation
-adminRouter.post('/upsert-assignation', async (req: JWTAuthRequest, res: Response) => {
+adminRouter.post('/upsert-assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { date, goalId } = req.body;
     const companyId = req.user?.companyId
@@ -305,7 +306,7 @@ adminRouter.post('/upsert-assignation', async (req: JWTAuthRequest, res: Respons
 });
 
 // DELETE /api/admin/delete-assignation/:id
-adminRouter.delete('/delete-assignation-by-id/:id', checkGoalAssignationBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/delete-assignation-by-id/:id', checkGoalAssignationBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -324,7 +325,7 @@ adminRouter.delete('/delete-assignation-by-id/:id', checkGoalAssignationBelongsT
 });
 
 // OR DELETE /api/admin/delete-assignation?companyId=1&date=2023-01-01
-adminRouter.delete('/delete-assignation-by-date', checkGoalAssignationBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
+adminRouter.delete('/delete-assignation-by-date', checkGoalAssignationBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { date } = req.query;
     const companyId = req.user?.companyId

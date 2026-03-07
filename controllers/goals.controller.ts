@@ -107,12 +107,10 @@ export const getAssignationsByRange = async (
  */
 export const upsertGoalAssignation = async (
   companyId: number,
-  date: Date,
+  date: string,
   goalId: number
 ): Promise<GoalsAssignation> => {
-  // Normalize date to midnight to ensure "per-day" uniqueness
-  const targetDate = new Date(date);
-  targetDate.setUTCHours(0, 0, 0, 0);
+  const targetDate = new Date(`${date}T00:00:00.000Z`);
 
   return await prisma.goalsAssignation.upsert({
     where: {

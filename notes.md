@@ -29,6 +29,8 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] add inputs to get latest data date
 - modify blocks schemas. Now only 1 type -> daily
 - [DONE] add "considered days" filters to datavis per block 
+- Build goals assignation UI
+- Modify blocks schema -> remove TYPE no is only daily. And build assignation db and logic, and build UI for this 
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  

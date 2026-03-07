@@ -6,6 +6,9 @@ export const getAgentDayInsights = async (agentId: number, date: string) => {
   const endOfDay = new Date(`${date}T23:59:59.999Z`);
 
   // 1. Get Metrics and Aggregate Calls
+  const agent = await prisma.agent.findUnique({ where:{ id:agentId } })
+  const companyId = agent?.companyId
+
   const [callMetrics, events, latestState] = await Promise.all([
     prisma.call.aggregate({
       where: { agentId, startAt: { gte: startOfDay, lte: endOfDay } },
@@ -38,9 +41,12 @@ export const getAgentDayInsights = async (agentId: number, date: string) => {
 
   // 3. Current Streak (Goal comparison)
   const goalAssignation = await prisma.goalsAssignation.findFirst({
-    where: { companyId: (await prisma.agent.findUnique({ where: { id: agentId } }))?.companyId, date: startOfDay },
+    where: { companyId: companyId, date: startOfDay },
     include: { goal: true },
   });
+
+  console.log(startOfDay)
+  console.log(goalAssignation)
 
   let currentStreak = 100;
   let goalSeeds = 0

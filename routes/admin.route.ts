@@ -292,10 +292,9 @@ adminRouter.post('/upsert-assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]),
     if (!companyId || !date || !goalId) {
       return res.status(400).json({ error: "Missing companyId, date, or goalId" });
     }
-
     const result = await GoalsController.upsertGoalAssignation(
       Number(companyId),
-      new Date(date),
+      date,
       Number(goalId)
     );
 

@@ -46,5 +46,27 @@ agentDashboardRouter.get('/get-agent-weekly-growth', async (req: JWTAuthRequest,
   }
 });
 
+// GET /api/datavis/get-agent-weekly-growth
+agentDashboardRouter.post('/register-agent-state', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const {
+      energy,
+      focus,
+      motivation 
+  } = req.body;
+
+  const agentId = req.user?.id
+
+
+  if(!agentId) return res.status(400).json({ error: "Missing agentId" });
+
+    const result =  await AgentDashboardController.registerAgentState(agentId, Number(energy), Number(focus), Number(motivation))
+    return res.status(200).json(result);
+  } catch (err: any) {
+    console.error("DataVis Error:", err);
+    return res.status(500).json({ error: "Internal server error processing visualization" });
+  }
+});
+
 export default agentDashboardRouter;
 

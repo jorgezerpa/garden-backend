@@ -1,15 +1,19 @@
 import { prisma } from "../lib/prisma";
 import { EventType } from "../generated/prisma/client";
 
-export const getAgentDayInsights = async (agentId: number, date: string) => {
+export const getAgentDayInsights = async (userId: number, date: string) => {
   const startOfDay = new Date(`${date}T00:00:00.000Z`);
   const endOfDay = new Date(`${date}T23:59:59.999Z`);
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const agentId = user?.agentId
+  
+  if(!agentId) throw("No agent")
 
   // 1. Get Metrics and Aggregate Calls
   const agent = await prisma.agent.findUnique({ where:{ id:agentId } })
   const companyId = agent?.companyId
 
-  const [callMetrics, events, latestState] = await Promise.all([
+  const [callMetrics, events, latestState, totalStates] = await Promise.all([
     prisma.call.aggregate({
       where: { agentId, startAt: { gte: startOfDay, lte: endOfDay } },
       _count: { id: true },
@@ -18,14 +22,18 @@ export const getAgentDayInsights = async (agentId: number, date: string) => {
     prisma.funnelEvent.findMany({
       where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } },
     }),
+    prisma.agentState.findFirst({
+      where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } },
+      orderBy: { timestamp: 'desc' }
+    }),
     prisma.agentState.aggregate({
       where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } },
-      _count: { id: true },
-      _sum: { energyScore: true, focusScore: true, motivationScore: true }
+      _count: { id: true }
     }),
-    // prisma.agentState.findFirst({
+    // prisma.agentState.aggregate({
     //   where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } },
-    //   orderBy: { timestamp: "desc" },
+    //   _count: { id: true },
+    //   _sum: { energyScore: true, focusScore: true, motivationScore: true }
     // }),
   ]);
 
@@ -44,9 +52,6 @@ export const getAgentDayInsights = async (agentId: number, date: string) => {
     where: { companyId: companyId, date: startOfDay },
     include: { goal: true },
   });
-
-  console.log(startOfDay)
-  console.log(goalAssignation)
 
   let currentStreak = 100;
   let goalSeeds = 0
@@ -73,18 +78,18 @@ export const getAgentDayInsights = async (agentId: number, date: string) => {
     goalTalkTimeMinutes = g.talkTimeMinutes
   }
 
-  const energy = latestState?._sum.energyScore
-  const motivation = latestState?._sum.motivationScore
-  const focus = latestState?._sum.focusScore
-  const feelingsCount = latestState._count.id
+  const energy = latestState?.energyScore
+  const motivation = latestState?.motivationScore
+  const focus = latestState?.focusScore
+  const feelingsCount = totalStates._count.id
 
   return {
     seeds, leads, sales, currentStreak,
     number_of_calls: totalCalls,
     number_of_deep_call: deepCalls,
-    energy: (feelingsCount > 0 && energy) ? energy/feelingsCount : 0,
-    focus: (feelingsCount > 0 && focus) ? focus/feelingsCount : 0,
-    motivation: (feelingsCount > 0 && motivation) ? motivation/feelingsCount : 0,
+    energy: energy || 0,
+    focus: focus || 0,
+    motivation: motivation || 0,
     talkTime,
     goalSeeds,
     goalLeads, 
@@ -134,6 +139,48 @@ export const getAgentWeeklyGrowth = async (agentId: number, dateStr: string) => 
   return weeklyData;
 };
 
+/**
+ * Registers a new state entry for an agent.
+ * @param agentId - The ID of the agent reporting their state
+ * @param energy - Score from 1-10
+ * @param focus - Score from 1-10
+ * @param motivation - Score from 1-10
+ */
+export const registerAgentState = async (
+  userId: number, 
+  energy: number, 
+  focus: number, 
+  motivation: number
+) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const agentId = user?.agentId
+
+    if(!agentId) throw("No agent")
+
+    // 1. Validate scores are within the expected 1-10 range
+    const scores = [energy, focus, motivation];
+    if (scores.some(score => score < 0 || score > 10)) {
+      throw new Error("Scores must be between 0 and 10.");
+    }
+
+    // 2. Create the record in the AgentState (feelings) table
+    const newState = await prisma.agentState.create({
+      data: {
+        agentId,
+        energyScore: energy,
+        focusScore: focus,
+        motivationScore: motivation,
+        // timestamp defaults to now() in the schema
+      },
+    });
+
+    return newState;
+  } catch (error) {
+    console.error("Error registering agent state:", error);
+    throw error;
+  }
+};
 
 
 

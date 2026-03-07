@@ -39,15 +39,9 @@ describe('Block schemas testing', () => {
     
     const validSchemaPayload = {
       name: "Standard Shift",
-      type: "DAILY",
-      days: [
-        {
-          dayIndex: 0,
-          blocks: [
-            { startMinutesFromMidnight: 480, endMinutesFromMidnight: 720, blockType: "WORKING", name: "Morning" },
-            { startMinutesFromMidnight: 720, endMinutesFromMidnight: 780, blockType: "REST", name: "Lunch" }
-          ]
-        }
+      blocks: [
+        { startMinutesFromMidnight: 480, endMinutesFromMidnight: 720, blockType: "WORKING", name: "Morning" },
+        { startMinutesFromMidnight: 720, endMinutesFromMidnight: 780, blockType: "REST", name: "Lunch" }
       ]
     };
 
@@ -58,10 +52,9 @@ describe('Block schemas testing', () => {
           .auth(JWT, { type: "bearer" })
           .send(validSchemaPayload);
 
-        expect(response.status).toBe(201);
+          expect(response.status).toBe(201);
         expect(response.body.name).toBe("Standard Shift");
-        expect(response.body.schemaDays).toHaveLength(1);
-        expect(response.body.schemaDays[0].blocks).toHaveLength(2);
+        expect(response.body.blocks).toHaveLength(2);
       });
 
       it('returns 400 if required fields are missing', async () => {
@@ -72,15 +65,6 @@ describe('Block schemas testing', () => {
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain("Missing required schema structure");
-      });
-
-      it('returns 500 if SchemaType is invalid', async () => {
-        const response = await request(app)
-          .post('/api/schema/create')
-          .auth(JWT, { type: "bearer" })
-          .send({ ...validSchemaPayload, type: "INVALID_TYPE" });
-
-        expect(response.status).toBe(500);
       });
     });
 
@@ -94,7 +78,7 @@ describe('Block schemas testing', () => {
         
         expect(response.status).toBe(200);
         expect(response.body.id).toBe(schemaId);
-        expect(response.body).toHaveProperty('schemaDays');
+        expect(response.body).toHaveProperty('blocks');
       });
 
       it('returns 404 for non-existent schema', async () => {
@@ -144,8 +128,7 @@ describe('Block schemas testing', () => {
           .send(updatedPayload);
 
         expect(response.status).toBe(200);
-        expect(response.body.schemaDays).toHaveLength(1);
-        expect(response.body.schemaDays[0].dayIndex).toBe(1); // Old dayIndex 0 should be gone
+        expect(response.body.blocks).toHaveLength(2);
       });
     });
 

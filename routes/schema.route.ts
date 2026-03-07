@@ -7,24 +7,21 @@ const schemaRouter = Router();
 // POST /api/admin/schemas/create
 schemaRouter.post('/create', async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { name, type, days } = req.body;
+    const { name, blocks } = req.body;
     const companyId = req.user?.companyId
     const creatorId = req.user?.id
 
-    if (!name || !type || !companyId || !creatorId || !Array.isArray(days)) {
+    if (!name || !companyId || !creatorId || !Array.isArray(blocks)) {
       return res.status(400).json({ error: "Missing required schema structure" });
     }
-
-    if(type!=="DAILY") return res.status(403).json({error:"Only daily schemas are allowed by now. We are working on weekly and monthly"})
-    if(days.length==0 || days.length > 1) return res.status(400).json({ error: "Invalid array length for schema type." })
-    if(days[0].dayIndex != 0) return res.status(400).json({ error: "Invalid dayIndex for daily type schema. Must be 0" })
+    
+    if(blocks.length==0) return res.status(400).json({ error: "Must send at least 1 block" })
 
     const result = await SchemaController.createSchema({
       name,
-      type,
       companyId: Number(companyId),
       creatorId: Number(creatorId),
-      days
+      blocks
     });
 
     return res.status(201).json(result);
@@ -80,22 +77,19 @@ schemaRouter.put('/update/:id', checkSchemaBelongsToCompany, async (req: JWTAuth
 // @dev@q metadata should not update type, write?
   try {
     const id = Number(req.params.id);
-    const { name, type, days } = req.body;
+    const { name, blocks } = req.body;
 
     // If 'days' is provided, we perform a full structural update
-    if (days && Array.isArray(days)) {
+    if (blocks && Array.isArray(blocks)) {
       const updated = await SchemaController.fullUpdateSchema(id, {
         name,
-        type,
-        days
+        blocks
       });
-      return res.status(200).json(updated);
     } 
 
     // Otherwise, just update the metadata
     const updatedMetadata = await SchemaController.updateSchemaMetadata(id, { name });
     return res.status(200).json(updatedMetadata);
-    
   } catch (err: any) {
     console.error("Schema Update Error:", err);
     return res.status(500).json({ error: "Update failed: " + err.message });

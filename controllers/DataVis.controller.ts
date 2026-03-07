@@ -182,14 +182,9 @@ export const getBlockPerformance = async (
   const schema = await prisma.schema.findUnique({
     where: { id: schemaId },
     include: {
-      schemaDays: {
-        include: {
-          blocks: {
-            // Filter by block type (Working/Rest/Extra)
-            where: { blockType: { in: activeBlockTypes } },
-            orderBy: { startMinutesFromMidnight: "asc" }
-          }
-        }
+      blocks: {
+        where: { blockType: { in: activeBlockTypes } },
+        orderBy: { startMinutesFromMidnight: "asc" }
       }
     }
   });
@@ -220,18 +215,15 @@ export const getBlockPerformance = async (
     include: { events: true }
   });
 
-  // 4. Initialize the results (Flat list of valid blocks)
-  let blockStats = schema.schemaDays.flatMap(day =>
-    day.blocks.map(block => ({
-      id: block.id,
-      startMinutes: block.startMinutesFromMidnight,
-      endMinutes: block.endMinutesFromMidnight,
-      type: block.blockType,
-      talkTime: 0,
-      seeds: 0,
-      sales: 0
-    }))
-  );
+  let blockStats = schema.blocks.map(block => ({
+    id: block.id,
+    startMinutes: block.startMinutesFromMidnight,
+    endMinutes: block.endMinutesFromMidnight,
+    type: block.blockType,
+    talkTime: 0,
+    seeds: 0,
+    sales: 0
+  }));
 
   if(activeBlockTypes.includes(BlockType.EXTRA_TIME)) blockStats = fillGapsWithExtraTime(blockStats)
 

@@ -47,33 +47,26 @@ describe('Basic Mock Generator', () => {
         .auth(token, { type: "bearer" })
         .send({
           name: "Standard",
-          type: "DAILY",
-          days: [
+          blocks: [
             {
-              dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (id DB are, but better be sure)
-              blocks: [
-                {
-                  startMinutesFromMidnight: 7*60,
-                  endMinutesFromMidnight: 12*60,
-                  blockType: "WORKING",
-                  name: "Morning block 1"
-                },
-                {
-                  startMinutesFromMidnight: 12*60,
-                  endMinutesFromMidnight: 13*60,
-                  blockType: "REST",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 13*60,
-                  endMinutesFromMidnight: 17*60,
-                  blockType: "WORKING",
-                  name: "Afternoon block 1"
-                },
-
-              ] 
-            }
-          ]
+              startMinutesFromMidnight: 7*60,
+              endMinutesFromMidnight: 12*60,
+              blockType: "WORKING",
+              name: "Morning block 1"
+            },
+            {
+              startMinutesFromMidnight: 12*60,
+              endMinutesFromMidnight: 13*60,
+              blockType: "REST",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 13*60,
+              endMinutesFromMidnight: 17*60,
+              blockType: "WORKING",
+              name: "Afternoon block 1"
+            },
+          ] 
         }); 
 
         await request(app)
@@ -81,80 +74,74 @@ describe('Basic Mock Generator', () => {
         .auth(token, { type: "bearer" })
         .send({
           name: "Hourly division",
-          type: "DAILY",
-          days: [
+          blocks: [
             {
-              dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (in DB are, but better to be sure)
-              blocks: [
-                {
-                  startMinutesFromMidnight: 7*60,
-                  endMinutesFromMidnight: 8*60,
-                  blockType: "WORKING",
-                  name: "Morning block 1"
-                },
-                {
-                  startMinutesFromMidnight: 8*60,
-                  endMinutesFromMidnight: 9*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 9*60,
-                  endMinutesFromMidnight: 10*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 10*60,
-                  endMinutesFromMidnight: 11*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 11*60,
-                  endMinutesFromMidnight: 12*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 12*60,
-                  endMinutesFromMidnight: 13*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 13*60,
-                  endMinutesFromMidnight: 14*60,
-                  blockType: "REST",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 14*60,
-                  endMinutesFromMidnight: 15*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 15*60,
-                  endMinutesFromMidnight: 16*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 16*60,
-                  endMinutesFromMidnight: 17*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-                {
-                  startMinutesFromMidnight: 17*60,
-                  endMinutesFromMidnight: 18*60,
-                  blockType: "WORKING",
-                  name: "Lunch break"
-                },
-              ] 
-            }
-          ]
+              startMinutesFromMidnight: 7*60,
+              endMinutesFromMidnight: 8*60,
+              blockType: "WORKING",
+              name: "Morning block 1"
+            },
+            {
+              startMinutesFromMidnight: 8*60,
+              endMinutesFromMidnight: 9*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 9*60,
+              endMinutesFromMidnight: 10*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 10*60,
+              endMinutesFromMidnight: 11*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 11*60,
+              endMinutesFromMidnight: 12*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 12*60,
+              endMinutesFromMidnight: 13*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 13*60,
+              endMinutesFromMidnight: 14*60,
+              blockType: "REST",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 14*60,
+              endMinutesFromMidnight: 15*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 15*60,
+              endMinutesFromMidnight: 16*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 16*60,
+              endMinutesFromMidnight: 17*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+            {
+              startMinutesFromMidnight: 17*60,
+              endMinutesFromMidnight: 18*60,
+              blockType: "WORKING",
+              name: "Lunch break"
+            },
+          ] 
         }); 
 
     // Create goals 

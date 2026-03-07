@@ -149,11 +149,6 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 
     const sId = Number(schemaId);
     
-    // We fetch the schema type to validate
-    const schemaMeta = await prisma.schema.findUnique({ where: { id: sId }, select: { type: true } });
-    
-    if (!schemaMeta) return res.status(404).json({ error: "Schema not found" });
-
     const parsedDays = parseBoolArray(days);
     const parsedTypes = parseBoolArray(types);
     const parsedAgents = agents ? parseNumberArray(agents) : []

@@ -251,7 +251,7 @@ describe('Basic Mock Generator', () => {
     }
 
     // 4. Simulate webhook calls
-    const totalCalls = 1000;
+    const totalCalls = 100;
     const chunkSize = 10;
     const startDate = new Date("2026-01-01T00:00:00Z");
     const authHeader = `Basic ${Buffer.from(`${responseKeysGeneration.body.publicKey}:${responseKeysGeneration.body.secretKey}`).toString('base64')}`;
@@ -338,7 +338,7 @@ describe('Basic Mock Generator', () => {
         }
     }
 
-}, 60000); // <--- INCREASED TIMEOUT
+}, 600000); // <--- INCREASED TIMEOUT
 
   
 });

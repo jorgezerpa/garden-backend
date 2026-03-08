@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { SchemaType, BlockType } from "../generated/prisma/client";
+import { SchemaType, BlockType, SchemaAssignation } from "../generated/prisma/client";
 
 export const createSchema = async (data: {
   name: string;
@@ -59,8 +59,9 @@ export const deleteSchema = async (id: number) => {
   // Prisma handles cascading deletes if configured in DB, 
   // otherwise we delete child records first in a transaction.
   return await prisma.$transaction(async (tx) => { 
-    await tx.schemaBlock.deleteMany({ where: { schemaId: id }});
-    return await tx.schema.delete({ where: { id } });
+    await tx.schemaAssignation.deleteMany({ where: { schemaId: id } }) // delete assignations
+    await tx.schemaBlock.deleteMany({ where: { schemaId: id }}); // delete blocks
+    return await tx.schema.delete({ where: { id } }); // delete schema 
   });
 };
 
@@ -113,4 +114,71 @@ export const fullUpdateSchema = async (id: number, data: {
       }
     });
   });
+};
+
+export const getAssignationsByRange = async (
+  companyId: number,
+  from: Date,
+  to: Date
+): Promise<SchemaAssignation[]> => {
+  return await prisma.schemaAssignation.findMany({
+    where: {
+      companyId,
+      date: {
+        gte: getStartOfDay(from),
+        lte: getEndOfDay(to),
+      },
+    },
+    orderBy: {
+      date: 'asc',
+    },
+  });
+};
+
+export const upsertSchemaAssignation = async (
+  companyId: number,
+  date: string,
+  schemaId: number
+): Promise<SchemaAssignation> => {
+  const targetDate = new Date(`${date}T00:00:00.000Z`);
+
+  return await prisma.schemaAssignation.upsert({
+    where: {
+      companyId_date: { companyId, date: targetDate }
+    },
+    update: {
+      schemaId
+    },
+    create: {
+      companyId,
+      date: targetDate,
+      schemaId
+    },
+  });
+};
+
+export const deleteSchemaAssignation = async (id: number): Promise<SchemaAssignation> => {
+  return await prisma.schemaAssignation.delete({
+    where: { id },
+  });
+};
+
+
+// HELPERS 
+/**
+ * Normalizes a date to 00:00:00.000
+ */
+const getStartOfDay = (date: Date): Date => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
+ * Normalizes a date to 23:59:59.999
+ */
+const getEndOfDay = (date: Date): Date => {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
 };

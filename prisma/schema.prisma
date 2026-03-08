@@ -147,6 +147,7 @@ model Company {
   users             User[]
   temporalGoals     TemporalGoals[] // goals list 
   GoalsAssignation  GoalsAssignation[] // assigns 1 TemporalGoal to a specific day (date)
+  schemaAssignation  SchemaAssignation[] // assigns 1 TemporalGoal to a specific day (date)
   apiKey            APIKeysAuth?
 }
 
@@ -240,6 +241,7 @@ model Schema {
   creator           Manager            @relation(fields: [creatorId], references: [id])
   creatorId         Int
   blocks            SchemaBlock[]
+  schemaAssignations SchemaAssignation[]
 }
 
 model SchemaBlock {
@@ -252,6 +254,16 @@ model SchemaBlock {
   schemaId                  Int
 }
 
+model SchemaAssignation {
+  id                Int           @id         @default(autoincrement())
+  company           Company  @relation(fields: [companyId], references: [id])
+  companyId         Int
+  schema            Schema   @relation(fields: [schemaId], references: [id])
+  schemaId           Int
+  date              DateTime // day at which the goals are assigned 
+
+  @@unique([companyId, date])
+}
 
 // --- PERFORMANCE DATA ---
 

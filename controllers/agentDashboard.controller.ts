@@ -100,6 +100,21 @@ export const getAgentDayInsights = async (userId: number, date: string) => {
   };
 };
 
+export const getAssignedSchema = async (userId: number, dateStr: string) => {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  const company = await prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } })
+
+  if(!company) throw("Not company found")
+  
+  const assigned = await prisma.schemaAssignation.findUnique({ where: { companyId_date: { companyId: company?.companyId, date: date  } } })
+
+  if(!assigned) return null
+
+  const schema = await prisma.schema.findUnique({ where: { id: assigned.schemaId }, include: { blocks: { orderBy: { startMinutesFromMidnight:"asc" } } } })
+
+  return schema
+}
+
 export const getAgentWeeklyGrowth = async (agentId: number, dateStr: string) => {
   // Create date in UTC
   const date = new Date(`${dateStr}T00:00:00Z`);

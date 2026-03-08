@@ -3,22 +3,24 @@ import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/cli
 
 export const getLastRegister = async (companyId: number) => {
   const lastCall = await prisma.call.findFirst({
-    where: {
-      companyId: companyId,
-    },
-    orderBy: {
-      startAt: "desc",
-    },
-    select: {
-      startAt: true,
-    },
+    where: { companyId },
+    orderBy: { startAt: "desc" },
+    select: { startAt: true },
   });
 
-  return {
-    // Returns the ISO string date or null if no calls exist
-    lastCallDate: lastCall?.startAt || null,
-  };
+  if (!lastCall) return { lastCallDate: null };
+
+  const lastCallTime = new Date(lastCall.startAt).getTime();
+  const currentTime = new Date().getTime();
+
+  // If the last call timestamp is greater than right now
+  if (lastCallTime > currentTime) {
+    return { lastCallDate: new Date() }; // Return right now
+  }
+
+  return { lastCallDate: lastCall.startAt };
 };
+
 
 export const getGeneralInsights = async (
   companyId: number,

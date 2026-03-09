@@ -153,7 +153,7 @@ adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN
     
     if (!id) return res.status(400).json({ error: "ID is required" });
     
-    // @todo@dev finish this filter implementation, I only write this commented 4 lines of below 
+    // finish this filter implementation, I only write this commented 4 lines of below 
     // const query = req.query;
     // const statusToInclude:UserStatus[] = ["ACTIVE"] // by default only active
     // if(query?.includePaused) statusToInclude.push("PAUSED") 
@@ -318,9 +318,6 @@ adminRouter.post('/upsert-assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]),
 adminRouter.delete('/delete-assignation-by-id/:id', checkGoalAssignationBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-
-    // @todo sanitization of id  (if needed)
-
     // Logic for deleting by Primary Key ID
     if (id) {
       const deleted = await GoalsController.deleteGoalAssignation(Number(id));

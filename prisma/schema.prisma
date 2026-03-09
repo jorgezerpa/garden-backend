@@ -152,7 +152,6 @@ model Company {
 }
 
 // 1-to-1 company-key (used to authenticate webhook call origin)
-// @dev@IMPORTANT probably not the most secure approach, research how is this managed in secure apps 
 model APIKeysAuth {
   id            Int      @id @default(autoincrement())
   
@@ -269,7 +268,6 @@ model SchemaAssignation {
 
 model Call {
   id                Int              @id @default(autoincrement())
-  leadDeskId        String?           //@todo  // Not unique because can variate per company. Also, this is temporary, will be better to create another table so we can handle multiple services aside leaddesk 
   agent             Agent            @relation(fields: [agentId], references: [id])
   agentId           Int
   callee            Callee           @relation(fields: [calleeId], references: [id])
@@ -297,8 +295,6 @@ model FunnelEvent {
   agent     Agent     @relation(fields: [agentId], references: [id])
   agentId   Int
 }
-
-// @todo make "funnelEventCountPerUser" and "funnelEventCount" models for quicker fetches for related graphics @IMPORTANT 
 
 model AgentState {
   id              Int      @id @default(autoincrement())

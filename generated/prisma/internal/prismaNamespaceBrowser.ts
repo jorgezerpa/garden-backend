@@ -205,7 +205,6 @@ export type SchemaAssignationScalarFieldEnum = (typeof SchemaAssignationScalarFi
 
 export const CallScalarFieldEnum = {
   id: 'id',
-  leadDeskId: 'leadDeskId',
   agentId: 'agentId',
   calleeId: 'calleeId',
   companyId: 'companyId',

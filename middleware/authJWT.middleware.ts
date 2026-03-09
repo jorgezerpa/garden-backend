@@ -50,7 +50,7 @@ export const allowedRoles = (roles: Role[] ) => {
           }
   
           if(!roles.includes(payload.role)) {
-            res.status(401).json({ error: "Path not granted for this role" }) // @dev@todo is this the corect error code for invalid role?
+            res.status(403).json({ error: "Path not granted for this role" }) 
           }
           
           next();

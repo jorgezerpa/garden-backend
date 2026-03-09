@@ -73,10 +73,6 @@ schemaRouter.delete('/:id', checkSchemaBelongsToCompany, async (req: JWTAuthRequ
 
 // PUT /api/admin/schemas/update/:id
 schemaRouter.put('/update/:id', checkSchemaBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
-// @todo add input checks -> type matches sended days, etc
-// @todo make another route just for metadata, SRP and KISS -> optional inputs makes this more complex unnecesarly 
-// @dev@q fullUpdateSchema should update name and type? 
-// @dev@q metadata should not update type, write?
   try {
     const id = Number(req.params.id);
     const { name, blocks } = req.body;

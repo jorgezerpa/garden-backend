@@ -9,6 +9,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 
 
 ## Todos
+- Confusing userId with agentId/managerId in some parts 
 - [DONE] Implement authentication middleware and write specific tests
 - [DONE] Implement leaddesk webhook authentication and api keys generation  
 - [DONE] convert previous point into a middleware

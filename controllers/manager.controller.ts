@@ -32,7 +32,6 @@ export const createManagerWithUser = async (data: {
   });
 };
 
-// @todo should be able to update password too, in case agent forgets it 
 export const updateManagerData = async (id: number, data: { name?: string; email?: string, password?: string }) => {
   const saltRounds = 10;
   const passwordHash = data.password ? await hash(data.password, saltRounds) : undefined;
@@ -114,7 +113,6 @@ export const createAgentWithUser = async (data: {
   });
 };
 
-// @todo should be able to update password too, in case agent forgets it 
 export const updateAgentData = async (
   id: number, 
   data: { 

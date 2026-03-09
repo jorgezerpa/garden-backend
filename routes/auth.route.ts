@@ -6,6 +6,11 @@ import jwt from 'jsonwebtoken';
 import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
 import { JWTAuthRequest } from '../types/request';
 
+const isValidEmail = (email: string): email is string => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+};
+
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
 const authRouter = Router();
@@ -16,10 +21,14 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const { companyName, admin_email, admin_name, password } = req.body;
 
     // 1. Basic Sanitization & Validation
-    // @todo assert email regex
     if (!admin_email || !password) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    
+    if(!isValidEmail(admin_email)){
+      return res.status(422).json({ error: "Invalid Email format" });
+    }
+
     const cleanEmail = admin_email.toLowerCase().trim();
     
     // 2. Business Logic (Check if exists)
@@ -73,7 +82,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return res.status(200).json({ 
       message: "Login successful", 
       token, // Send this to the client
-      user: { // @dev@q is this redundant? I can take this from the JWT 
+      user: {  
         id: user.id,
         role: user.role,
         companyId: user.companyId
@@ -86,7 +95,6 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
 
 // POST /api/auth/generate-key-pair
-// @todo -> check there is not an actual api key generated, if it is, return error code 
 authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
   try {
     const companyId = req.user?.companyId
@@ -95,8 +103,12 @@ authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN
       return res.status(400).json({ error: "Missing company" });
     }
 
+    const existantPublicKey = await getPublicKey(companyId)
+
+    if(existantPublicKey?.publicKey) return res.status(409).json({ error: "Keys already generated. Delete it first to create a new one" })
+
     const { publicKey, secretKey } = await generateKeyPair(companyId)
-    return res.status(201).json({ publicKey, secretKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+    return res.status(201).json({ publicKey, secretKey }); 
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
@@ -118,7 +130,7 @@ authRouter.delete('/delete-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN
     }
 
     await deleteKeyPair(companyId)
-    return res.status(203).json({ succesful: true }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+    return res.status(203).json({ succesful: true }); 
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
@@ -139,7 +151,7 @@ authRouter.get('/get-public-key', authenticateJWT, allowedRoles(['MAIN_ADMIN']),
       return res.status(400).json({ error: "No public key" });
     }
 
-    return res.status(200).json({ publicKey }); // @IMPORTANT@DEV@TODO insecure, create an endpoint for key-pair generation 
+    return res.status(200).json({ publicKey });  
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }

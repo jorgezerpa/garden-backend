@@ -23,7 +23,7 @@ router.use('/admin', authenticateJWT, adminRouter); // login and register handle
 router.use('/schema', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), schemaRouter); // login and register handler
 router.use('/datavis', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), dataVisRouter); // login and register handler
 router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), agentDashboardRouter); // login and register handler
-// @todo create routes for agent visualization of data on agent dashboard and also for big screen dashboard
+// @todo create routes for big screen dashboard
 router.use('/leaddesk', authenticateBasic, leadDeskWebhookRouter);
 
 export default router;

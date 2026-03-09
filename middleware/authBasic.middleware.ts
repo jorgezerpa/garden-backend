@@ -20,7 +20,7 @@ export const authenticateBasic = async(req: BasicAuthRequest, res: Response, nex
     const secretHash = createHash("sha256").update(secretKey).digest("hex");
 
     // 3. 
-    const company = await prisma.company.findFirst({ // @dev@important@todo why I can not use FindUnique?
+    const company = await prisma.company.findFirst({ 
         where: { 
             apiKey: {
               publicKey: publicKey
@@ -35,7 +35,6 @@ export const authenticateBasic = async(req: BasicAuthRequest, res: Response, nex
         }
     });
 
-    // if (!company) throw new Error("Company not found for provided API Key"); // @audit@dev it is secure to return this reason? like, this is saying "Hey attacker! you can run this to see if you actually have a valid public key"
     if (!company) return res.status(401).send('Unathorized');
     if (company.apiKey?.secretKeyHash !== secretHash) return res.status(401).send('Unauthorized');
     

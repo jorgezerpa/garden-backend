@@ -342,7 +342,7 @@ export default dataVisRouter;
 
       return arr.map(item => {
           const number = Number(item)
-          if(isNaN(number)) throw("Not numerical value") // @todo I'm not sure if this is the correct way to check for NaN
+          if(item===null && Number.isNaN(number)) throw("Not numerical value") 
           return number
       });
     };

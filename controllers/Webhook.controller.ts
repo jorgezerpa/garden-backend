@@ -76,7 +76,6 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     // You can adjust this logic as needed.
     const call = await tx.call.create({
       data: {
-        leadDeskId: ld.id,
         agentId: agent.id,
         calleeId: callee.id,
         startAt: new Date(ld.talk_start),

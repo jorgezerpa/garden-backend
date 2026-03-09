@@ -44,7 +44,6 @@ export type CallSumAggregateOutputType = {
 
 export type CallMinAggregateOutputType = {
   id: number | null
-  leadDeskId: string | null
   agentId: number | null
   calleeId: number | null
   companyId: number | null
@@ -56,7 +55,6 @@ export type CallMinAggregateOutputType = {
 
 export type CallMaxAggregateOutputType = {
   id: number | null
-  leadDeskId: string | null
   agentId: number | null
   calleeId: number | null
   companyId: number | null
@@ -68,7 +66,6 @@ export type CallMaxAggregateOutputType = {
 
 export type CallCountAggregateOutputType = {
   id: number
-  leadDeskId: number
   agentId: number
   calleeId: number
   companyId: number
@@ -98,7 +95,6 @@ export type CallSumAggregateInputType = {
 
 export type CallMinAggregateInputType = {
   id?: true
-  leadDeskId?: true
   agentId?: true
   calleeId?: true
   companyId?: true
@@ -110,7 +106,6 @@ export type CallMinAggregateInputType = {
 
 export type CallMaxAggregateInputType = {
   id?: true
-  leadDeskId?: true
   agentId?: true
   calleeId?: true
   companyId?: true
@@ -122,7 +117,6 @@ export type CallMaxAggregateInputType = {
 
 export type CallCountAggregateInputType = {
   id?: true
-  leadDeskId?: true
   agentId?: true
   calleeId?: true
   companyId?: true
@@ -221,7 +215,6 @@ export type CallGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 
 export type CallGroupByOutputType = {
   id: number
-  leadDeskId: string | null
   agentId: number
   calleeId: number
   companyId: number
@@ -256,7 +249,6 @@ export type CallWhereInput = {
   OR?: Prisma.CallWhereInput[]
   NOT?: Prisma.CallWhereInput | Prisma.CallWhereInput[]
   id?: Prisma.IntFilter<"Call"> | number
-  leadDeskId?: Prisma.StringNullableFilter<"Call"> | string | null
   agentId?: Prisma.IntFilter<"Call"> | number
   calleeId?: Prisma.IntFilter<"Call"> | number
   companyId?: Prisma.IntFilter<"Call"> | number
@@ -272,7 +264,6 @@ export type CallWhereInput = {
 
 export type CallOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  leadDeskId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   calleeId?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
@@ -291,7 +282,6 @@ export type CallWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.CallWhereInput | Prisma.CallWhereInput[]
   OR?: Prisma.CallWhereInput[]
   NOT?: Prisma.CallWhereInput | Prisma.CallWhereInput[]
-  leadDeskId?: Prisma.StringNullableFilter<"Call"> | string | null
   agentId?: Prisma.IntFilter<"Call"> | number
   calleeId?: Prisma.IntFilter<"Call"> | number
   companyId?: Prisma.IntFilter<"Call"> | number
@@ -307,7 +297,6 @@ export type CallWhereUniqueInput = Prisma.AtLeast<{
 
 export type CallOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  leadDeskId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   calleeId?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
@@ -327,7 +316,6 @@ export type CallScalarWhereWithAggregatesInput = {
   OR?: Prisma.CallScalarWhereWithAggregatesInput[]
   NOT?: Prisma.CallScalarWhereWithAggregatesInput | Prisma.CallScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Call"> | number
-  leadDeskId?: Prisma.StringNullableWithAggregatesFilter<"Call"> | string | null
   agentId?: Prisma.IntWithAggregatesFilter<"Call"> | number
   calleeId?: Prisma.IntWithAggregatesFilter<"Call"> | number
   companyId?: Prisma.IntWithAggregatesFilter<"Call"> | number
@@ -338,7 +326,6 @@ export type CallScalarWhereWithAggregatesInput = {
 }
 
 export type CallCreateInput = {
-  leadDeskId?: string | null
   startAt?: Date | string
   endAt?: Date | string | null
   durationSeconds?: number
@@ -351,7 +338,6 @@ export type CallCreateInput = {
 
 export type CallUncheckedCreateInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   calleeId: number
   companyId: number
@@ -363,7 +349,6 @@ export type CallUncheckedCreateInput = {
 }
 
 export type CallUpdateInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -376,7 +361,6 @@ export type CallUpdateInput = {
 
 export type CallUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
@@ -389,7 +373,6 @@ export type CallUncheckedUpdateInput = {
 
 export type CallCreateManyInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   calleeId: number
   companyId: number
@@ -400,7 +383,6 @@ export type CallCreateManyInput = {
 }
 
 export type CallUpdateManyMutationInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -409,7 +391,6 @@ export type CallUpdateManyMutationInput = {
 
 export type CallUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
@@ -431,7 +412,6 @@ export type CallOrderByRelationAggregateInput = {
 
 export type CallCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  leadDeskId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   calleeId?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
@@ -451,7 +431,6 @@ export type CallAvgOrderByAggregateInput = {
 
 export type CallMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  leadDeskId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   calleeId?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
@@ -463,7 +442,6 @@ export type CallMaxOrderByAggregateInput = {
 
 export type CallMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  leadDeskId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   calleeId?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
@@ -635,7 +613,6 @@ export type CallUpdateOneRequiredWithoutEventsNestedInput = {
 }
 
 export type CallCreateWithoutCompanyInput = {
-  leadDeskId?: string | null
   startAt?: Date | string
   endAt?: Date | string | null
   durationSeconds?: number
@@ -647,7 +624,6 @@ export type CallCreateWithoutCompanyInput = {
 
 export type CallUncheckedCreateWithoutCompanyInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   calleeId: number
   startAt?: Date | string
@@ -688,7 +664,6 @@ export type CallScalarWhereInput = {
   OR?: Prisma.CallScalarWhereInput[]
   NOT?: Prisma.CallScalarWhereInput | Prisma.CallScalarWhereInput[]
   id?: Prisma.IntFilter<"Call"> | number
-  leadDeskId?: Prisma.StringNullableFilter<"Call"> | string | null
   agentId?: Prisma.IntFilter<"Call"> | number
   calleeId?: Prisma.IntFilter<"Call"> | number
   companyId?: Prisma.IntFilter<"Call"> | number
@@ -699,7 +674,6 @@ export type CallScalarWhereInput = {
 }
 
 export type CallCreateWithoutAgentInput = {
-  leadDeskId?: string | null
   startAt?: Date | string
   endAt?: Date | string | null
   durationSeconds?: number
@@ -711,7 +685,6 @@ export type CallCreateWithoutAgentInput = {
 
 export type CallUncheckedCreateWithoutAgentInput = {
   id?: number
-  leadDeskId?: string | null
   calleeId: number
   companyId: number
   startAt?: Date | string
@@ -748,7 +721,6 @@ export type CallUpdateManyWithWhereWithoutAgentInput = {
 }
 
 export type CallCreateWithoutCalleeInput = {
-  leadDeskId?: string | null
   startAt?: Date | string
   endAt?: Date | string | null
   durationSeconds?: number
@@ -760,7 +732,6 @@ export type CallCreateWithoutCalleeInput = {
 
 export type CallUncheckedCreateWithoutCalleeInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   companyId: number
   startAt?: Date | string
@@ -797,7 +768,6 @@ export type CallUpdateManyWithWhereWithoutCalleeInput = {
 }
 
 export type CallCreateWithoutEventsInput = {
-  leadDeskId?: string | null
   startAt?: Date | string
   endAt?: Date | string | null
   durationSeconds?: number
@@ -809,7 +779,6 @@ export type CallCreateWithoutEventsInput = {
 
 export type CallUncheckedCreateWithoutEventsInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   calleeId: number
   companyId: number
@@ -836,7 +805,6 @@ export type CallUpdateToOneWithWhereWithoutEventsInput = {
 }
 
 export type CallUpdateWithoutEventsInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -848,7 +816,6 @@ export type CallUpdateWithoutEventsInput = {
 
 export type CallUncheckedUpdateWithoutEventsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
@@ -860,7 +827,6 @@ export type CallUncheckedUpdateWithoutEventsInput = {
 
 export type CallCreateManyCompanyInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   calleeId: number
   startAt?: Date | string
@@ -870,7 +836,6 @@ export type CallCreateManyCompanyInput = {
 }
 
 export type CallUpdateWithoutCompanyInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -882,7 +847,6 @@ export type CallUpdateWithoutCompanyInput = {
 
 export type CallUncheckedUpdateWithoutCompanyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -894,7 +858,6 @@ export type CallUncheckedUpdateWithoutCompanyInput = {
 
 export type CallUncheckedUpdateManyWithoutCompanyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -905,7 +868,6 @@ export type CallUncheckedUpdateManyWithoutCompanyInput = {
 
 export type CallCreateManyAgentInput = {
   id?: number
-  leadDeskId?: string | null
   calleeId: number
   companyId: number
   startAt?: Date | string
@@ -915,7 +877,6 @@ export type CallCreateManyAgentInput = {
 }
 
 export type CallUpdateWithoutAgentInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -927,7 +888,6 @@ export type CallUpdateWithoutAgentInput = {
 
 export type CallUncheckedUpdateWithoutAgentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -939,7 +899,6 @@ export type CallUncheckedUpdateWithoutAgentInput = {
 
 export type CallUncheckedUpdateManyWithoutAgentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calleeId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -950,7 +909,6 @@ export type CallUncheckedUpdateManyWithoutAgentInput = {
 
 export type CallCreateManyCalleeInput = {
   id?: number
-  leadDeskId?: string | null
   agentId: number
   companyId: number
   startAt?: Date | string
@@ -960,7 +918,6 @@ export type CallCreateManyCalleeInput = {
 }
 
 export type CallUpdateWithoutCalleeInput = {
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationSeconds?: Prisma.IntFieldUpdateOperationsInput | number
@@ -972,7 +929,6 @@ export type CallUpdateWithoutCalleeInput = {
 
 export type CallUncheckedUpdateWithoutCalleeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -984,7 +940,6 @@ export type CallUncheckedUpdateWithoutCalleeInput = {
 
 export type CallUncheckedUpdateManyWithoutCalleeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  leadDeskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
   startAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1026,7 +981,6 @@ export type CallCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Types.Ext
 
 export type CallSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  leadDeskId?: boolean
   agentId?: boolean
   calleeId?: boolean
   companyId?: boolean
@@ -1043,7 +997,6 @@ export type CallSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 
 export type CallSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  leadDeskId?: boolean
   agentId?: boolean
   calleeId?: boolean
   companyId?: boolean
@@ -1058,7 +1011,6 @@ export type CallSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 
 export type CallSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  leadDeskId?: boolean
   agentId?: boolean
   calleeId?: boolean
   companyId?: boolean
@@ -1073,7 +1025,6 @@ export type CallSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 
 export type CallSelectScalar = {
   id?: boolean
-  leadDeskId?: boolean
   agentId?: boolean
   calleeId?: boolean
   companyId?: boolean
@@ -1083,7 +1034,7 @@ export type CallSelectScalar = {
   dayOfTheWeek?: boolean
 }
 
-export type CallOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "leadDeskId" | "agentId" | "calleeId" | "companyId" | "startAt" | "endAt" | "durationSeconds" | "dayOfTheWeek", ExtArgs["result"]["call"]>
+export type CallOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "calleeId" | "companyId" | "startAt" | "endAt" | "durationSeconds" | "dayOfTheWeek", ExtArgs["result"]["call"]>
 export type CallInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   callee?: boolean | Prisma.CalleeDefaultArgs<ExtArgs>
@@ -1112,7 +1063,6 @@ export type $CallPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
-    leadDeskId: string | null
     agentId: number
     calleeId: number
     companyId: number
@@ -1548,7 +1498,6 @@ export interface Prisma__CallClient<T, Null = never, ExtArgs extends runtime.Typ
  */
 export interface CallFieldRefs {
   readonly id: Prisma.FieldRef<"Call", 'Int'>
-  readonly leadDeskId: Prisma.FieldRef<"Call", 'String'>
   readonly agentId: Prisma.FieldRef<"Call", 'Int'>
   readonly calleeId: Prisma.FieldRef<"Call", 'Int'>
   readonly companyId: Prisma.FieldRef<"Call", 'Int'>

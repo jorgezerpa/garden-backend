@@ -42,7 +42,7 @@ describe('LeadDesk Webhook Actual Data testing', () => {
   describe("GET /api/leaddesk/webhook", () => {
     
     it('successfully processes the exact LeadDesk payload structure', async () => {
-      const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
+      const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
       await request(app)
       .post('/api/admin/addAgent')
@@ -71,14 +71,14 @@ describe('LeadDesk Webhook Actual Data testing', () => {
         comment: "test comment",
         agent_group_id: "13",
         agent_group_name: "test group",
-        call_ending_reason: "15", // @todo ask to mike -> this can be setted from LD dashboard? or is fixed? -> this could help me to know if call was seed, watering or harvest -> if it is, I could add a manager page where manually enter which codes means each evnt
+        call_ending_reason: "15", 
         call_ending_reason_name: "test reason",
         handling_stop: "2016-02-02 14:20:30",
         direction: "out",
         call_type: "1",
         contact_id: "1",
         call_type_name: "semi",
-        order_ids: [1, 3] // @todo@q order ids means a sale was done? so this is harvest? like len>0 so harvest?
+        order_ids: [1, 3]
       };
 
       mockedAxios.get.mockResolvedValue({ data: mockLeadDeskData }); // when controllers calls axios.get, will mock the returned value with this
@@ -95,7 +95,7 @@ describe('LeadDesk Webhook Actual Data testing', () => {
 
       // 4. DB Assertions - Mapping checks
       const dbCall = await prisma.call.findFirst({
-        where: { leadDeskId: "4999" },
+        where: { agentId: 1 },
         include: { agent: true, callee: true }
       });
 
@@ -114,7 +114,7 @@ describe('LeadDesk Webhook Actual Data testing', () => {
     });
 
     it('successfully increments totalAttempts for an existing callee', async () => {
-        const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`; // Leaddesk will call me using this basic auth  @todo
+        const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
         // Pre-seed a callee
         await prisma.callee.create({

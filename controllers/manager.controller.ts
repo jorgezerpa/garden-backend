@@ -33,14 +33,17 @@ export const createManagerWithUser = async (data: {
 };
 
 // @todo should be able to update password too, in case agent forgets it 
-export const updateManagerData = async (id: number, data: { name?: string; email?: string }) => {
+export const updateManagerData = async (id: number, data: { name?: string; email?: string, password?: string }) => {
+  const saltRounds = 10;
+  const passwordHash = data.password ? await hash(data.password, saltRounds) : undefined;
+
   return await prisma.manager.update({
     where: { id },
     data: {
       name: data.name,
       email: data.email,
       // If email changes, the linked User email should also change
-      user: data.email ? { update: { email: data.email } } : undefined
+      user: (data.email || passwordHash) ? { update: { email: data.email, passwordHash } } : undefined
     }
   });
 };

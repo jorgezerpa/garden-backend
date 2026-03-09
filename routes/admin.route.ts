@@ -122,11 +122,13 @@ adminRouter.post('/addAgent', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (re
 adminRouter.put('/editAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { name, email, leadDeskId } = req.body;
+    const { name, email, leadDeskId, password } = req.body;
 
-    const updateObject: {name?:string, email?:string, thirdPartyService?: { agentServiceIdentifier: string, serviceIdentifier:THIRD_PARTY_SERVICES } } = {}
-    updateObject.name = name
-    updateObject.email = email
+    const updateObject: {name?:string, email?:string, password?: string, thirdPartyService?: { agentServiceIdentifier: string, serviceIdentifier:THIRD_PARTY_SERVICES } } = {}
+    if(name) updateObject.name = name
+    if(email) updateObject.email = email
+    if(password) updateObject.password = password
+
     if(leadDeskId) updateObject.thirdPartyService = { agentServiceIdentifier: leadDeskId, serviceIdentifier:"LEADDESK" }
 
     const updated = await ManagerController.updateAgentData(id, updateObject);

@@ -1,5 +1,6 @@
 import { THIRD_PARTY_SERVICES } from "../generated/prisma/enums";
 import {prisma} from "../lib/prisma"
+import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 
 export const createManagerWithUser = async (data: {
   email: string;
@@ -116,18 +117,23 @@ export const updateAgentData = async (
   data: { 
     name?: string; 
     email?: string; 
+    password?: string;
     thirdPartyService?: { 
       agentServiceIdentifier: string; 
       serviceIdentifier: THIRD_PARTY_SERVICES 
     } 
   }
 ) => {
+
+  const saltRounds = 10;
+  const passwordHash = data.password ? await hash(data.password, saltRounds) : undefined;
+
   return await prisma.agent.update({
     where: { id },
     data: {
       name: data.name,
       // Nested update for User only if email is provided
-      user: data.email ? { update: { email: data.email } } : undefined,
+      user: (data.email || data.password) ? { update: { email: data.email || undefined, passwordHash  } } : undefined,
       
       // We use the "upsert" approach or conditional logic for the relation
       agentToThird: data.thirdPartyService ? {

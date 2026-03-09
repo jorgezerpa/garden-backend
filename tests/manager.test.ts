@@ -45,7 +45,8 @@ describe('Main administration system testing', () => {
           .send({ email: "manager@test.com", name: "John Doe", password: "12345" });
 
         expect(response.status).toBe(201);
-        expect(response.body).toHaveProperty('managerId');
+        expect(response.body.managerId).toBe(2);
+        expect(response.body.userId).toBe(2);
       });
 
       it('returns 400 if fields are missing', async () => {

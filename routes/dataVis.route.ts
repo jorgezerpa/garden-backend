@@ -163,6 +163,7 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
 
     return res.status(200).json(data);
   } catch (err: any) {
+    console.log(err)
     return res.status(500).json({ error: err.message });
   }
 });

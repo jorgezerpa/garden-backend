@@ -74,7 +74,7 @@ describe('Block schemas testing', () => {
         const createRes = await request(app).post('/api/schema/create').auth(JWT, { type: "bearer" }).send(validSchemaPayload);
         const schemaId = createRes.body.id;
 
-        const response = await request(app).get(`/api/schema/${schemaId}`).auth(JWT, { type: "bearer" });
+        const response = await request(app).get(`/api/schema/individual/${schemaId}`).auth(JWT, { type: "bearer" });
         
         expect(response.status).toBe(200);
         expect(response.body.id).toBe(schemaId);

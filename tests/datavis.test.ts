@@ -46,29 +46,14 @@ describe('DataVis Integration with Webhook Seeding', () => {
     if(!company || !manager) throw("error in datavis tests while creating company")
 
     // Seed a daily schema for block-performance tests
-    await request(app).post('/api/schema/create').auth(JWT, { type: "bearer" }).send({
+    const validSchemaPayload = {
       name: "Standard",
-      type: "DAILY",
-      days: [
-        {
-          dayIndex: 0, // @todo check if I have constraints on endpoint to avoid repeated indexes (id DB are, but better be sure)
-          blocks: [
-            {
-              startMinutesFromMidnight: 480,
-              endMinutesFromMidnight: 720,
-              blockType: "WORKING",
-              name: "Morning block 1"
-            },
-            {
-              startMinutesFromMidnight: 720,
-              endMinutesFromMidnight: 1080,
-              blockType: "WORKING",
-              name: "Morning block 2"
-            },
-          ] 
-        }
+      blocks: [
+        { startMinutesFromMidnight: 480, endMinutesFromMidnight: 720, blockType: "WORKING", name: "Morning" },
+        { startMinutesFromMidnight: 720, endMinutesFromMidnight: 780, blockType: "REST", name: "Lunch" }
       ]
-    });
+    };
+    await request(app).post('/api/schema/create').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" }).send(validSchemaPayload);
 
     // 3. SEED 100 CALLS VIA WEBHOOK
     // We'll spread 100 calls over 30 days (approx 3-4 calls per day)

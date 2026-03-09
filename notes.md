@@ -27,11 +27,17 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - create new conversion funnel endpoint and adapt frontend graph to it 
 - [DONE] create endpoint for user comparisson page 
 - [DONE] add inputs to get latest data date
-- modify blocks schemas. Now only 1 type -> daily
+- [DONE] modify blocks schemas. Now only 1 type -> daily
 - [DONE] add "considered days" filters to datavis per block 
-- Build goals assignation UI
-- Modify blocks schema -> remove TYPE no is only daily. And build assignation db and logic, and build UI for this 
+- [DONE] Build goals assignation UI
+- [DONE] Modify blocks schema -> remove TYPE no is only daily. And build assignation db and logic, and build UI for this 
 - schema routes unprotected by roles 
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  
+
+
+## Deployment info
+- Actually, back and front deployed on vercel. PostgreDB deployed on Supabase. 
+- Backend uses env variables to set DB url 
+- Frontend uses env variables to set API url

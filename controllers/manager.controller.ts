@@ -2,6 +2,21 @@ import { THIRD_PARTY_SERVICES } from "../generated/prisma/enums";
 import {prisma} from "../lib/prisma"
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
 
+export const upsertLeadDeskAPIAuthString = async(authString: string, companyId: number) => {
+  const result = await prisma.leadDeskCustomData.upsert({
+    where: { companyId },
+    create: { authString, companyId }, 
+    update: { authString }
+  })
+
+  return { id: result.id }
+}
+
+export const isLeadDeskAuthString = async(companyId:number) => {
+  const result = await prisma.leadDeskCustomData.findUnique({ where: { companyId }, select: { authString: true } })
+  return result?.authString || null
+}
+
 export const createManagerWithUser = async (data: {
   email: string;
   name: string;

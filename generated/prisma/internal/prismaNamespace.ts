@@ -387,6 +387,7 @@ export const ModelName = {
   User: 'User',
   Company: 'Company',
   APIKeysAuth: 'APIKeysAuth',
+  LeadDeskCustomData: 'LeadDeskCustomData',
   Manager: 'Manager',
   Agent: 'Agent',
   AgentToThird: 'AgentToThird',
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "company" | "aPIKeysAuth" | "manager" | "agent" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "temporalGoals" | "goalsAssignation"
+    modelProps: "user" | "company" | "aPIKeysAuth" | "leadDeskCustomData" | "manager" | "agent" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "temporalGoals" | "goalsAssignation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -638,6 +639,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.APIKeysAuthCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.APIKeysAuthCountAggregateOutputType> | number
+        }
+      }
+    }
+    LeadDeskCustomData: {
+      payload: Prisma.$LeadDeskCustomDataPayload<ExtArgs>
+      fields: Prisma.LeadDeskCustomDataFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LeadDeskCustomDataFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LeadDeskCustomDataFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        findFirst: {
+          args: Prisma.LeadDeskCustomDataFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LeadDeskCustomDataFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        findMany: {
+          args: Prisma.LeadDeskCustomDataFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>[]
+        }
+        create: {
+          args: Prisma.LeadDeskCustomDataCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        createMany: {
+          args: Prisma.LeadDeskCustomDataCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LeadDeskCustomDataCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>[]
+        }
+        delete: {
+          args: Prisma.LeadDeskCustomDataDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        update: {
+          args: Prisma.LeadDeskCustomDataUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        deleteMany: {
+          args: Prisma.LeadDeskCustomDataDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LeadDeskCustomDataUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LeadDeskCustomDataUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>[]
+        }
+        upsert: {
+          args: Prisma.LeadDeskCustomDataUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LeadDeskCustomDataPayload>
+        }
+        aggregate: {
+          args: Prisma.LeadDeskCustomDataAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLeadDeskCustomData>
+        }
+        groupBy: {
+          args: Prisma.LeadDeskCustomDataGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadDeskCustomDataGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LeadDeskCustomDataCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LeadDeskCustomDataCountAggregateOutputType> | number
         }
       }
     }
@@ -1680,6 +1755,15 @@ export const APIKeysAuthScalarFieldEnum = {
 export type APIKeysAuthScalarFieldEnum = (typeof APIKeysAuthScalarFieldEnum)[keyof typeof APIKeysAuthScalarFieldEnum]
 
 
+export const LeadDeskCustomDataScalarFieldEnum = {
+  id: 'id',
+  authString: 'authString',
+  companyId: 'companyId'
+} as const
+
+export type LeadDeskCustomDataScalarFieldEnum = (typeof LeadDeskCustomDataScalarFieldEnum)[keyof typeof LeadDeskCustomDataScalarFieldEnum]
+
+
 export const ManagerScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -2100,6 +2184,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   company?: Prisma.CompanyOmit
   aPIKeysAuth?: Prisma.APIKeysAuthOmit
+  leadDeskCustomData?: Prisma.LeadDeskCustomDataOmit
   manager?: Prisma.ManagerOmit
   agent?: Prisma.AgentOmit
   agentToThird?: Prisma.AgentToThirdOmit

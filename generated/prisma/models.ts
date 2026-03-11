@@ -11,6 +11,7 @@
 export type * from './models/User'
 export type * from './models/Company'
 export type * from './models/APIKeysAuth'
+export type * from './models/LeadDeskCustomData'
 export type * from './models/Manager'
 export type * from './models/Agent'
 export type * from './models/AgentToThird'

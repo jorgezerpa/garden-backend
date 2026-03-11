@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   Company: 'Company',
   APIKeysAuth: 'APIKeysAuth',
+  LeadDeskCustomData: 'LeadDeskCustomData',
   Manager: 'Manager',
   Agent: 'Agent',
   AgentToThird: 'AgentToThird',
@@ -121,6 +122,15 @@ export const APIKeysAuthScalarFieldEnum = {
 } as const
 
 export type APIKeysAuthScalarFieldEnum = (typeof APIKeysAuthScalarFieldEnum)[keyof typeof APIKeysAuthScalarFieldEnum]
+
+
+export const LeadDeskCustomDataScalarFieldEnum = {
+  id: 'id',
+  authString: 'authString',
+  companyId: 'companyId'
+} as const
+
+export type LeadDeskCustomDataScalarFieldEnum = (typeof LeadDeskCustomDataScalarFieldEnum)[keyof typeof LeadDeskCustomDataScalarFieldEnum]
 
 
 export const ManagerScalarFieldEnum = {

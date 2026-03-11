@@ -8,7 +8,44 @@ import { allowedRoles } from '../middleware/authJWT.middleware';
 
 const adminRouter = Router();
 
-// POST /api/admin/addManager -> handles manager CRUD
+// POST /api/admin//addLeadDeskAPIAuthString -> allow admin to set the leadDesk api auth token 
+adminRouter.post('/upsertLeadDeskAPIAuthString', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { authString } = req.body;
+    const companyId = req.user?.companyId
+
+    if (!authString || !companyId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await ManagerController.upsertLeadDeskAPIAuthString(
+      authString,
+      Number(companyId)
+    );
+
+    return res.status(201).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 
+adminRouter.get('/getLeadDeskAPIAuthString', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await ManagerController.isLeadDeskAuthString(companyId)
+
+    return res.status(201).json({ authString: result });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 adminRouter.post('/addManager', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
   try {
     const { email, name, password } = req.body;

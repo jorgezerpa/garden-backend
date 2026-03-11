@@ -33,6 +33,11 @@ export type Company = Prisma.CompanyModel
  */
 export type APIKeysAuth = Prisma.APIKeysAuthModel
 /**
+ * Model LeadDeskCustomData
+ * 
+ */
+export type LeadDeskCustomData = Prisma.LeadDeskCustomDataModel
+/**
  * Model Manager
  * 
  */

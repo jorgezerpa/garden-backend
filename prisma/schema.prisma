@@ -149,6 +149,8 @@ model Company {
   GoalsAssignation  GoalsAssignation[] // assigns 1 TemporalGoal to a specific day (date)
   schemaAssignation  SchemaAssignation[] // assigns 1 TemporalGoal to a specific day (date)
   apiKey            APIKeysAuth?
+  // Third party custom data 
+  leadDeskCustomData LeadDeskCustomData?
 }
 
 // 1-to-1 company-key (used to authenticate webhook call origin)
@@ -166,6 +168,19 @@ model APIKeysAuth {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+// -------- START CUSTOM DATA SECTION ---------
+// For each connection to third party, is required some specific data that variates depending on the service
+// for that reason, we create a specific table for each service (if needed) designed to store the specific values 
+// all this models are named with the convention [ThirdPartyName]+CustomMetadata
+model LeadDeskCustomData {
+  id            Int      @id @default(autoincrement())
+  authString    String // 32-bytes string provided by LeadDesk to authenticate calls to its API -> used, for example, when fetch call data in webhook handler
+  //
+  company       Company  @relation(fields: [companyId], references: [id]) 
+  companyId     Int      @unique
+}
+// -------- END CUSTOM DATA SECTION ---------
 
 model Manager {
   id        Int     @id @default(autoincrement())

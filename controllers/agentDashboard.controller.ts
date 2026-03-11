@@ -115,7 +115,12 @@ export const getAssignedSchema = async (userId: number, dateStr: string) => {
   return schema
 }
 
-export const getAgentWeeklyGrowth = async (agentId: number, dateStr: string) => {
+export const getAgentWeeklyGrowth = async (userId: number, dateStr: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const agentId = user?.agentId
+  
+  if(!agentId) throw("No agent")
+
   // Create date in UTC
   const date = new Date(`${dateStr}T00:00:00Z`);
 

@@ -11,12 +11,12 @@ agentDashboardRouter.get('/get-agent-day-insights', async (req: JWTAuthRequest, 
     date, 
   } = req.query;
 
-  const agentId = req.user?.id
+  const userId = req.user?.id
 
-  if(!agentId) return res.status(400).json({ error: "Missing agentId" });
+  if(!userId) return res.status(400).json({ error: "Missing userId" });
   if(!date) return res.status(400).json({ error: "Missing date" });
 
-  const report = await AgentDashboardController.getAgentDayInsights(agentId, date as string)
+  const report = await AgentDashboardController.getAgentDayInsights(userId, date as string)
 
     return res.status(200).json(report);
   } catch (err: any) {
@@ -32,12 +32,12 @@ agentDashboardRouter.get('/get-agent-weekly-growth', async (req: JWTAuthRequest,
     date, 
   } = req.query;
 
-  const agentId = req.user?.id
+  const userId = req.user?.id
 
-  if(!agentId) return res.status(400).json({ error: "Missing agentId" });
+  if(!userId) return res.status(400).json({ error: "Missing agentId" });
   if(!date) return res.status(400).json({ error: "Missing date" });
 
-  const report = await AgentDashboardController.getAgentWeeklyGrowth(agentId, date as string)
+  const report = await AgentDashboardController.getAgentWeeklyGrowth(userId, date as string)
 
     return res.status(200).json(report);
   } catch (err: any) {
@@ -52,12 +52,12 @@ agentDashboardRouter.get('/get-assigned-schema', async (req: JWTAuthRequest, res
     const { 
     date, 
   } = req.query;
-  const agentId = req.user?.id // userId
+  const userId = req.user?.id // userId
 
-  if(!agentId) return res.status(400).json({ error: "Missing agentId" });
+  if(!userId) return res.status(400).json({ error: "Missing agentId" });
   if(!date) return res.status(400).json({ error: "Missing date" });
 
-  const result = await AgentDashboardController.getAssignedSchema(agentId, date as string)
+  const result = await AgentDashboardController.getAssignedSchema(userId, date as string)
 
     return res.status(200).json(result);
   } catch (err: any) {
@@ -75,12 +75,12 @@ agentDashboardRouter.post('/register-agent-state', async (req: JWTAuthRequest, r
       motivation 
   } = req.body;
 
-  const agentId = req.user?.id
+  const userId = req.user?.id
 
 
-  if(!agentId) return res.status(400).json({ error: "Missing agentId" });
+  if(!userId) return res.status(400).json({ error: "Missing agentId" });
 
-    const result =  await AgentDashboardController.registerAgentState(agentId, Number(energy), Number(focus), Number(motivation))
+    const result =  await AgentDashboardController.registerAgentState(userId, Number(energy), Number(focus), Number(motivation))
     return res.status(200).json(result);
   } catch (err: any) {
     console.error("DataVis Error:", err);

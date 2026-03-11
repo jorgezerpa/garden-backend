@@ -35,16 +35,13 @@ adminRouter.post('/addManager', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAut
 // PUT /api/admin/editManager
 adminRouter.put('/editManager/:id', allowedRoles(["MAIN_ADMIN"]), checkManagerBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
-    const id = Number(req.params.id);
+    const id = Number(req.params.id); // manager Id 
     const { name, email, password } = req.body;
 
     const updateObject: {name?:string, email?:string, password?: string, thirdPartyService?: { agentServiceIdentifier: string, serviceIdentifier:THIRD_PARTY_SERVICES } } = {}
     if(name) updateObject.name = name
     if(email) updateObject.email = email
     if(password) updateObject.password = password
-
-    console.log(name, email, password)
-    console.log(updateObject)
 
     const updated = await ManagerController.updateManagerData(id, updateObject);
     return res.status(200).json(updated);

@@ -28,11 +28,13 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] add "considered days" filters to datavis per block 
 - [DONE] Build goals assignation UI
 - [DONE] Modify blocks schema -> remove TYPE no is only daily. And build assignation db and logic, and build UI for this 
-- schema routes unprotected by roles 
-- Confusing userId with agentId/managerId in some parts 
-- Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
+- [DONE] Confusing userId with agentId/managerId in some parts 
+- [DONE]  schema routes unprotected by roles 
 - create endpoint and frontend view to shared team performance for big screen
-- Store Leaddesk AUTH token (32 bytes) to being able to call the leaddesk API. -> ALSO, add interface for this, and this new step on the connection guide 
+- [DONE] Store Leaddesk AUTH token (32 bytes) to being able to call the leaddesk API. -> ALSO, add interface for this, and this new step on the connection guide 
+- Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
+- Use the leaddesk auth token to fetch for call data on webhook 
+- rewrite test suites for routes and write integration tests 
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  

@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import * as SchemaController from '../controllers/schema.controller';
 import { JWTAuthRequest } from '../types/request';
-import { allowedRoles } from '../middleware/authJWT.middleware';
 
 const schemaRouter = Router();
 
@@ -99,7 +98,7 @@ schemaRouter.put('/update/:id', checkSchemaBelongsToCompany, async (req: JWTAuth
 // schema assignation routes 
 /////////////////////////////////////
 
-schemaRouter.get('/assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
+schemaRouter.get('/assignation', async (req: JWTAuthRequest, res: Response) => {
   try {
     const { from, to } = req.query;
     const companyId = req.user?.companyId
@@ -122,7 +121,7 @@ schemaRouter.get('/assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async 
 });
 
 // POST /api/admin/upsert-assignation
-schemaRouter.post('/upsert-assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
+schemaRouter.post('/upsert-assignation', async (req: JWTAuthRequest, res: Response) => {
   try {
     const { date, schemaId } = req.body;
     const companyId = req.user?.companyId
@@ -143,7 +142,7 @@ schemaRouter.post('/upsert-assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"])
 });
 
 // DELETE /api/admin/delete-assignation/:id
-schemaRouter.delete('/delete-assignation-by-id/:id', checkSchemaAssignationBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
+schemaRouter.delete('/delete-assignation-by-id/:id', checkSchemaAssignationBelongsToCompany, async (req: JWTAuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 

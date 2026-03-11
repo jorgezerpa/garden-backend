@@ -18,11 +18,11 @@ const router = Router();
 
 // Placeholder for your controller functions
 //
-router.use('/auth', authRouter); // login and register handler
-router.use('/admin', authenticateJWT, adminRouter); // login and register handler
-router.use('/schema', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), schemaRouter); // login and register handler
-router.use('/datavis', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), dataVisRouter); // login and register handler
-router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), agentDashboardRouter); // login and register handler
+router.use('/auth', authRouter); 
+router.use('/admin', authenticateJWT, adminRouter); 
+router.use('/schema', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), schemaRouter); 
+router.use('/datavis', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), dataVisRouter); 
+router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), agentDashboardRouter); 
 // @todo create routes for big screen dashboard
 router.use('/leaddesk', authenticateBasic, leadDeskWebhookRouter);
 

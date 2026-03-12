@@ -109,8 +109,8 @@ schemaRouter.get('/assignation', async (req: JWTAuthRequest, res: Response) => {
 
     const assignations = await SchemaController.getAssignationsByRange(
       Number(companyId),
-      new Date(from as string),
-      new Date(to as string)
+      from as string,
+      to as string
     );
 
     return res.status(200).json(assignations);

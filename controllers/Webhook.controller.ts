@@ -82,8 +82,8 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
       data: {
         agentId: agent.id,
         calleeId: callee.id,
-        startAt: new Date(ld.talk_start),
-        endAt: new Date(ld.talk_end),
+        startAt: parseToUTC(ld.talk_start),
+        endAt: parseToUTC(ld.talk_end),
         durationSeconds: parseInt(ld.talk_time),
         companyId: company.id,
         dayOfTheWeek: mapDateToWeekDayEnum(ld.talk_start)
@@ -96,9 +96,9 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
     // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
     // Independantly if is a SEED or LEAD, if an order was concreted, then is a SALE
-    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "SEED"}})
-    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "LEAD"}})
-    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: { timestamp:new Date(ld.talk_start), agentId: agent.id,callId: call.id, type: "SALE"}})
+    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "SEED"}})
+    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "LEAD"}})
+    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "SALE"}})
 
     return call
 
@@ -112,7 +112,8 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
  * JS getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
  */
 export const mapDateToWeekDayEnum = (dateString: string): WEEK_DAYS => {
-  const dayIndex = new Date(dateString).getDay();
+  const date = parseToUTC(dateString);
+  const dayIndex = date.getUTCDay();
   
   const mapping: Record<number, WEEK_DAYS> = {
     0: WEEK_DAYS.SUNDAY,
@@ -126,3 +127,28 @@ export const mapDateToWeekDayEnum = (dateString: string): WEEK_DAYS => {
 
   return mapping[dayIndex];
 };
+
+
+
+/**
+ * Converts a "YYYY-MM-DD HH:MM:SS" string into a UTC Date object
+ * without any local timezone shifting.
+ */
+function parseToUTC(dateString: string) {
+  // 1. Split the string into Date and Time parts
+  // "2016-01-01 12:13:14" -> ["2016-01-01", "12:13:14"]
+  const [datePart, timePart] = dateString.split(' ');
+
+  // 2. Extract numbers from the Date part (Year, Month, Day)
+  const [year, month, day] = datePart.split('-').map(Number);
+
+  // 3. Extract numbers from the Time part (Hour, Minute, Second)
+  // We use "0" as a fallback if the time part is missing
+  const [hours, minutes, seconds] = timePart 
+    ? timePart.split(':').map(Number) 
+    : [0, 0, 0];
+
+  // 4. Use Date.UTC to create the timestamp
+  // IMPORTANT: Months in JavaScript are 0-indexed (Jan = 0), so we subtract 1
+  return new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+}

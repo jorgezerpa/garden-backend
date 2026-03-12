@@ -123,12 +123,8 @@ export const getAgentWeeklyGrowth = async (userId: number, dateStr: string) => {
 
   // Create date in UTC
   const date = new Date(`${dateStr}T00:00:00Z`);
-
-  // Calculate day of week (0 is Sunday, 1 is Monday...)
-  const day = date.getUTCDay();
-  // Adjust to ensure Monday is the start (Mon=1, Sun=0)
-  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
-  
+  const day = date.getUTCDay(); // Calculate day of week (0 is Sunday, 1 is Monday...)
+  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust to ensure Monday is the start (Mon=1, Sun=0)
   const startOfWeek = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

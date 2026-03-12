@@ -68,16 +68,9 @@ dataVisRouter.get('/general-insights', async (req: JWTAuthRequest, res: Response
       return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
     }
 
-    const startDate = new Date(from as string);
-    const endDate = new Date(to as string);
+    const startDate = from as string;
+    const endDate = to as string;
     const parsedAgents = agents ? parseNumberArray(agents) : []
-    
-    // Set endDate to the very end of that day to capture all evening calls
-    endDate.setHours(23, 59, 59, 999);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
-    }
 
     const report = await DataVisController.getGeneralInsights(
       Number(companyId),
@@ -103,19 +96,10 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
       return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
     }
 
-    //   // const [year, month, day] = d.date.split('-').map(Number);
-  // new Date(year, month - 1, day, 0, 0, 0, 0)
-    const startDate = new Date(from as string);
-    const endDate = new Date(to as string);
+    const startDate = from as string;
+    const endDate = to as string;
     const parsedAgents = agents ? parseNumberArray(agents) : []
     
-    // Set endDate to the very end of that day to capture all evening calls
-    endDate.setHours(23, 59, 59, 999);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
-    }
-
     const report = await DataVisController.getDailyActivity(
       Number(companyId),
       startDate,
@@ -181,13 +165,8 @@ dataVisRouter.get('/long-call-distribution', async (req: JWTAuthRequest, res: Re
       return res.status(400).json({ error: "Missing required parameters: companyId, from, to" });
     }
 
-    const startDate = new Date(from as string);
-    const endDate = new Date(to as string);
-    endDate.setHours(23, 59, 59, 999);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: "Invalid date format" });
-    }
+    const startDate = from as string;
+    const endDate = to as string;
 
     const parsedAgents = agents ? parseNumberArray(agents) : []
 
@@ -271,13 +250,8 @@ dataVisRouter.get('/conversion-funnel', async (req: JWTAuthRequest, res: Respons
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const start = new Date(from as string);
-    const end = new Date(to as string);
-    end.setHours(23, 59, 59, 999);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ error: "Invalid date format" });
-    }
+    const start = from as string;
+    const end = to as string;
 
     const parsedAgents = agents ? parseNumberArray(agents) : []
     const funnelData = await DataVisController.getConversionFunnel(
@@ -303,12 +277,12 @@ dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Respon
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const start = new Date(from as string);
-    const end = new Date(to as string);
-    end.setHours(23, 59, 59, 999);
+    const start = from as string;
+    const end = to as string;
 
     const parsedAgents = agents ? parseNumberArray(agents) : []
     const parsedDays = days ? parseBoolArray(days) : [];
+    
     const history = await DataVisController.getConsistencyHistory(
       Number(goalId),
       Number(companyId),

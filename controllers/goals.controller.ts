@@ -81,8 +81,8 @@ export const deleteTemporalGoal = async (id: number): Promise<TemporalGoals> => 
  */
 export const getAssignationsByRange = async (
   companyId: number,
-  from: Date,
-  to: Date
+  from: string,
+  to: string
 ): Promise<GoalsAssignation[]> => {
   return await prisma.goalsAssignation.findMany({
     where: {
@@ -140,9 +140,8 @@ export const deleteGoalAssignation = async (id: number): Promise<GoalsAssignatio
  * Optional: Delete by Date
  * Useful if the UI doesn't have the primary key ID handy
  */
-export const deleteGoalAssignationByDate = async (companyId: number, date: Date): Promise<GoalsAssignation> => {
-  const targetDate = new Date(date);
-  targetDate.setUTCHours(0, 0, 0, 0);
+export const deleteGoalAssignationByDate = async (companyId: number, date: string): Promise<GoalsAssignation> => {
+  const targetDate = new Date(`${date}T00:00:00.000Z`);
   
   return await prisma.goalsAssignation.delete({
     where: { companyId_date: { companyId, date: targetDate } },
@@ -155,8 +154,8 @@ export const deleteGoalAssignationByDate = async (companyId: number, date: Date)
 /**
  * Normalizes a date to 00:00:00.000
  */
-const getStartOfDay = (date: Date): Date => {
-  const d = new Date(date);
+const getStartOfDay = (date: string): Date => {
+  const d = new Date(`${date}T00:00:00.000Z`);
   d.setHours(0, 0, 0, 0);
   return d;
 };
@@ -164,8 +163,8 @@ const getStartOfDay = (date: Date): Date => {
 /**
  * Normalizes a date to 23:59:59.999
  */
-const getEndOfDay = (date: Date): Date => {
-  const d = new Date(date);
+const getEndOfDay = (date: string): Date => {
+  const d = new Date(`${date}T23:59:59.999Z`);
   d.setHours(23, 59, 59, 999);
   return d;
 };

@@ -317,8 +317,8 @@ adminRouter.get('/assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (
 
     const assignations = await GoalsController.getAssignationsByRange(
       Number(companyId),
-      new Date(from as string),
-      new Date(to as string)
+      from as string,
+      to as string
     );
 
     return res.status(200).json(assignations);
@@ -374,7 +374,7 @@ adminRouter.delete('/delete-assignation-by-date', checkGoalAssignationBelongsToC
     if (companyId && date) {
       const deleted = await GoalsController.deleteGoalAssignationByDate(
         Number(companyId),
-        new Date(date as string)
+        date as string
       );
       return res.status(200).json(deleted);
     }
@@ -436,7 +436,7 @@ async function checkGoalAssignationBelongsToCompany(req: JWTAuthRequest, res: Re
   }
   
   if(date) {
-    const goalsArray = await GoalsController.getAssignationsByRange(companyId, new Date(date as string), new Date(date as string))
+    const goalsArray = await GoalsController.getAssignationsByRange(companyId, date as string, date as string)
     const goal = goalsArray[0]
     
     if(goal?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" })

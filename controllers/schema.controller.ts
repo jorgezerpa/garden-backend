@@ -118,8 +118,8 @@ export const fullUpdateSchema = async (id: number, data: {
 
 export const getAssignationsByRange = async (
   companyId: number,
-  from: Date,
-  to: Date
+  from: string,
+  to: string
 ): Promise<SchemaAssignation[]> => {
   return await prisma.schemaAssignation.findMany({
     where: {
@@ -163,13 +163,12 @@ export const deleteSchemaAssignation = async (id: number): Promise<SchemaAssigna
   });
 };
 
-
 // HELPERS 
 /**
  * Normalizes a date to 00:00:00.000
  */
-const getStartOfDay = (date: Date): Date => {
-  const d = new Date(date);
+const getStartOfDay = (date: string): Date => {
+  const d = new Date(`${date}T00:00:00.000Z`);
   d.setHours(0, 0, 0, 0);
   return d;
 };
@@ -177,8 +176,8 @@ const getStartOfDay = (date: Date): Date => {
 /**
  * Normalizes a date to 23:59:59.999
  */
-const getEndOfDay = (date: Date): Date => {
-  const d = new Date(date);
+const getEndOfDay = (date: string): Date => {
+  const d = new Date(`${date}T23:59:59.999Z`);
   d.setHours(23, 59, 59, 999);
   return d;
 };

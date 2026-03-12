@@ -10,24 +10,28 @@ export const getLastRegister = async (companyId: number) => {
 
   if (!lastCall) return { lastCallDate: null };
 
-  const lastCallTime = new Date(lastCall.startAt).getTime();
-  const currentTime = new Date().getTime();
+  // Use Date.now() for a clean UTC comparison
+  const lastCallTime = lastCall.startAt.getTime();
+  const currentTime = Date.now();
 
-  // If the last call timestamp is greater than right now
   if (lastCallTime > currentTime) {
-    return { lastCallDate: new Date() }; // Return right now
+    // Return the current date as a "YYYY-MM-DD" string to lock it in
+    return { lastCallDate: new Date().toISOString().split('T')[0] };
   }
 
-  return { lastCallDate: lastCall.startAt };
+  // Return only the Date portion as a string
+  return { lastCallDate: lastCall.startAt.toISOString().split('T')[0] };
 };
 
 
 export const getGeneralInsights = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  startDateStr: string,
+  endDateStr: string,
   filters: { agents: number[] }
 ) => {
+  const startDate = new Date(`${startDateStr}T00:00:00Z`)
+  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
   // 1. Common Filter for Agent IDs
   const agentFilter = filters.agents?.length > 0 ? { in: filters.agents } : undefined;
 
@@ -93,10 +97,14 @@ export const getGeneralInsights = async (
 
 export const getDailyActivity = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  startDateStr: string,
+  endDateStr: string,
   filters: { agents: number[] }
 ) => {
+  // 0
+  const startDate = new Date(`${startDateStr}T00:00:00Z`)
+  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+
   // 1. Prepare the Dynamic Filter for Agents
   // If agents array is empty, we use a "1=1" style true condition or skip it.
   const agentFilter = filters.agents && filters.agents.length > 0 
@@ -265,10 +273,12 @@ export const getBlockPerformance = async (
 // CALL DURATION
 export const getLongCallDistribution = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  startDateStr: string,
+  endDateStr: string,
   filters: { agents: number[] }
 ) => {
+  const startDate = new Date(`${startDateStr}T00:00:00Z`)
+  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
   // 1. Prepare conditional SQL fragment
   const agentFilter = filters.agents && filters.agents.length > 0 
     ? Prisma.sql`AND "agentId" IN (${Prisma.join(filters.agents)})` 
@@ -315,9 +325,8 @@ export const getSeedTimelineHeatmap = async (
   year: number,
   filters: { agents: number[] }
 ) => {
-  // 1. Define the full year range
-  const startDate = new Date(year, 0, 1); // Jan 1st
-  const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31st
+  const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0));
+  const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
 
   // 2. SQL Filter
   const agentFilter = filters.agents && filters.agents.length > 0 
@@ -452,10 +461,12 @@ export const getSeedTimelineHeatmapPerDay = async (
 // FUNNEL RATIOS AND SUMS
 export const getConversionFunnel = async (
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  startDateStr: string,
+  endDateStr: string,
   filters: { agents: number[] }
 ) => {
+  const startDate = new Date(`${startDateStr}T00:00:00Z`)
+  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
   // We use groupBy on the FunnelEvent table.
   // We filter by companyId by joining with the Agent table.
   const eventCounts = await prisma.funnelEvent.groupBy({
@@ -497,10 +508,12 @@ export const getConversionFunnel = async (
 export const getConsistencyHistory = async (
   goalId: number,
   companyId: number,
-  startDate: Date,
-  endDate: Date,
+  startDateStr: string,
+  endDateStr: string,
   filters: { agents: number[], days: boolean[] }
 ) => {
+  const startDate = new Date(`${startDateStr}T00:00:00Z`)
+  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
   // 1. Fetch the benchmark goals
   const goal = await prisma.temporalGoals.findUnique({
     where: { id: goalId }

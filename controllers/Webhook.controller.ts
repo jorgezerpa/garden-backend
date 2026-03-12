@@ -17,9 +17,13 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     if (!company) throw new Error("Company not found");
 
   // 1. Fetch full call details from Leaddesk API
+  const leadDesk = await prisma.leadDeskCustomData.findUnique({ where: { companyId: company.id }, select: { authString: true } })
+
+  if(!leadDesk?.authString) throw new Error("No LeadDesk Auth String")
+  
   const response = await axios.get(`https://api.leaddesk.com`, {
     params: {
-      auth: AUTH,
+      auth: leadDesk.authString,
       mod: "call",
       cmd: "get",
       call_ref_id: lastCallId,

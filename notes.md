@@ -21,7 +21,6 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Not send the keys on register, instead, add an endpoint to generate them specifically for each app. (leaddesk, etc) and make the frontend ui for this
 - [DONE]some UI component does not seems okay in both modes light-dark
 - [DONE] can not just delete users because calls will be like Batman (no parents) -> Implement a pause flag and filter on the query
-- create new conversion funnel endpoint and adapt frontend graph to it 
 - [DONE] create endpoint for user comparisson page 
 - [DONE] add inputs to get latest data date
 - [DONE] modify blocks schemas. Now only 1 type -> daily
@@ -30,11 +29,13 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Modify blocks schema -> remove TYPE no is only daily. And build assignation db and logic, and build UI for this 
 - [DONE] Confusing userId with agentId/managerId in some parts 
 - [DONE]  schema routes unprotected by roles 
-- create endpoint and frontend view to shared team performance for big screen
 - [DONE] Store Leaddesk AUTH token (32 bytes) to being able to call the leaddesk API. -> ALSO, add interface for this, and this new step on the connection guide 
+- [DONE] create new conversion funnel endpoint and adapt frontend graph to it 
+- [DONE] Use the leaddesk auth token to fetch for call data on webhook 
 - Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
-- Use the leaddesk auth token to fetch for call data on webhook 
 - rewrite test suites for routes and write integration tests 
+- fix Date() displacements (in front and back)
+- create endpoint and frontend view to shared team performance for big screen
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  

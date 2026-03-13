@@ -37,6 +37,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - create endpoint and frontend view to shared team performance for big screen
 - fix Date() displacements (in front)
 - [NO_NEEDED_BY_NOW] Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
+- Tests for datavis, agent dashboard and webhook
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  

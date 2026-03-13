@@ -24,7 +24,7 @@ leadDeskWebhookRouter.get('/webhook', async (req: BasicAuthRequest, res: Respons
             // 5. Respond to LeadDesk (Documentation says they don't use the return value, but 200 is best)
             res.status(200).json({ status: 'success', callId: result.id });
         } catch (error) {
-            console.error('Webhook Error:', error);
+            console.log(error)
             res.status(500).send('Internal Server Error');
         }
     }

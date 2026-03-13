@@ -169,7 +169,6 @@ export const deleteSchemaAssignation = async (id: number): Promise<SchemaAssigna
  */
 const getStartOfDay = (date: string): Date => {
   const d = new Date(`${date}T00:00:00.000Z`);
-  d.setHours(0, 0, 0, 0);
   return d;
 };
 
@@ -178,6 +177,5 @@ const getStartOfDay = (date: string): Date => {
  */
 const getEndOfDay = (date: string): Date => {
   const d = new Date(`${date}T23:59:59.999Z`);
-  d.setHours(23, 59, 59, 999);
   return d;
 };

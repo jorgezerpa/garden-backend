@@ -81,7 +81,6 @@ dataVisRouter.get('/general-insights', async (req: JWTAuthRequest, res: Response
 
     return res.status(200).json(report);
   } catch (err: any) {
-    console.error("DataVis Error:", err);
     return res.status(500).json({ error: "Internal server error processing visualization" });
   }
 });

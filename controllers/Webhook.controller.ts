@@ -39,7 +39,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     }
   })
 
-  if(!agentToThird) throw(new Error("Agent has no relation with this third party service"))
+  if(!agentToThird) throw(new Error(`Agent ${ld.agent_id} has no relation with this third party service`))
 
   const agent = await prisma.agent.findUnique({
     where: { companyId: company.id, id: agentToThird.agentId },

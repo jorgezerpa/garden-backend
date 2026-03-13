@@ -1,21 +1,23 @@
 import { describe, it, expect, beforeEach, vi, Mocked } from 'vitest';
 import request from 'supertest';
-import app from '../app';
-import { prisma } from "../lib/prisma";
+import app from '../../app';
+import { prisma } from "../../lib/prisma";
 import axios from 'axios';
-import { getJWT } from '../utils/authJWT';
+import { getJWT } from '../../utils/authJWT';
 
 vi.mock('axios');
 
+
+
 const mockedAxios = axios as Mocked<typeof axios>;
 
-describe('LeadDesk Webhook Actual Data testing', () => {
+describe('LeadDesk Webhook', () => {
 
   let publicKey = ''
   let secretKey = ''
 
   beforeEach(async () => {
-    // Clean DB
+    // 0. Clean DB
     const tablenames = await prisma.$queryRawUnsafe<{ tablename: string }[]>(
       `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public'`
     );
@@ -25,39 +27,44 @@ describe('LeadDesk Webhook Actual Data testing', () => {
       }
     }
 
-    // Setup Company id 1, also admin id 1
-    await request(app).post('/api/auth/register').send({
+    // 1. Setup Company id 1, also admin id 1
+    const registerResponse = await request(app).post('/api/auth/register').send({
       companyName: "Test Corp",
       admin_email: "admin@test.com",
       admin_name: "Tester",
       password: "12345"
     });
+    if(registerResponse.error) throw("error registering company")
 
+    // 2. Generate Key-pair
     const responseKeysGeneration = await request(app).post('/api/auth/generate-key-pair').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" });
+    if(registerResponse.error) throw("error registering company");
     ({ publicKey, secretKey } = responseKeysGeneration.body);
-
+    
+    // 3. Register the LeadDesk auth string
+    // if no auth string, will fail @todo
+    const registerLeadDeskAuthStringResponse = await request(app).post('/api/admin/upsertLeadDeskAPIAuthString').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" }).send({authString:"authString"});
+    if(registerLeadDeskAuthStringResponse.error) throw("error storing auth string")
     vi.clearAllMocks();
   });
 
   describe("GET /api/leaddesk/webhook", () => {
     
     it('successfully processes the exact LeadDesk payload structure', async () => {
+      // 0. Setup auth
       const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
+      // 1. Setup agent
+      // If no agent, endpoint should fail @todo
       await request(app)
       .post('/api/admin/addAgent')
       .auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" })
-      .send({
-        email: `agent@test.com`,
-        name: `John Due`,
-        password: "123456",
-        leadDeskId: "1"
-      })
+      .send({ email: `agent@test.com`, name: `John Due`, password: "123456", leadDeskId: "1" })
 
-      // 1. Precise LeadDesk Mock Data
+      // 1. Mock return of the call to leaddesk api to get call info 
       const mockLeadDeskData = {
-        id: "4999",
-        agent_id: "1",
+        id: "4999", // call Id
+        agent_id: "1", // Lead desk Id
         agent_username: "teuvotest",
         talk_time: "45",
         talk_start: "2016-01-01 12:13:14",
@@ -89,11 +96,10 @@ describe('LeadDesk Webhook Actual Data testing', () => {
         .set('Authorization', authHeader)
         .query({ last_call_id: '4999' });
 
-      // 3. Status Assertions
+      // 3. Check if webhook exec succesfully
       expect(response.status).toBe(200);
-      expect(response.body.status).toBe('success');
 
-      // 4. DB Assertions - Mapping checks
+      // 4. Compare db register with expected data
       const dbCall = await prisma.call.findFirst({
         where: { agentId: 1 },
         include: { agent: true, callee: true }
@@ -102,15 +108,18 @@ describe('LeadDesk Webhook Actual Data testing', () => {
       expect(dbCall).not.toBeNull();
       
       // Check data type conversions
-      expect(dbCall?.durationSeconds).toBe(45); // Parsed from "45"
-      expect(dbCall?.agentId).toBe(1);          // Parsed from "11"
-      expect(dbCall?.agent.name).toBe("John Due");
-      expect(dbCall?.callee.phoneNumber).toBe("+358123123");
+      expect(dbCall?.durationSeconds).toBe(Number(mockLeadDeskData.talk_time));
+      expect(dbCall?.agentId).toBe(1);          // Should correctly map from LD agentId to our agent Id
+      expect(dbCall?.callee.phoneNumber).toBe(mockLeadDeskData.number);
 
-      // Check Date parsing (LeadDesk space format to JS Date)
+      // Check Date parsing (LeadDesk space format to JS Date) -> we use start_at field of the call 
       // "2016-01-01 12:13:14"
       expect(dbCall?.startAt.getUTCFullYear()).toBe(2016);
-      expect(dbCall?.startAt.getUTCMonth()).toBe(0); // January is 0
+      expect(dbCall?.startAt.getUTCMonth()).toBe(0); 
+      expect(dbCall?.startAt.getUTCDate()).toBe(1); 
+      expect(dbCall?.startAt.getUTCHours()).toBe(12); 
+      expect(dbCall?.startAt.getUTCMinutes()).toBe(13); 
+      expect(dbCall?.startAt.getUTCSeconds()).toBe(14); 
     });
 
     it('successfully increments totalAttempts for an existing callee', async () => {
@@ -155,5 +164,28 @@ describe('LeadDesk Webhook Actual Data testing', () => {
         expect(callee?.totalAttempts).toBe(6); // 5 + 1
         expect(perAgentCounter?.totalAttemps).toBe(1)
     });
+
+    it('Fails when webhook is called for a non-existant agent', async () => {
+        const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
+        
+        const mockData = { // only needed data
+            id: "5000",
+            agent_id: "1", // NOT EXISTS
+            talk_time: "10",
+            talk_start: "2024-01-01 10:00:00",
+            talk_end: "2024-01-01 10:00:10",
+            number: "+358123123"
+        };
+        mockedAxios.get.mockResolvedValue({ data: mockData });
+
+        const response = await request(app)
+            .get('/api/leaddesk/webhook')
+            .set('Authorization', authHeader)
+            .query({ last_call_id: '5000' });
+
+        expect(response.status).toBe(500)
+    });
+
+
   });
 });

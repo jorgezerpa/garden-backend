@@ -33,10 +33,11 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] create new conversion funnel endpoint and adapt frontend graph to it 
 - [DONE] Use the leaddesk auth token to fetch for call data on webhook 
 - [DONE] fix Date() displacements (in back)
-- rewrite test suites for routes and write integration tests 
-- create endpoint and frontend view to shared team performance for big screen
+- [DONE] rewrite test suites for routes and write integration tests 
 - fix Date() displacements (in front)
+- get_agents_comparisson is not considering dates sended
 - [NO_NEEDED_BY_NOW] Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
+- create endpoint and frontend view to shared team performance for big screen
 - Tests for datavis, agent dashboard and webhook
 
 ## REMEMBER

@@ -620,40 +620,106 @@ export const getAgentsSorted = async (
     : Prisma.empty;
 
   /**
-   * 3. The Query Logic:
-   * - We aggregate 'Call' data and 'FunnelEvent' data per agent.
-   * - Long Call Ratio: (Calls > 300s / Total Calls) * 100
-   * - Conversion: (Sales / Seeds) * 100
+   * 3. The Query Logic (Using CTEs for Consistency)
+   * * CTE Breakdown:
+   * - call_agg: Pre-aggregates funnel events per call to avoid data fan-out.
+   * - daily_stats: Rolls up the call stats per agent per day.
+   * - daily_scores: Matches stats to that day's GoalsAssignation, caps scores at 100, and averages them.
+   * - agent_consistency: Averages the daily consistency scores across the entire date range per agent.
    */
   const agentsData: any[] = await prisma.$queryRaw`
+    WITH call_agg AS (
+      SELECT
+        c.id,
+        c."agentId",
+        DATE(c."startAt") as call_date,
+        c."durationSeconds",
+        COUNT(CASE WHEN fe.type = 'SEED' THEN 1 END) as seed_cnt,
+        COUNT(CASE WHEN fe.type = 'LEAD' THEN 1 END) as lead_cnt,
+        COUNT(CASE WHEN fe.type = 'SALE' THEN 1 END) as sale_cnt
+      FROM "Call" c
+      LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id
+      WHERE c."companyId" = ${companyId}
+        AND c."startAt" >= ${startDate} 
+        AND c."startAt" <= ${endDate}
+      GROUP BY c.id
+    ),
+    daily_stats AS (
+      SELECT
+        "agentId",
+        call_date,
+        SUM("durationSeconds") / 60.0 as daily_talk_time,
+        COUNT(id) as daily_calls,
+        SUM(seed_cnt) as daily_seeds,
+        SUM(lead_cnt) as daily_leads,
+        SUM(sale_cnt) as daily_sales
+      FROM call_agg
+      GROUP BY "agentId", call_date
+    ),
+    daily_scores AS (
+      SELECT
+        ds."agentId",
+        -- Sum up the scores (capped at 100) and divide by the number of active goals
+        (
+          COALESCE(LEAST((ds.daily_talk_time / NULLIF(tg."talkTimeMinutes", 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_seeds::NUMERIC / NULLIF(tg.seeds, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_leads::NUMERIC / NULLIF(tg.leads, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_sales::NUMERIC / NULLIF(tg.sales, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_calls::NUMERIC / NULLIF(tg."numberOfCalls", 0)) * 100, 100), 0)
+        ) / NULLIF(
+          (CASE WHEN tg."talkTimeMinutes" > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.seeds > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.leads > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.sales > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg."numberOfCalls" > 0 THEN 1 ELSE 0 END),
+          0
+        ) as daily_consistency
+      FROM daily_stats ds
+      -- Join on the specific Goal Assignation for that day
+      JOIN "GoalsAssignation" ga ON ga."companyId" = ${companyId} AND DATE(ga.date) = ds.call_date
+      JOIN "TemporalGoals" tg ON tg.id = ga."goalId"
+    ),
+    agent_consistency AS (
+      SELECT "agentId", ROUND(AVG(daily_consistency)) as consistency_score
+      FROM daily_scores
+      GROUP BY "agentId"
+    )
     SELECT 
       a.id,
       a.name,
       COALESCE(SUM(c."durationSeconds") / 60, 0)::INT as "talkTime",
       COUNT(DISTINCT fe_seed.id)::INT as "seeds",
+      
       -- Conversion Calculation
       CASE 
         WHEN COUNT(DISTINCT fe_seed.id) > 0 
         THEN ROUND((COUNT(DISTINCT fe_sale.id)::NUMERIC / COUNT(DISTINCT fe_seed.id)::NUMERIC) * 100, 1)
         ELSE 0 
       END as "conversion",
+      
       -- Long Call Ratio ( > 5 minutes / 300 seconds)
       CASE 
-        WHEN COUNT(c.id) > 0 
-        THEN ROUND((COUNT(CASE WHEN c."durationSeconds" >= 300 THEN 1 END)::NUMERIC / COUNT(c.id)::NUMERIC) * 100, 1)
+        WHEN COUNT(DISTINCT c.id) > 0 
+        THEN ROUND((COUNT(DISTINCT CASE WHEN c."durationSeconds" >= 300 THEN c.id END)::NUMERIC / COUNT(DISTINCT c.id)::NUMERIC) * 100, 1)
         ELSE 0 
       END as "longCallRatio",
-      -- Placeholder for consistency logic (requires Goal comparison)
-      85 as "consistency"
+
+      -- Dynamically attached Consistency Score
+      COALESCE(ac.consistency_score, 0)::INT as "consistency"
+      
     FROM "Agent" a
     LEFT JOIN "Call" c ON c."agentId" = a.id 
       AND c."startAt" >= ${startDate} 
       AND c."startAt" <= ${endDate}
     LEFT JOIN "FunnelEvent" fe_seed ON fe_seed."callId" = c.id AND fe_seed."type" = 'SEED'
     LEFT JOIN "FunnelEvent" fe_sale ON fe_sale."callId" = c.id AND fe_sale."type" = 'SALE'
+    
+    -- Connect our consistency CTE
+    LEFT JOIN agent_consistency ac ON ac."agentId" = a.id
+    
     WHERE a."companyId" = ${companyId}
     ${agentFilter}
-    GROUP BY a.id, a.name
+    GROUP BY a.id, a.name, ac.consistency_score
     ORDER BY "${Prisma.raw(sortKey)}" ${Prisma.raw(direction.toUpperCase())}
     LIMIT ${pageSize}
     OFFSET ${offset}

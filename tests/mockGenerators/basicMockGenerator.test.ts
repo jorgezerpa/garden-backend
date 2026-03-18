@@ -92,6 +92,12 @@ describe('Mock', () => {
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_3);
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_4);
 
+    // 6.1 Assign goals 
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-01", goalId: 1 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-02", goalId: 2 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-03", goalId: 3 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-04", goalId: 4 }).expect(200);
+
     // 7. Register 100 Agents
     AGENTS = Array.from({ length: 100 }, (_, i) => ({
         email: `agent${i+1}@test.com`,

@@ -4,7 +4,6 @@ import { JWTAuthRequest } from '../types/request';
 
 const agentDashboardRouter = Router();
 
-// GET /api/datavis/get-agents-comparisson
 agentDashboardRouter.get('/get-agent-day-insights', async (req: JWTAuthRequest, res: Response) => {
   try {
     const { 

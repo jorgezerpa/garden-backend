@@ -91,6 +91,13 @@ describe('Datavis', () => {
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_2);
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_3);
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_4);
+    
+    // 6.1 Assign goals 
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-01", goalId: 1 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-02", goalId: 2 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-03", goalId: 3 }).expect(200);
+    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-04", goalId: 4 }).expect(200);
+
 
     // 7. Register 100 Agents
     AGENTS = Array.from({ length: 100 }, (_, i) => ({
@@ -169,6 +176,32 @@ describe('Datavis', () => {
     await Promise.all(feelings_promises)
 
   }, 60000);
+
+
+  describe('Agents Comparisson', async() => { 
+    it("Should return accurate agent comparisson data", async()=>{
+      const token = await getJWT(app, "admin@test.com", "123456");
+
+      // 2. Define Query Params
+      // We use the date from the beforeAll seeding
+      const from = "2026-01-01";
+      const to = "2026-01-01";
+      const sortKey = "talkTime"  
+      const direction = "asc"
+      const page = 1 
+      const pageSize = 100
+      const agents:number[] = []
+
+      const response = await request(app)
+        .get("/api/datavis/get-agents-comparisson")
+        .auth(token, { type: "bearer" })
+        .query({ from, to, sortKey, direction, page, pageSize, agents })
+        .expect(200)
+
+      console.log(response.body)
+
+    })
+   })
 
 
   describe("General insights", async()=>{

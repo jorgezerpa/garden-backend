@@ -45,7 +45,7 @@ describe('Agent Crud Testing', () => {
         leadDeskId: "LD-999"
       };
 
-      it('Success: Should create an Agent, User (role AGENT), and LEADDESK link', async () => {
+      it('Success: Should create an Agent, User (role AGENT), AgentLevel (3 a default), and LEADDESK link', async () => {
         const res = await request(app)
           .post('/api/admin/addAgent')
           .set('Authorization', `Bearer ${JWT}`)
@@ -55,12 +55,14 @@ describe('Agent Crud Testing', () => {
         
         const agent = await prisma.agent.findUnique({
           where: { id: res.body.agentId },
-          include: { user: true, agentToThird: true }
+          include: { user: true, agentToThird: true, agentLevel: true }
         });
 
         expect(agent?.user?.role).toBe('AGENT');
         expect(agent?.user?.email).toBe('agent@test.com'); // Lowercase check
         expect(agent?.agentToThird[0].agentServiceIdentifier).toBe("LD-999");
+        expect(agent?.agentLevel.length).toBe(1);
+        expect(agent?.agentLevel[0].level).toBe(3);
         
         const isMatch = await bcrypt.compare(validAgent.password, agent!.user!.passwordHash);
         expect(isMatch).toBe(true);

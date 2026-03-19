@@ -111,6 +111,11 @@ export const createAgentWithUser = async (data: {
       data: {
         name: data.name,
         companyId: data.companyId,
+        agentLevel: {
+          create: {
+            level: 3, // Bronze by default
+          }
+        }
       },
     });
 

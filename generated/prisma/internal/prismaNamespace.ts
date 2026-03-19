@@ -399,6 +399,7 @@ export const ModelName = {
   Call: 'Call',
   FunnelEvent: 'FunnelEvent',
   AgentState: 'AgentState',
+  AgentLevel: 'AgentLevel',
   TemporalGoals: 'TemporalGoals',
   GoalsAssignation: 'GoalsAssignation'
 } as const
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "company" | "aPIKeysAuth" | "leadDeskCustomData" | "manager" | "agent" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "temporalGoals" | "goalsAssignation"
+    modelProps: "user" | "company" | "aPIKeysAuth" | "leadDeskCustomData" | "manager" | "agent" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "agentLevel" | "temporalGoals" | "goalsAssignation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1530,6 +1531,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AgentLevel: {
+      payload: Prisma.$AgentLevelPayload<ExtArgs>
+      fields: Prisma.AgentLevelFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentLevelFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentLevelFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentLevelFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentLevelFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        findMany: {
+          args: Prisma.AgentLevelFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>[]
+        }
+        create: {
+          args: Prisma.AgentLevelCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        createMany: {
+          args: Prisma.AgentLevelCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentLevelCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentLevelDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        update: {
+          args: Prisma.AgentLevelUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentLevelDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentLevelUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentLevelUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentLevelUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentLevelPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentLevelAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentLevel>
+        }
+        groupBy: {
+          args: Prisma.AgentLevelGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentLevelGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentLevelCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentLevelCountAggregateOutputType> | number
+        }
+      }
+    }
     TemporalGoals: {
       payload: Prisma.$TemporalGoalsPayload<ExtArgs>
       fields: Prisma.TemporalGoalsFieldRefs
@@ -1881,6 +1956,18 @@ export const AgentStateScalarFieldEnum = {
 export type AgentStateScalarFieldEnum = (typeof AgentStateScalarFieldEnum)[keyof typeof AgentStateScalarFieldEnum]
 
 
+export const AgentLevelScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  since: 'since',
+  till: 'till',
+  durationInWeeks: 'durationInWeeks',
+  level: 'level'
+} as const
+
+export type AgentLevelScalarFieldEnum = (typeof AgentLevelScalarFieldEnum)[keyof typeof AgentLevelScalarFieldEnum]
+
+
 export const TemporalGoalsScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -2196,6 +2283,7 @@ export type GlobalOmitConfig = {
   call?: Prisma.CallOmit
   funnelEvent?: Prisma.FunnelEventOmit
   agentState?: Prisma.AgentStateOmit
+  agentLevel?: Prisma.AgentLevelOmit
   temporalGoals?: Prisma.TemporalGoalsOmit
   goalsAssignation?: Prisma.GoalsAssignationOmit
 }

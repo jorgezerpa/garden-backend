@@ -66,6 +66,7 @@ export const ModelName = {
   Call: 'Call',
   FunnelEvent: 'FunnelEvent',
   AgentState: 'AgentState',
+  AgentLevel: 'AgentLevel',
   TemporalGoals: 'TemporalGoals',
   GoalsAssignation: 'GoalsAssignation'
 } as const
@@ -248,6 +249,18 @@ export const AgentStateScalarFieldEnum = {
 } as const
 
 export type AgentStateScalarFieldEnum = (typeof AgentStateScalarFieldEnum)[keyof typeof AgentStateScalarFieldEnum]
+
+
+export const AgentLevelScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  since: 'since',
+  till: 'till',
+  durationInWeeks: 'durationInWeeks',
+  level: 'level'
+} as const
+
+export type AgentLevelScalarFieldEnum = (typeof AgentLevelScalarFieldEnum)[keyof typeof AgentLevelScalarFieldEnum]
 
 
 export const TemporalGoalsScalarFieldEnum = {

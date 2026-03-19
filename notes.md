@@ -51,3 +51,88 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - Frontend uses env variables to set API url
 
 
+# New Requirements
+- Create endpoint that retrieve the next information (Daily and weekly):
+    • Profile picture (upload per agent)
+    • Name of the agent
+    • Calling time
+    • Seeds (new callback appointments from calls longer than 5 minutes)
+    • Amount of deals (sales)
+    • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
+- [DONE] Modify database structure to track agent_level (gold, silver, bronze -> 1,2,3) and historical counting (how many weeks has being in a certain level)
+- [DONE] Modify routes to create a initial agentLevel row for the agent
+- [DONE] Modify tests to check initial agentLevel row for the agent
+- Modify the db to track the team "Heat score" -> daily and in a specific time window. 
+- Propose to mike the next idea -> retrieve data in .csv and then clean the database, so it is cheapear for customers. 
+- Write and test the stored-procedure to run with pg-cron (use txs for safe-fail-rollbacks, run a backup before update maybe)
+
+## Ranking system 
+**Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data.**
+- 3 main factors -> calling time, New callback appointments (seeds) from calls longer than 5 minutes and deals. Equal weight (33.33%).
+- On the ranking display, show:
+    • Profile picture (upload per agent)
+    • Name of the agent
+    • Calling time
+    • Seeds (new callback appointments from calls longer than 5 minutes)
+    • Amount of deals
+    • A small visual indicator for special status (for example: streak or “on fire”). We can define the exact criteria for this later.
+    • Daily and weekly tracking 
+
+- Gold, Silver, Bronze status system
+    • Agents with more than 12.5 hours calling time per week achieve Gold status (2.5h per day)
+    • Agents below this go to Silver
+    • After that Bronze
+    • A historical overview (how many weeks an agent has been Gold / Silver / Bronze) should be visible for manager dashboard 
+
+- For the Team Heat Meter:
+    • Track the team heat score per day
+    • Have fixed time windows (for example 09:00 – 17:00)
+    • Reset the heat score daily within that timeframe
+
+------------------
+Seed → callback or meaningful first step based on LeadDesk outcome -> FIRST  NEW callback appointments after a long call (5 minutes)
+Watering → follow-up calls with the same lead over time -> follow ups
+Harvest → successful deal or sale outcome -> SALE
+
+
+
+What I'm doing right now is:
+- Seed -> First call to a number
+- Watering (lead) -> every next call after the first one from an agent to a number, is considered "watering"
+- Sale -> When the call's "order_ids" array is not empty
+
+What is supposed to be:
+- Seed -> First callback appointment after a call longer than 5 minutes 
+- Watering (lead) -> every next call after the first one from an agent to a number, is considered "watering"
+- Sale -> When the call's "order_ids" array is not empty
+
+So, let's get into the Seeds:
+To a call be considered a "seed" it needs to be longer than 5 minutes (I have this information from the webhook) AND should end up with a callback appointment. 
+So, I need a way to know that a call finished with an appointment call. 
+
+Analizing the webhook response, I have the next options:
+- The webhook sends a "reason_id", which can be used to call 
+- The webhook sends a "last_call_id", which can be used to fetch call's detailed information. In this detailed info is a field "call_ending_reason", which is the id of a reason. So, I suppose that this corresponds to reasons like "callback appointment", "sale", etc. If that's the case, I can use such field to know if a call ended up in a callback appointment. But, we will need the admin the set on the dashboard the meaning of one of this reason ids. For example, we can make a new tab where they see inputs like "Seed reason ids", so anytime the webhook calls us, we compare the call_ending_reason received against this inputs to know if a callback was appointed. 
+So for this to work:
+- This "reasons" are standard/constant on any leadDesk subscription? or every company can create it's own reasons? 
+
+----
+Hi Mike! alsmost all is perfectly suitable except one think:
+
+You mentioned this: "Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data."
+
+So, what I'm making right now to consider if a call is a seed is: The databse is tracking the number of calls from an agent to a number, so if it is the first call from that agent to that number, that counts as a seed. 
+
+Now, you tell me that, for a call to be considered a seed, it has to 1) Be longer than 5 minutes (AKA be a long call) 2) Result in a callback appointment. 
+So, reading the Leaddesk docs, It mentions this (the highlighted text in blue on the image). 
+I suppose that this "outcome" that the agent assigns is what will let use know if a callback was appointed.
+If that's true,  I have the next plan:
+1. The webhook is triggered, and sends us a "last_call_id" parameter, which can be used to fetch call's detailed information (we are already fetching this data)
+2. In this detailed info, is a field "call_ending_reason", which I suppose, is the id of the outcome assigned to the call.
+3. So, I can use such field to know if a call ended up in a callback appointment
+
+The problem, is that we have no way to know to what reason that id corresponds (for example, it could correspond to "callback appointment", "sale", "Call ended by callee", etc)
+
+So, to apply this, we will need the admin the set on the dashboard the meaning of each one of this reason ids. For example, we can make a new tab where they see inputs like "Seed reason ids", so anytime the webhook calls us, we compare the call_ending_reason received against this inputs to know if a callback was appointed. 
+
+So I need to confirm that this "call_ending_reason" corresponds to the "outcome" assigned to the call, and if this outcome tells us if a call ended up with a callback appointment. 

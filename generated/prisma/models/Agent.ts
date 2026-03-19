@@ -211,6 +211,7 @@ export type AgentWhereInput = {
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   totalAttempsPerCallee?: Prisma.AgentToCalleeListRelationFilter
   agentToThird?: Prisma.AgentToThirdListRelationFilter
+  agentLevel?: Prisma.AgentLevelListRelationFilter
 }
 
 export type AgentOrderByWithRelationInput = {
@@ -224,6 +225,7 @@ export type AgentOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   totalAttempsPerCallee?: Prisma.agentToCalleeOrderByRelationAggregateInput
   agentToThird?: Prisma.AgentToThirdOrderByRelationAggregateInput
+  agentLevel?: Prisma.AgentLevelOrderByRelationAggregateInput
 }
 
 export type AgentWhereUniqueInput = Prisma.AtLeast<{
@@ -240,6 +242,7 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   totalAttempsPerCallee?: Prisma.AgentToCalleeListRelationFilter
   agentToThird?: Prisma.AgentToThirdListRelationFilter
+  agentLevel?: Prisma.AgentLevelListRelationFilter
 }, "id">
 
 export type AgentOrderByWithAggregationInput = {
@@ -271,6 +274,7 @@ export type AgentCreateInput = {
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateInput = {
@@ -283,6 +287,7 @@ export type AgentUncheckedCreateInput = {
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUpdateInput = {
@@ -294,6 +299,7 @@ export type AgentUpdateInput = {
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateInput = {
@@ -306,6 +312,7 @@ export type AgentUncheckedUpdateInput = {
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateManyInput = {
@@ -500,6 +507,20 @@ export type AgentUpdateOneRequiredWithoutFeelingsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AgentUpdateToOneWithWhereWithoutFeelingsInput, Prisma.AgentUpdateWithoutFeelingsInput>, Prisma.AgentUncheckedUpdateWithoutFeelingsInput>
 }
 
+export type AgentCreateNestedOneWithoutAgentLevelInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAgentLevelInput, Prisma.AgentUncheckedCreateWithoutAgentLevelInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAgentLevelInput
+  connect?: Prisma.AgentWhereUniqueInput
+}
+
+export type AgentUpdateOneRequiredWithoutAgentLevelNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentCreateWithoutAgentLevelInput, Prisma.AgentUncheckedCreateWithoutAgentLevelInput>
+  connectOrCreate?: Prisma.AgentCreateOrConnectWithoutAgentLevelInput
+  upsert?: Prisma.AgentUpsertWithoutAgentLevelInput
+  connect?: Prisma.AgentWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgentUpdateToOneWithWhereWithoutAgentLevelInput, Prisma.AgentUpdateWithoutAgentLevelInput>, Prisma.AgentUncheckedUpdateWithoutAgentLevelInput>
+}
+
 export type AgentCreateWithoutUserInput = {
   name: string
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
@@ -508,6 +529,7 @@ export type AgentCreateWithoutUserInput = {
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutUserInput = {
@@ -519,6 +541,7 @@ export type AgentUncheckedCreateWithoutUserInput = {
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutUserInput = {
@@ -545,6 +568,7 @@ export type AgentUpdateWithoutUserInput = {
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutUserInput = {
@@ -556,6 +580,7 @@ export type AgentUncheckedUpdateWithoutUserInput = {
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutCompanyInput = {
@@ -566,6 +591,7 @@ export type AgentCreateWithoutCompanyInput = {
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutCompanyInput = {
@@ -577,6 +603,7 @@ export type AgentUncheckedCreateWithoutCompanyInput = {
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutCompanyInput = {
@@ -622,6 +649,7 @@ export type AgentCreateWithoutAgentToThirdInput = {
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutAgentToThirdInput = {
@@ -633,6 +661,7 @@ export type AgentUncheckedCreateWithoutAgentToThirdInput = {
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutAgentToThirdInput = {
@@ -659,6 +688,7 @@ export type AgentUpdateWithoutAgentToThirdInput = {
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutAgentToThirdInput = {
@@ -670,6 +700,7 @@ export type AgentUncheckedUpdateWithoutAgentToThirdInput = {
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutTotalAttempsPerCalleeInput = {
@@ -680,6 +711,7 @@ export type AgentCreateWithoutTotalAttempsPerCalleeInput = {
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutTotalAttempsPerCalleeInput = {
@@ -691,6 +723,7 @@ export type AgentUncheckedCreateWithoutTotalAttempsPerCalleeInput = {
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutTotalAttempsPerCalleeInput = {
@@ -717,6 +750,7 @@ export type AgentUpdateWithoutTotalAttempsPerCalleeInput = {
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutTotalAttempsPerCalleeInput = {
@@ -728,6 +762,7 @@ export type AgentUncheckedUpdateWithoutTotalAttempsPerCalleeInput = {
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutCallsInput = {
@@ -738,6 +773,7 @@ export type AgentCreateWithoutCallsInput = {
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutCallsInput = {
@@ -749,6 +785,7 @@ export type AgentUncheckedCreateWithoutCallsInput = {
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutCallsInput = {
@@ -775,6 +812,7 @@ export type AgentUpdateWithoutCallsInput = {
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutCallsInput = {
@@ -786,6 +824,7 @@ export type AgentUncheckedUpdateWithoutCallsInput = {
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutEventsInput = {
@@ -796,6 +835,7 @@ export type AgentCreateWithoutEventsInput = {
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutEventsInput = {
@@ -807,6 +847,7 @@ export type AgentUncheckedCreateWithoutEventsInput = {
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutEventsInput = {
@@ -833,6 +874,7 @@ export type AgentUpdateWithoutEventsInput = {
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutEventsInput = {
@@ -844,6 +886,7 @@ export type AgentUncheckedUpdateWithoutEventsInput = {
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentCreateWithoutFeelingsInput = {
@@ -854,6 +897,7 @@ export type AgentCreateWithoutFeelingsInput = {
   user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelCreateNestedManyWithoutAgentInput
 }
 
 export type AgentUncheckedCreateWithoutFeelingsInput = {
@@ -865,6 +909,7 @@ export type AgentUncheckedCreateWithoutFeelingsInput = {
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
   agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+  agentLevel?: Prisma.AgentLevelUncheckedCreateNestedManyWithoutAgentInput
 }
 
 export type AgentCreateOrConnectWithoutFeelingsInput = {
@@ -891,6 +936,7 @@ export type AgentUpdateWithoutFeelingsInput = {
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutFeelingsInput = {
@@ -898,6 +944,69 @@ export type AgentUncheckedUpdateWithoutFeelingsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
+  events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
+  user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
+  totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
+  agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentCreateWithoutAgentLevelInput = {
+  name: string
+  company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
+  calls?: Prisma.CallCreateNestedManyWithoutAgentInput
+  feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
+  events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
+  user?: Prisma.UserCreateNestedOneWithoutAgentProfileInput
+  totalAttempsPerCallee?: Prisma.agentToCalleeCreateNestedManyWithoutAgentInput
+  agentToThird?: Prisma.AgentToThirdCreateNestedManyWithoutAgentInput
+}
+
+export type AgentUncheckedCreateWithoutAgentLevelInput = {
+  id?: number
+  name: string
+  companyId: number
+  calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
+  feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
+  events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
+  user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
+  totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedCreateNestedManyWithoutAgentInput
+  agentToThird?: Prisma.AgentToThirdUncheckedCreateNestedManyWithoutAgentInput
+}
+
+export type AgentCreateOrConnectWithoutAgentLevelInput = {
+  where: Prisma.AgentWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAgentLevelInput, Prisma.AgentUncheckedCreateWithoutAgentLevelInput>
+}
+
+export type AgentUpsertWithoutAgentLevelInput = {
+  update: Prisma.XOR<Prisma.AgentUpdateWithoutAgentLevelInput, Prisma.AgentUncheckedUpdateWithoutAgentLevelInput>
+  create: Prisma.XOR<Prisma.AgentCreateWithoutAgentLevelInput, Prisma.AgentUncheckedCreateWithoutAgentLevelInput>
+  where?: Prisma.AgentWhereInput
+}
+
+export type AgentUpdateToOneWithWhereWithoutAgentLevelInput = {
+  where?: Prisma.AgentWhereInput
+  data: Prisma.XOR<Prisma.AgentUpdateWithoutAgentLevelInput, Prisma.AgentUncheckedUpdateWithoutAgentLevelInput>
+}
+
+export type AgentUpdateWithoutAgentLevelInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
+  calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
+  feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
+  events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
+  user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
+  totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
+  agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+}
+
+export type AgentUncheckedUpdateWithoutAgentLevelInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
+  feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
@@ -917,6 +1026,7 @@ export type AgentUpdateWithoutCompanyInput = {
   user?: Prisma.UserUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateWithoutCompanyInput = {
@@ -928,6 +1038,7 @@ export type AgentUncheckedUpdateWithoutCompanyInput = {
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
   totalAttempsPerCallee?: Prisma.agentToCalleeUncheckedUpdateManyWithoutAgentNestedInput
   agentToThird?: Prisma.AgentToThirdUncheckedUpdateManyWithoutAgentNestedInput
+  agentLevel?: Prisma.AgentLevelUncheckedUpdateManyWithoutAgentNestedInput
 }
 
 export type AgentUncheckedUpdateManyWithoutCompanyInput = {
@@ -946,6 +1057,7 @@ export type AgentCountOutputType = {
   events: number
   totalAttempsPerCallee: number
   agentToThird: number
+  agentLevel: number
 }
 
 export type AgentCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -954,6 +1066,7 @@ export type AgentCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   events?: boolean | AgentCountOutputTypeCountEventsArgs
   totalAttempsPerCallee?: boolean | AgentCountOutputTypeCountTotalAttempsPerCalleeArgs
   agentToThird?: boolean | AgentCountOutputTypeCountAgentToThirdArgs
+  agentLevel?: boolean | AgentCountOutputTypeCountAgentLevelArgs
 }
 
 /**
@@ -1001,6 +1114,13 @@ export type AgentCountOutputTypeCountAgentToThirdArgs<ExtArgs extends runtime.Ty
   where?: Prisma.AgentToThirdWhereInput
 }
 
+/**
+ * AgentCountOutputType without action
+ */
+export type AgentCountOutputTypeCountAgentLevelArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AgentLevelWhereInput
+}
+
 
 export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1013,6 +1133,7 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   user?: boolean | Prisma.Agent$userArgs<ExtArgs>
   totalAttempsPerCallee?: boolean | Prisma.Agent$totalAttempsPerCalleeArgs<ExtArgs>
   agentToThird?: boolean | Prisma.Agent$agentToThirdArgs<ExtArgs>
+  agentLevel?: boolean | Prisma.Agent$agentLevelArgs<ExtArgs>
   _count?: boolean | Prisma.AgentCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1045,6 +1166,7 @@ export type AgentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   user?: boolean | Prisma.Agent$userArgs<ExtArgs>
   totalAttempsPerCallee?: boolean | Prisma.Agent$totalAttempsPerCalleeArgs<ExtArgs>
   agentToThird?: boolean | Prisma.Agent$agentToThirdArgs<ExtArgs>
+  agentLevel?: boolean | Prisma.Agent$agentLevelArgs<ExtArgs>
   _count?: boolean | Prisma.AgentCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AgentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1064,6 +1186,7 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     user: Prisma.$UserPayload<ExtArgs> | null
     totalAttempsPerCallee: Prisma.$agentToCalleePayload<ExtArgs>[]
     agentToThird: Prisma.$AgentToThirdPayload<ExtArgs>[]
+    agentLevel: Prisma.$AgentLevelPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1470,6 +1593,7 @@ export interface Prisma__AgentClient<T, Null = never, ExtArgs extends runtime.Ty
   user<T extends Prisma.Agent$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   totalAttempsPerCallee<T extends Prisma.Agent$totalAttempsPerCalleeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$totalAttempsPerCalleeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$agentToCalleePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   agentToThird<T extends Prisma.Agent$agentToThirdArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$agentToThirdArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentToThirdPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  agentLevel<T extends Prisma.Agent$agentLevelArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Agent$agentLevelArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentLevelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2034,6 +2158,30 @@ export type Agent$agentToThirdArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.AgentToThirdScalarFieldEnum | Prisma.AgentToThirdScalarFieldEnum[]
+}
+
+/**
+ * Agent.agentLevel
+ */
+export type Agent$agentLevelArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentLevel
+   */
+  select?: Prisma.AgentLevelSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentLevel
+   */
+  omit?: Prisma.AgentLevelOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentLevelInclude<ExtArgs> | null
+  where?: Prisma.AgentLevelWhereInput
+  orderBy?: Prisma.AgentLevelOrderByWithRelationInput | Prisma.AgentLevelOrderByWithRelationInput[]
+  cursor?: Prisma.AgentLevelWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AgentLevelScalarFieldEnum | Prisma.AgentLevelScalarFieldEnum[]
 }
 
 /**

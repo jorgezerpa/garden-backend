@@ -115,6 +115,11 @@ export type FunnelEvent = Prisma.FunnelEventModel
  */
 export type AgentState = Prisma.AgentStateModel
 /**
+ * Model AgentLevel
+ * 
+ */
+export type AgentLevel = Prisma.AgentLevelModel
+/**
  * Model TemporalGoals
  * 
  */

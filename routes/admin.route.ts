@@ -8,6 +8,50 @@ import { allowedRoles } from '../middleware/authJWT.middleware';
 
 const adminRouter = Router();
 
+adminRouter.post('/upsertLeadDeskEventIds', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { seedEventIds, saleEventIds } = req.body; // ids -> array of strings
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const parsedSeedEventIds = parseStringArray(seedEventIds)
+    const parsedSaleEventIds = parseStringArray(saleEventIds)
+
+    if(parsedSeedEventIds.length == 0 && parsedSaleEventIds.length == 0) {
+      return res.status(400).json({ error: "No event ids sended" });
+    }
+
+    const result = await ManagerController.upsertLeadDeskEventIds(
+      Number(companyId),
+      parsedSeedEventIds,
+      parsedSaleEventIds
+    );
+
+    return res.status(201).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.get('/getLeadDeskEventIds', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await ManagerController.getLeadDeskEventIds(companyId)
+
+    return res.status(201).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/admin//addLeadDeskAPIAuthString -> allow admin to set the leadDesk api auth token 
 adminRouter.post('/upsertLeadDeskAPIAuthString', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
   try {
@@ -38,7 +82,7 @@ adminRouter.get('/getLeadDeskAPIAuthString', allowedRoles(["MAIN_ADMIN"]), async
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const result = await ManagerController.isLeadDeskAuthString(companyId)
+    const result = await ManagerController.getLeadDeskAuthString(companyId)
 
     return res.status(201).json({ authString: result });
   } catch (err: any) {
@@ -447,3 +491,25 @@ async function checkGoalAssignationBelongsToCompany(req: JWTAuthRequest, res: Re
 }
 
 export default adminRouter;
+
+
+// HELPERS 
+const parseStringArray = (val: any): string[] => {
+  // If val is null/undefined, return an empty array
+  if (val === null || val === undefined) return [];
+
+  // If it's a single value, wrap it; if it's already an array, use it.
+  const arr = Array.isArray(val) ? val : [val];
+
+  return arr.map(item => {
+    // Convert to string and trim whitespace
+    const str = String(item).trim();
+    
+    // Optional: Throw if the resulting string is empty (equivalent to your NaN check)
+    if (!str) {
+      throw new Error("Invalid or empty string value provided in array");
+    }
+    
+    return str;
+  });
+};

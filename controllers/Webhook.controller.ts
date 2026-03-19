@@ -12,18 +12,18 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     // 0. Check for company
     const company = await prisma.company.findUnique({
         where: { id: companyId },
+        include: { leadDeskCustomData: true }
     });
 
     if (!company) throw new Error("Company not found");
-
-  // 1. Fetch full call details from Leaddesk API
-  const leadDesk = await prisma.leadDeskCustomData.findUnique({ where: { companyId: company.id }, select: { authString: true } })
-
-  if(!leadDesk?.authString) throw new Error("No LeadDesk Auth String")
+    if(!company.leadDeskCustomData) throw new Error("no custom data for this company")
+    if(company.leadDeskCustomData.SaleEventIds.length==0) throw("Should set LeadDesk Sale Event Ids")
+    if(company.leadDeskCustomData.SeedEventIds.length==0) throw("Should set LeadDesk Seed Event Ids")
+    if(!company.leadDeskCustomData.authString) throw new Error("Should set LeadDesk Auth String")
   
   const response = await axios.get(`https://api.leaddesk.com`, {
     params: {
-      auth: leadDesk.authString,
+      auth: company.leadDeskCustomData.authString,
       mod: "call",
       cmd: "get",
       call_ref_id: lastCallId,
@@ -91,14 +91,14 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     });
 
     // 4. Update Events:
-    // if no callee, then is first time is called -> SEED
-    // if callee is registered, but is the first time the agent calls them -> SEED
-    // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
-    // if callee is registered, and IS NOT the first time the agent calls them -> LEAD
-    // Independantly if is a SEED or LEAD, if an order was concreted, then is a SALE
-    if(agentToCallee.totalAttemps==1) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "SEED"}})
+    if(company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) {
+      await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id, callId: call.id, type: "SEED"}})
+    }
     if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "LEAD"}})
-    if(ld.order_ids?.length > 0) await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "SALE"}})
+    
+    if(company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) {
+      await tx.funnelEvent.create({data: { timestamp:parseToUTC(ld.talk_start), agentId: agent.id,callId: call.id, type: "SALE"}}) 
+    }
 
     return call
 

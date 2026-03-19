@@ -115,7 +115,9 @@ model APIKeysAuth {
 // all this models are named with the convention [ThirdPartyName]+CustomMetadata
 model LeadDeskCustomData {
   id            Int      @id @default(autoincrement())
-  authString    String // 32-bytes string provided by LeadDesk to authenticate calls to its API -> used, for example, when fetch call data in webhook handler
+  authString    String? // 32-bytes string provided by LeadDesk to authenticate calls to its API -> used, for example, when fetch call data in webhook handler
+  SeedEventIds  String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a callback apointment
+  SaleEventIds  String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a sale/deal
   //
   company       Company  @relation(fields: [companyId], references: [id]) 
   companyId     Int      @unique

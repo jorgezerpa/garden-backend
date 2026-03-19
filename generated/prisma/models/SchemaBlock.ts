@@ -444,10 +444,6 @@ export type EnumBlockTypeFieldUpdateOperationsInput = {
   set?: $Enums.BlockType
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type SchemaBlockCreateWithoutSchemaInput = {
   startMinutesFromMidnight: number
   endMinutesFromMidnight: number

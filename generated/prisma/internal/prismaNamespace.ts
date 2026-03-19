@@ -1833,6 +1833,8 @@ export type APIKeysAuthScalarFieldEnum = (typeof APIKeysAuthScalarFieldEnum)[key
 export const LeadDeskCustomDataScalarFieldEnum = {
   id: 'id',
   authString: 'authString',
+  SeedEventIds: 'SeedEventIds',
+  SaleEventIds: 'SaleEventIds',
   companyId: 'companyId'
 } as const
 

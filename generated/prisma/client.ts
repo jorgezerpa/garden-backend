@@ -116,7 +116,10 @@ export type FunnelEvent = Prisma.FunnelEventModel
 export type AgentState = Prisma.AgentStateModel
 /**
  * Model AgentLevel
- * 
+ * Cool, finally, the current agentLevel depends on the next:
+ * - 1 agent has many Call rows. A call has a  durationSeconds column. 
+ * - So, the level depends on: if total call duration of the week was more than X, then is level one, if was less than X but more than Y, is level 2, and if was less than Y, is level 3. 
+ * - So, by calculating this, the stored procedure should: if the state doesnt, changes, dont make anything. If changes, creates the new row, and update the till and durationInWeeks column of the previous latest row.
  */
 export type AgentLevel = Prisma.AgentLevelModel
 /**

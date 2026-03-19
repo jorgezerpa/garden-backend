@@ -52,6 +52,11 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 
 
 # New Requirements
+- [DONE] Modify database structure to track agent_level (gold, silver, bronze -> 1,2,3) and historical counting (how many weeks has being in a certain level)
+- [DONE] Modify routes to create a initial agentLevel row for the agent
+- [DONE] Modify tests to check initial agentLevel row for the agent
+- [DONE] Implement routes to input seeds/sales ids on leaddesk and use them on the webhook handler. 
+- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure
 - Create endpoint that retrieve the next information (Daily and weekly):
     • Profile picture (upload per agent)
     • Name of the agent
@@ -60,10 +65,6 @@ docker compose down -v: Removes everything, including the data. Use this if you 
     • Amount of deals (sales)
     • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
     • Current AgentLevel.level value
-- [DONE] Modify database structure to track agent_level (gold, silver, bronze -> 1,2,3) and historical counting (how many weeks has being in a certain level)
-- [DONE] Modify routes to create a initial agentLevel row for the agent
-- [DONE] Modify tests to check initial agentLevel row for the agent
-- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure
 - Write and test the stored-procedure to run with pg-cron (use txs for safe-fail-rollbacks, run a backup before update maybe)
 - define formulas for "streak", "on fire", etc
 - define formulas for order the users on the shared dashboard -> posibbly a weigthed avg

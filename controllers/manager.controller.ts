@@ -12,9 +12,26 @@ export const upsertLeadDeskAPIAuthString = async(authString: string, companyId: 
   return { id: result.id }
 }
 
-export const isLeadDeskAuthString = async(companyId:number) => {
+
+export const getLeadDeskAuthString = async(companyId:number) => {
   const result = await prisma.leadDeskCustomData.findUnique({ where: { companyId }, select: { authString: true } })
   return result?.authString || null
+}
+
+
+export const upsertLeadDeskEventIds = async(companyId: number, LeadDeskSeedEventIds: string[], LeadDeskSaleEventIds:string[]) => {
+  const result = await prisma.leadDeskCustomData.upsert({
+    where: { companyId },
+    create: { companyId, SaleEventIds: LeadDeskSaleEventIds, SeedEventIds: LeadDeskSeedEventIds }, 
+    update: { SaleEventIds: LeadDeskSaleEventIds, SeedEventIds: LeadDeskSeedEventIds }
+  })
+
+  return { id: result.id }
+}
+
+export const getLeadDeskEventIds = async(companyId:number) => {
+  const result = await prisma.leadDeskCustomData.findUnique({ where: { companyId }, select: { SaleEventIds: true, SeedEventIds: true } })
+  return { seedEventIds: result?.SeedEventIds||[], saleEventIds: result?.SaleEventIds||[] }
 }
 
 export const createManagerWithUser = async (data: {

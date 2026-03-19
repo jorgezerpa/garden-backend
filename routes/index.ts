@@ -5,6 +5,7 @@ import adminRouter from './admin.route';
 import schemaRouter from './schema.route';
 import dataVisRouter from './dataVis.route';
 import agentDashboardRouter from './agentDashboard.route';
+import sharedScreenRouter from './SharedScreen.route';
 //
 import { authenticateJWT, allowedRoles } from '../middleware/authJWT.middleware';
 import { authenticateBasic } from '../middleware/authBasic.middleware';
@@ -23,6 +24,7 @@ router.use('/admin', authenticateJWT, adminRouter);
 router.use('/schema', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), schemaRouter); 
 router.use('/datavis', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]), dataVisRouter); 
 router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), agentDashboardRouter); 
+router.use('/shared-screen', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), sharedScreenRouter); 
 // @todo create routes for big screen dashboard
 router.use('/leaddesk', authenticateBasic, leadDeskWebhookRouter);
 

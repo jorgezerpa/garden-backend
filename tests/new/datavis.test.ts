@@ -4,6 +4,7 @@ import app from '../../app';
 import axios from 'axios';
 import { getJWT } from '../../utils/authJWT';
 import { prisma } from '../../lib/prisma';
+import { updateLevels } from '../../controllers/cron';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -117,15 +118,17 @@ describe('Datavis', () => {
     const startDate = new Date("2026-01-01T00:00:00Z");
     const authHeader = `Basic ${Buffer.from(`${PUBLIC_KEY}:${SECRET_KEY}`).toString('base64')}`;
     const promises = [];
+    const agentCallTimeCount:any = {}
 
     for (let i = 0; i < totalCalls; i++) {
       const callIndex = i;
       const callDate = new Date(startDate.getTime() + (callIndex*600000) ); // 600_000ms = 10 minutes diff each call
       const talkTime = parseInt(`${600 * Math.random()}`); // in seconds
+      const agentId = Math.floor(Math.random() * 100)+1
 
       const mockCall = {
         id: `${callIndex}`,
-        agent_id: Math.floor(Math.random() * 100)+1, 
+        agent_id: agentId, 
         agent_username: "Agent_X",
         talk_time: talkTime.toString(),
         talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],
@@ -134,6 +137,9 @@ describe('Datavis', () => {
         order_ids: callIndex % 10 === 0 ? [1] : [],
         call_ending_reason: String(Math.floor(Math.random() * 6)+1), // 1,2,3 seed -- 4,5,6 sale 
       }
+
+      if(!agentCallTimeCount[agentId]) agentCallTimeCount[agentId] = 0 
+      agentCallTimeCount[agentId] += talkTime
 
       mockedAxios.get.mockResolvedValueOnce({
           data: mockCall
@@ -176,6 +182,18 @@ describe('Datavis', () => {
     }
 
     await Promise.all(feelings_promises)
+
+    // provisional helper to update levels
+    let biggestTalkTime = 0
+    let smallestTalkTime = 0
+    let keys = Object.keys(agentCallTimeCount)
+    for (let key in keys) {
+      if(agentCallTimeCount[key]>biggestTalkTime) biggestTalkTime = agentCallTimeCount[key]
+      if(agentCallTimeCount[key]<100000000000) smallestTalkTime = agentCallTimeCount[key]
+    }
+
+    const cuarterDiff = Math.floor((biggestTalkTime - smallestTalkTime)/4)
+    await updateLevels(smallestTalkTime + cuarterDiff*3, smallestTalkTime + cuarterDiff*2)
 
   }, 60000);
 

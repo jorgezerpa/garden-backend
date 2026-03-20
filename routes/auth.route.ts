@@ -76,7 +76,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         role: user.role, 
       },
       JWT_SECRET,
-      { expiresIn: '8h' }       // Token expires in 8 hours
+      { expiresIn: '168h' }       // Token expires in 8 hours
     );
 
     return res.status(200).json({ 

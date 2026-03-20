@@ -56,8 +56,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Modify routes to create a initial agentLevel row for the agent
 - [DONE] Modify tests to check initial agentLevel row for the agent
 - [DONE] Implement routes to input seeds/sales ids on leaddesk and use them on the webhook handler. 
-- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure
-- Create endpoint that retrieve the next information (Daily and weekly):
+- [DONE] Create endpoint that retrieve the next information (Daily and weekly):
     • Profile picture (upload per agent)
     • Name of the agent
     • Calling time
@@ -65,6 +64,13 @@ docker compose down -v: Removes everything, including the data. Use this if you 
     • Amount of deals (sales)
     • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
     • Current AgentLevel.level value
+- [DONE] Build UI of shared screen
+- Implement real time updates of shared-screen  
+- Implement page role permissions on frontend (and correspondant redirections)
+- rethink timezone management btw front and back. For example, if an agent is at utc-4 and works after 8pm, such work will appear on the next day registers -> possible solution: allow admin to set timezone config. 
+- Make UI and routes for historical level fetching
+- logic to handle profile images -> upload from agent profile and render on shared screen 
+- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure
 - Write and test the stored-procedure to run with pg-cron (use txs for safe-fail-rollbacks, run a backup before update maybe)
 - define formulas for "streak", "on fire", etc
 - define formulas for order the users on the shared dashboard -> posibbly a weigthed avg
@@ -139,3 +145,10 @@ The problem, is that we have no way to know to what reason that id corresponds (
 So, to apply this, we will need the admin the set on the dashboard the meaning of each one of this reason ids. For example, we can make a new tab where they see inputs like "Seed reason ids", so anytime the webhook calls us, we compare the call_ending_reason received against this inputs to know if a callback was appointed. 
 
 So I need to confirm that this "call_ending_reason" corresponds to the "outcome" assigned to the call, and if this outcome tells us if a call ended up with a callback appointment. 
+
+
+
+------------
+- FRONTEND TECNICHALLY READY BY NOW
+- FOCUS ON IMPROVE MOCK DATA GENERATION FOR TESTS 
+- THEN CONTINUE 

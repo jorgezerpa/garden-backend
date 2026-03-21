@@ -201,6 +201,7 @@ adminRouter.post('/addAgent', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (re
 
     return res.status(201).json(result);
   } catch (err: any) {
+    console.log(err)
     return res.status(500).json({ error: err.message });
   }
 });

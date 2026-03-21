@@ -147,6 +147,8 @@ model Agent {
   totalAttempsPerCallee agentToCallee[]
   agentToThird          AgentToThird[] 
   agentLevel            AgentLevel[]
+  // 
+  profileImg            String?
 }
 
 model AgentToThird {

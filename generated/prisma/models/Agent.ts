@@ -40,18 +40,21 @@ export type AgentMinAggregateOutputType = {
   id: number | null
   name: string | null
   companyId: number | null
+  profileImg: string | null
 }
 
 export type AgentMaxAggregateOutputType = {
   id: number | null
   name: string | null
   companyId: number | null
+  profileImg: string | null
 }
 
 export type AgentCountAggregateOutputType = {
   id: number
   name: number
   companyId: number
+  profileImg: number
   _all: number
 }
 
@@ -70,18 +73,21 @@ export type AgentMinAggregateInputType = {
   id?: true
   name?: true
   companyId?: true
+  profileImg?: true
 }
 
 export type AgentMaxAggregateInputType = {
   id?: true
   name?: true
   companyId?: true
+  profileImg?: true
 }
 
 export type AgentCountAggregateInputType = {
   id?: true
   name?: true
   companyId?: true
+  profileImg?: true
   _all?: true
 }
 
@@ -175,6 +181,7 @@ export type AgentGroupByOutputType = {
   id: number
   name: string
   companyId: number
+  profileImg: string | null
   _count: AgentCountAggregateOutputType | null
   _avg: AgentAvgAggregateOutputType | null
   _sum: AgentSumAggregateOutputType | null
@@ -204,6 +211,7 @@ export type AgentWhereInput = {
   id?: Prisma.IntFilter<"Agent"> | number
   name?: Prisma.StringFilter<"Agent"> | string
   companyId?: Prisma.IntFilter<"Agent"> | number
+  profileImg?: Prisma.StringNullableFilter<"Agent"> | string | null
   company?: Prisma.XOR<Prisma.CompanyScalarRelationFilter, Prisma.CompanyWhereInput>
   calls?: Prisma.CallListRelationFilter
   feelings?: Prisma.AgentStateListRelationFilter
@@ -218,6 +226,7 @@ export type AgentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
+  profileImg?: Prisma.SortOrderInput | Prisma.SortOrder
   company?: Prisma.CompanyOrderByWithRelationInput
   calls?: Prisma.CallOrderByRelationAggregateInput
   feelings?: Prisma.AgentStateOrderByRelationAggregateInput
@@ -235,6 +244,7 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AgentWhereInput | Prisma.AgentWhereInput[]
   name?: Prisma.StringFilter<"Agent"> | string
   companyId?: Prisma.IntFilter<"Agent"> | number
+  profileImg?: Prisma.StringNullableFilter<"Agent"> | string | null
   company?: Prisma.XOR<Prisma.CompanyScalarRelationFilter, Prisma.CompanyWhereInput>
   calls?: Prisma.CallListRelationFilter
   feelings?: Prisma.AgentStateListRelationFilter
@@ -249,6 +259,7 @@ export type AgentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
+  profileImg?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AgentCountOrderByAggregateInput
   _avg?: Prisma.AgentAvgOrderByAggregateInput
   _max?: Prisma.AgentMaxOrderByAggregateInput
@@ -263,10 +274,12 @@ export type AgentScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"Agent"> | number
   name?: Prisma.StringWithAggregatesFilter<"Agent"> | string
   companyId?: Prisma.IntWithAggregatesFilter<"Agent"> | number
+  profileImg?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
 }
 
 export type AgentCreateInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -281,6 +294,7 @@ export type AgentUncheckedCreateInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -292,6 +306,7 @@ export type AgentUncheckedCreateInput = {
 
 export type AgentUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -306,6 +321,7 @@ export type AgentUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -319,16 +335,19 @@ export type AgentCreateManyInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
 }
 
 export type AgentUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AgentUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AgentNullableScalarRelationFilter = {
@@ -350,6 +369,7 @@ export type AgentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
+  profileImg?: Prisma.SortOrder
 }
 
 export type AgentAvgOrderByAggregateInput = {
@@ -361,12 +381,14 @@ export type AgentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
+  profileImg?: Prisma.SortOrder
 }
 
 export type AgentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
+  profileImg?: Prisma.SortOrder
 }
 
 export type AgentSumOrderByAggregateInput = {
@@ -523,6 +545,7 @@ export type AgentUpdateOneRequiredWithoutAgentLevelNestedInput = {
 
 export type AgentCreateWithoutUserInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -536,6 +559,7 @@ export type AgentUncheckedCreateWithoutUserInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -562,6 +586,7 @@ export type AgentUpdateToOneWithWhereWithoutUserInput = {
 
 export type AgentUpdateWithoutUserInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -575,6 +600,7 @@ export type AgentUncheckedUpdateWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -585,6 +611,7 @@ export type AgentUncheckedUpdateWithoutUserInput = {
 
 export type AgentCreateWithoutCompanyInput = {
   name: string
+  profileImg?: string | null
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
@@ -597,6 +624,7 @@ export type AgentCreateWithoutCompanyInput = {
 export type AgentUncheckedCreateWithoutCompanyInput = {
   id?: number
   name: string
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -639,10 +667,12 @@ export type AgentScalarWhereInput = {
   id?: Prisma.IntFilter<"Agent"> | number
   name?: Prisma.StringFilter<"Agent"> | string
   companyId?: Prisma.IntFilter<"Agent"> | number
+  profileImg?: Prisma.StringNullableFilter<"Agent"> | string | null
 }
 
 export type AgentCreateWithoutAgentToThirdInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -656,6 +686,7 @@ export type AgentUncheckedCreateWithoutAgentToThirdInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -682,6 +713,7 @@ export type AgentUpdateToOneWithWhereWithoutAgentToThirdInput = {
 
 export type AgentUpdateWithoutAgentToThirdInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -695,6 +727,7 @@ export type AgentUncheckedUpdateWithoutAgentToThirdInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -705,6 +738,7 @@ export type AgentUncheckedUpdateWithoutAgentToThirdInput = {
 
 export type AgentCreateWithoutTotalAttempsPerCalleeInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -718,6 +752,7 @@ export type AgentUncheckedCreateWithoutTotalAttempsPerCalleeInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -744,6 +779,7 @@ export type AgentUpdateToOneWithWhereWithoutTotalAttempsPerCalleeInput = {
 
 export type AgentUpdateWithoutTotalAttempsPerCalleeInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -757,6 +793,7 @@ export type AgentUncheckedUpdateWithoutTotalAttempsPerCalleeInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -767,6 +804,7 @@ export type AgentUncheckedUpdateWithoutTotalAttempsPerCalleeInput = {
 
 export type AgentCreateWithoutCallsInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
@@ -780,6 +818,7 @@ export type AgentUncheckedCreateWithoutCallsInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
@@ -806,6 +845,7 @@ export type AgentUpdateToOneWithWhereWithoutCallsInput = {
 
 export type AgentUpdateWithoutCallsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
@@ -819,6 +859,7 @@ export type AgentUncheckedUpdateWithoutCallsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
@@ -829,6 +870,7 @@ export type AgentUncheckedUpdateWithoutCallsInput = {
 
 export type AgentCreateWithoutEventsInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -842,6 +884,7 @@ export type AgentUncheckedCreateWithoutEventsInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
@@ -868,6 +911,7 @@ export type AgentUpdateToOneWithWhereWithoutEventsInput = {
 
 export type AgentUpdateWithoutEventsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -881,6 +925,7 @@ export type AgentUncheckedUpdateWithoutEventsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
@@ -891,6 +936,7 @@ export type AgentUncheckedUpdateWithoutEventsInput = {
 
 export type AgentCreateWithoutFeelingsInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventCreateNestedManyWithoutAgentInput
@@ -904,6 +950,7 @@ export type AgentUncheckedCreateWithoutFeelingsInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
   user?: Prisma.UserUncheckedCreateNestedOneWithoutAgentProfileInput
@@ -930,6 +977,7 @@ export type AgentUpdateToOneWithWhereWithoutFeelingsInput = {
 
 export type AgentUpdateWithoutFeelingsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
@@ -943,6 +991,7 @@ export type AgentUncheckedUpdateWithoutFeelingsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
   user?: Prisma.UserUncheckedUpdateOneWithoutAgentProfileNestedInput
@@ -953,6 +1002,7 @@ export type AgentUncheckedUpdateWithoutFeelingsInput = {
 
 export type AgentCreateWithoutAgentLevelInput = {
   name: string
+  profileImg?: string | null
   company: Prisma.CompanyCreateNestedOneWithoutAgentsInput
   calls?: Prisma.CallCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateCreateNestedManyWithoutAgentInput
@@ -966,6 +1016,7 @@ export type AgentUncheckedCreateWithoutAgentLevelInput = {
   id?: number
   name: string
   companyId: number
+  profileImg?: string | null
   calls?: Prisma.CallUncheckedCreateNestedManyWithoutAgentInput
   feelings?: Prisma.AgentStateUncheckedCreateNestedManyWithoutAgentInput
   events?: Prisma.FunnelEventUncheckedCreateNestedManyWithoutAgentInput
@@ -992,6 +1043,7 @@ export type AgentUpdateToOneWithWhereWithoutAgentLevelInput = {
 
 export type AgentUpdateWithoutAgentLevelInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   company?: Prisma.CompanyUpdateOneRequiredWithoutAgentsNestedInput
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
@@ -1005,6 +1057,7 @@ export type AgentUncheckedUpdateWithoutAgentLevelInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -1016,10 +1069,12 @@ export type AgentUncheckedUpdateWithoutAgentLevelInput = {
 export type AgentCreateManyCompanyInput = {
   id?: number
   name: string
+  profileImg?: string | null
 }
 
 export type AgentUpdateWithoutCompanyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUpdateManyWithoutAgentNestedInput
@@ -1032,6 +1087,7 @@ export type AgentUpdateWithoutCompanyInput = {
 export type AgentUncheckedUpdateWithoutCompanyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   calls?: Prisma.CallUncheckedUpdateManyWithoutAgentNestedInput
   feelings?: Prisma.AgentStateUncheckedUpdateManyWithoutAgentNestedInput
   events?: Prisma.FunnelEventUncheckedUpdateManyWithoutAgentNestedInput
@@ -1044,6 +1100,7 @@ export type AgentUncheckedUpdateWithoutCompanyInput = {
 export type AgentUncheckedUpdateManyWithoutCompanyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  profileImg?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1126,6 +1183,7 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   id?: boolean
   name?: boolean
   companyId?: boolean
+  profileImg?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
   calls?: boolean | Prisma.Agent$callsArgs<ExtArgs>
   feelings?: boolean | Prisma.Agent$feelingsArgs<ExtArgs>
@@ -1141,6 +1199,7 @@ export type AgentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   name?: boolean
   companyId?: boolean
+  profileImg?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1148,6 +1207,7 @@ export type AgentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   name?: boolean
   companyId?: boolean
+  profileImg?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agent"]>
 
@@ -1155,9 +1215,10 @@ export type AgentSelectScalar = {
   id?: boolean
   name?: boolean
   companyId?: boolean
+  profileImg?: boolean
 }
 
-export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "companyId", ExtArgs["result"]["agent"]>
+export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "companyId" | "profileImg", ExtArgs["result"]["agent"]>
 export type AgentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
   calls?: boolean | Prisma.Agent$callsArgs<ExtArgs>
@@ -1192,6 +1253,7 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: number
     name: string
     companyId: number
+    profileImg: string | null
   }, ExtArgs["result"]["agent"]>
   composites: {}
 }
@@ -1626,6 +1688,7 @@ export interface AgentFieldRefs {
   readonly id: Prisma.FieldRef<"Agent", 'Int'>
   readonly name: Prisma.FieldRef<"Agent", 'String'>
   readonly companyId: Prisma.FieldRef<"Agent", 'Int'>
+  readonly profileImg: Prisma.FieldRef<"Agent", 'String'>
 }
     
 

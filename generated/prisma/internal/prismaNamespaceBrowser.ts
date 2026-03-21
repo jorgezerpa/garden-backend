@@ -149,7 +149,8 @@ export type ManagerScalarFieldEnum = (typeof ManagerScalarFieldEnum)[keyof typeo
 export const AgentScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  companyId: 'companyId'
+  companyId: 'companyId',
+  profileImg: 'profileImg'
 } as const
 
 export type AgentScalarFieldEnum = (typeof AgentScalarFieldEnum)[keyof typeof AgentScalarFieldEnum]

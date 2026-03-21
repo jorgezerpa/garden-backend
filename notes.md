@@ -65,15 +65,15 @@ docker compose down -v: Removes everything, including the data. Use this if you 
     • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
     • Current AgentLevel.level value
 - [DONE] Build UI of shared screen
-- Implement real time updates of shared-screen  
+
+- logic to handle profile images -> upload from agent profile and render on shared screen 
 - Implement page role permissions on frontend (and correspondant redirections)
 - rethink timezone management btw front and back. For example, if an agent is at utc-4 and works after 8pm, such work will appear on the next day registers -> possible solution: allow admin to set timezone config. 
 - Make UI and routes for historical level fetching
-- logic to handle profile images -> upload from agent profile and render on shared screen 
-- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure
-- Write and test the stored-procedure to run with pg-cron (use txs for safe-fail-rollbacks, run a backup before update maybe)
+- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))
 - define formulas for "streak", "on fire", etc
-- define formulas for order the users on the shared dashboard -> posibbly a weigthed avg
+- define formulas for order the users on the shared dashboard -> posibbly a weigthed avg 
+- Implement real time updates of shared-screen  
 
 ## Ranking system 
 **Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data.**
@@ -148,7 +148,3 @@ So I need to confirm that this "call_ending_reason" corresponds to the "outcome"
 
 
 
-------------
-- FRONTEND TECNICHALLY READY BY NOW
-- FOCUS ON IMPROVE MOCK DATA GENERATION FOR TESTS 
-- THEN CONTINUE 

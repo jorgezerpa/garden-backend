@@ -57,18 +57,18 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Modify tests to check initial agentLevel row for the agent
 - [DONE] Implement routes to input seeds/sales ids on leaddesk and use them on the webhook handler. 
 - [DONE] Create endpoint that retrieve the next information (Daily and weekly):
-    • Profile picture (upload per agent)
-    • Name of the agent
-    • Calling time
-    • Seeds (new callback appointments from calls longer than 5 minutes)
-    • Amount of deals (sales)
+    • [DONE] Profile picture (upload per agent)
+    • [DONE] Name of the agent
+    • [DONE] Calling time
+    • [DONE] Seeds (new callback appointments from calls longer than 5 minutes)
+    • [DONE] Amount of deals (sales)
     • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
-    • Current AgentLevel.level value
+    • [DONE] Current AgentLevel.level value
 - [DONE] Build UI of shared screen
 - [DONE] backend -> logic to handle profile images -> upload from agent profile and render on shared screen
-- Add agent profile imgae to shared screen endpoint
-- add page on agent profile to upload profile image 
-- Implement page role permissions on frontend (and correspondant redirections)
+- [DONE] Add agent profile img to shared screen endpoint
+- [DONE] add page on agent profile to upload profile image 
+- [DONE] Implement page role permissions on frontend (and correspondant redirections)
 - rethink timezone management btw front and back. For example, if an agent is at utc-4 and works after 8pm, such work will appear on the next day registers -> possible solution: allow admin to set timezone config. 
 - Make UI and routes for historical level fetching
 - Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))

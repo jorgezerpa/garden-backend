@@ -71,7 +71,7 @@ uploadRoute.post('/agent-profile', upload.single("profile"), async (req: JWTAuth
     // 5. Construct the S3 URL
     // Standard format: https://bucket-name.s3.region.amazonaws.com/key
     const s3Url = `https://${process.env.AWS_S_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-    console.log("url", s3Url)
+
     /* DATABASE LOGIC */
     await prisma.agent.update({ where: { id: agent.id }, data: { profileImg: s3Url } })
 

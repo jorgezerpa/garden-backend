@@ -65,8 +65,9 @@ docker compose down -v: Removes everything, including the data. Use this if you 
     • A "special_status" field, that returns a SpecialStatus, for special status (for example: streak or “on fire”). Default is NONE.
     • Current AgentLevel.level value
 - [DONE] Build UI of shared screen
-
-- logic to handle profile images -> upload from agent profile and render on shared screen 
+- [DONE] backend -> logic to handle profile images -> upload from agent profile and render on shared screen
+- Add agent profile imgae to shared screen endpoint
+- add page on agent profile to upload profile image 
 - Implement page role permissions on frontend (and correspondant redirections)
 - rethink timezone management btw front and back. For example, if an agent is at utc-4 and works after 8pm, such work will appear on the next day registers -> possible solution: allow admin to set timezone config. 
 - Make UI and routes for historical level fetching

@@ -195,6 +195,9 @@ describe('Datavis', () => {
     const cuarterDiff = Math.floor((biggestTalkTime - smallestTalkTime)/4)
     await updateLevels(smallestTalkTime + cuarterDiff*3, smallestTalkTime + cuarterDiff*2)
 
+    // simulate users upload profile img
+    await prisma.agent.updateMany({ data: { profileImg: "https://garden-bucket-test-0x2222.s3.us-east-1.amazonaws.com/profiles/1774202571891-156343379.png" } })
+
   }, 60000);
 
 

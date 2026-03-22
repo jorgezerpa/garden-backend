@@ -5,6 +5,7 @@ import { prisma } from "../../lib/prisma";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { getJWT } from '../../utils/authJWT';
+import path from 'node:path';
 
 interface TableNameRow { tablename: string; }
 
@@ -43,7 +44,7 @@ describe('Upload Files', () => {
       
       // agent uploads profile img
       const JWT_AGENT = await getJWT(app, "agent@test.com", "123456");
-      const dummyImage = Buffer.from('fake-image-data');
+      const filePath = path.join(__dirname, 'jiggles.png');
 
       const response = await request(app)
         .post('/api/upload/agent-profile')
@@ -51,7 +52,7 @@ describe('Upload Files', () => {
         /** * .attach(fieldname, file, options)
          * 'profile' must match the string in upload.single('profile') 
         */
-        .attach('profile', dummyImage, { filename: 'test-avatar.png', contentType: 'image/png' })
+        .attach('profile', filePath, { filename: 'test-avatar.png', contentType: 'image/png' })
         .expect(200)
 
     });

@@ -23,6 +23,7 @@ export const getAgentPerformanceReport = async (
     SELECT 
       a.id,
       a.name,
+      a."profileImg",
       COALESCE(al.level, 3) as "currentLevel", -- Default to 3 (Bronze) if no level found
       SUM(COALESCE(c."durationSeconds", 0)) as "totalCallingTime",
       COUNT(DISTINCT CASE WHEN fe.type = ${EventType.SEED} THEN fe.id END) as "totalSeeds",
@@ -62,7 +63,8 @@ export const getAgentPerformanceReport = async (
       seeds: Number(item.totalSeeds),
       sales: Number(item.totalSales),
       currentLevel: item.currentLevel,
-      averageScore: parseFloat(Number(item.performanceScore).toFixed(2))
+      averageScore: parseFloat(Number(item.performanceScore).toFixed(2)),
+      profileImg: item.profileImg
     })),
     meta: {
       totalAgents,

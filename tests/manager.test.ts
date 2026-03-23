@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
-import { prisma } from "../../lib/prisma";
-import { getJWT } from '../../utils/authJWT';
+import app from '../app';
+import { prisma } from "../lib/prisma";
+import { getJWT } from '../utils/authJWT';
 import bcrypt from 'bcrypt';
 
 interface TableNameRow { tablename: string; }

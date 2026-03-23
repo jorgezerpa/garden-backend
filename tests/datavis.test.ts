@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi, Mocked, beforeAll } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
+import app from '../app';
 import axios from 'axios';
-import { getJWT } from '../../utils/authJWT';
-import { prisma } from '../../lib/prisma';
-import { updateLevels } from '../../controllers/cron';
+import { getJWT } from '../utils/authJWT';
+import { prisma } from '../lib/prisma';
+import { updateLevels } from '../controllers/cron';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;

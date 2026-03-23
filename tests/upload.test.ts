@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
-import { prisma } from "../../lib/prisma";
+import app from '../app';
+import { prisma } from "../lib/prisma";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { getJWT } from '../../utils/authJWT';
+import { getJWT } from '../utils/authJWT';
 import path from 'node:path';
 
 interface TableNameRow { tablename: string; }

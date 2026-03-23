@@ -1,10 +1,9 @@
-import { describe, it, vi, Mocked, beforeAll, expect, } from 'vitest';
+import { describe, it, expect, beforeEach, vi, Mocked, beforeAll } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
+import app from '../app';
 import axios from 'axios';
-import { getJWT } from '../../utils/authJWT';
-import { prisma } from '../../lib/prisma';
-import { updateLevels } from '../../controllers/cron';
+import { getJWT } from '../utils/authJWT';
+import { prisma } from '../lib/prisma';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -73,7 +72,6 @@ describe('Datavis', () => {
     SECRET_KEY = secretKey
     // 4. Register the LeadDesk auth string
     const registerLeadDeskAuthStringResponse = await request(app).post('/api/admin/upsertLeadDeskAPIAuthString').auth(token, { type: "bearer" }).send({authString:"authString"});
-    await request(app).post('/api/admin/upsertLeadDeskEventIds').auth(token, { type: "bearer" }).send({ seedEventIds: [1,2,3], saleEventIds: [4,5,6] }).expect(201);
     if(registerLeadDeskAuthStringResponse.error) throw("error storing auth string")
     vi.clearAllMocks();
 
@@ -93,13 +91,6 @@ describe('Datavis', () => {
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_2);
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_3);
     await request(app).post('/api/admin/goals/create').auth(token, { type: "bearer" }).send(GOALS_4);
-    
-    // 6.1 Assign goals 
-    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-01", goalId: 1 }).expect(200);
-    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-02", goalId: 2 }).expect(200);
-    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-03", goalId: 3 }).expect(200);
-    await request(app).post('/api/admin/upsert-assignation').auth(token, { type: "bearer" }).send({ date: "2026-01-04", goalId: 4 }).expect(200);
-
 
     // 7. Register 100 Agents
     AGENTS = Array.from({ length: 100 }, (_, i) => ({
@@ -115,31 +106,25 @@ describe('Datavis', () => {
     
     // 8. SIMULATE WEBHOOK CALLS 
     const totalCalls = 100;
-    const startDate = new Date("2026-03-22T00:00:00Z");
+    const startDate = new Date("2026-01-01T00:00:00Z");
     const authHeader = `Basic ${Buffer.from(`${PUBLIC_KEY}:${SECRET_KEY}`).toString('base64')}`;
     const promises = [];
-    const agentCallTimeCount:any = {}
 
     for (let i = 0; i < totalCalls; i++) {
       const callIndex = i;
       const callDate = new Date(startDate.getTime() + (callIndex*600000) ); // 600_000ms = 10 minutes diff each call
       const talkTime = parseInt(`${600 * Math.random()}`); // in seconds
-      const agentId = Math.floor(Math.random() * 100)+1
 
       const mockCall = {
         id: `${callIndex}`,
-        agent_id: agentId, 
+        agent_id: Math.floor(Math.random() * 100)+1, 
         agent_username: "Agent_X",
         talk_time: talkTime.toString(),
         talk_start: callDate.toISOString().replace('T', ' ').split('.')[0],
         talk_end: new Date(callDate.getTime() + talkTime * 1000).toISOString().replace('T', ' ').split('.')[0],
         number: `+3580000${callIndex}`,
-        order_ids: callIndex % 10 === 0 ? [1] : [],
-        call_ending_reason: String(Math.floor(Math.random() * 6)+1), // 1,2,3 seed -- 4,5,6 sale 
+        order_ids: callIndex % 10 === 0 ? [1] : []
       }
-
-      if(!agentCallTimeCount[agentId]) agentCallTimeCount[agentId] = 0 
-      agentCallTimeCount[agentId] += talkTime
 
       mockedAxios.get.mockResolvedValueOnce({
           data: mockCall
@@ -183,94 +168,162 @@ describe('Datavis', () => {
 
     await Promise.all(feelings_promises)
 
-    // provisional helper to update levels
-    let biggestTalkTime = 0
-    let smallestTalkTime = 0
-    let keys = Object.keys(agentCallTimeCount)
-    for (let key in keys) {
-      if(agentCallTimeCount[key]>biggestTalkTime) biggestTalkTime = agentCallTimeCount[key]
-      if(agentCallTimeCount[key]<100000000000) smallestTalkTime = agentCallTimeCount[key]
-    }
-
-    const cuarterDiff = Math.floor((biggestTalkTime - smallestTalkTime)/4)
-    await updateLevels(smallestTalkTime + cuarterDiff*3, smallestTalkTime + cuarterDiff*2)
-
-    // simulate users upload profile img
-    await prisma.agent.updateMany({ data: { profileImg: "https://garden-bucket-test-0x2222.s3.us-east-1.amazonaws.com/profiles/1774202571891-156343379.png" } })
-
   }, 60000);
 
 
 
+    describe('Agent Day Insights', async() => { 
+      it("should return detailed personal insights for ONLY the authenticated agent", async () => {
+        // 1. Setup: Get the specific agent's ID from the DB
+        const token = await getJWT(app, "agent1@test.com", "123456");
+        const user = await prisma.user.findUnique({ 
+          where: { email: "agent1@test.com" } 
+        });
+        const agentId = user?.agentId;
+        if(!agentId) throw("no agent")
+        const date = "2026-01-01";
 
-  describe('Agents Positions (Ranking)', async () => {
-    it("Should return a ranked list of agents with performance scores and levels", async () => {
-      const token = await getJWT(app, "admin@test.com", "123456");
-
-      const query = {
-        from: "2026-01-01",
-        to: "2026-01-01",
-        page: 1,
-        pageSize: 10
-      };
-
-      const response = await request(app)
-        .get("/api/shared-screen/get_agents_positions")
-        .auth(token, { type: "bearer" })
-        .query(query)
-        .expect(200);
-
-      // 1. Verify Structure
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).toHaveProperty('meta');
-      expect(Array.isArray(response.body.data)).toBe(true);
-      
-      // 2. Verify Pagination
-      expect(response.body.data.length).toBe(10);
-      expect(response.body.meta.currentPage).toBe(1);
-      expect(response.body.meta.totalAgents).toBe(100); // We seeded 100 agents
-
-      // 3. Verify Data Content
-      const firstAgent = response.body.data[0];
-      expect(firstAgent).toHaveProperty('name');
-      expect(firstAgent).toHaveProperty('callingTime');
-      expect(firstAgent).toHaveProperty('seeds');
-      expect(firstAgent).toHaveProperty('sales');
-      expect(firstAgent).toHaveProperty('currentLevel');
-      expect(firstAgent).toHaveProperty('averageScore');
-      expect(firstAgent).toHaveProperty('profileImg');
-
-      // 4. Verify Sorting (High to Low)
-      if (response.body.data.length >= 2) {
-        const topScore = response.body.data[0].averageScore;
-        const secondScore = response.body.data[1].averageScore;
-        expect(topScore).toBeGreaterThanOrEqual(secondScore);
-      }
-
-      // 5. Verify currentLevel defaults to 3 if not set
-      // (Since we didn't explicitly seed AgentLevel rows, they should be 3)
-      expect(firstAgent.currentLevel).toBe(3);
-    });
-
-    it("Should return 400 if date parameters are missing", async () => {
-        const token = await getJWT(app, "admin@test.com", "123456");
-        await request(app)
-          .get("/api/shared-screen/get_agents_positions")
+        const response = await request(app)
+          .get("/api/agent-dashboard/get-agent-day-insights")
           .auth(token, { type: "bearer" })
-          .query({ page: 1 }) // missing from/to
-          .expect(400);
-    });
-  });
+          .query({ date });
+
+        expect(response.status).toBe(200);
+
+        // 2. Perform independent DB counts for this specific agent
+        const startOfDay = new Date(`${date}T00:00:00.000Z`);
+        const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+        const expectedCallCount = await prisma.call.count({
+          where: {
+            agentId,
+            startAt: { gte: startOfDay, lte: endOfDay }
+          }
+        });
+
+        const expectedDeepCallCount = await prisma.call.count({
+          where: {
+            agentId,
+            startAt: { gte: startOfDay, lte: endOfDay },
+            durationSeconds: { gte: 300 }
+          }
+        });
+
+        // 3. Assertions
+        expect(response.body.number_of_calls).toBe(expectedCallCount);
+        expect(response.body.number_of_deep_call).toBe(expectedDeepCallCount);
+        
+        // Also verify it's not returning the whole company's data (100)
+        // unless this agent happened to make all 100 calls (unlikely with 10 agents)
+        expect(response.body.number_of_calls).toBeLessThan(100);
+
+        // 4. Verification of latest State (Feelings)
+        // If no state was registered yet, it should be 0 (as per your controller)
+        expect(response.body.energy).toBeDefined();
+      });
+    })
+
+
+    describe('Agent weekly growth', async() => { 
+      it("should return the weekly growth trend using ONLY the authenticated agent's data", async () => {
+        // 1. Get Token and find the specific Agent ID for this user
+        const token = await getJWT(app, "agent1@test.com", "123456");
+        const user = await prisma.user.findUnique({ 
+          where: { email: "agent1@test.com" } 
+        });
+        const agentId = user?.agentId;
+        if(!agentId) throw("no agent")
+        const targetDate = "2026-01-01"; // The seeded Thursday
+
+        // 2. Execute Request
+        const response = await request(app)
+          .get("/api/agent-dashboard/get-agent-weekly-growth")
+          .auth(token, { type: "bearer" })
+          .query({ date: targetDate });
+
+        expect(response.status).toBe(200);
+
+        // 3. Independent DB check for this specific agent on that specific day
+        const startOfDay = new Date(`${targetDate}T00:00:00.000Z`);
+        const endOfDay = new Date(`${targetDate}T23:59:59.999Z`);
+
+        const [calls, events, deepCalls] = await Promise.all([
+          prisma.call.count({ where: { agentId, startAt: { gte: startOfDay, lte: endOfDay } } }),
+          prisma.funnelEvent.findMany({ where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } } }),
+          prisma.call.count({ where: { agentId, startAt: { gte: startOfDay, lte: endOfDay }, durationSeconds: { gte: 300 } } }),
+        ]);
+
+        const s = events.filter(e => e.type === "SEED").length;
+        const l = events.filter(e => e.type === "LEAD").length;
+        const sa = events.filter(e => e.type === "SALE").length;
+
+        // Manual calculation of the expected growth score
+        const expectedGrowth = s + (l * 2) + (sa * 3) + calls + (deepCalls * 2);
+
+        // 4. Assertion
+        const thursdayData = response.body.find((d: any) => d.day === "Thu");
+        expect(thursdayData.growth).toBe(expectedGrowth);
+        
+      });
+    })
 
 
 
+    describe('Assigned Schema', async() => { 
+        it("should return the assigned schema and blocks for the company", async () => {
+            const token = await getJWT(app, "agent1@test.com", "123456");
+            const date = "2026-01-01";
+
+            const response = await request(app)
+                .get("/api/agent-dashboard/get-assigned-schema")
+                .auth(token, { type: "bearer" })
+                .query({ date });
+
+            expect(response.status).toBe(200);
+            
+            if (response.body) {
+                expect(response.body).toHaveProperty("blocks");
+                expect(Array.isArray(response.body.blocks)).toBe(true);
+                // Verify sorting
+                const blocks = response.body.blocks;
+                if (blocks.length > 1) {
+                expect(blocks[0].startMinutesFromMidnight).toBeLessThan(blocks[1].startMinutesFromMidnight);
+                }
+            }
+        });
+     })
 
 
 
+    describe('Set agent feelings', async() => {
+        it("should successfully register the agent's psychological state", async () => {
+            const token = await getJWT(app, "agent1@test.com", "123456");
+            
+            const payload = {
+                energy: 8,
+                focus: 9,
+                motivation: 7
+            };
+
+            const response = await request(app)
+                .post("/api/agent-dashboard/register-agent-state")
+                .auth(token, { type: "bearer" })
+                .send(payload);
+
+            expect(response.status).toBe(200);
+            expect(response.body.energyScore).toBe(8);
+            expect(response.body.focusScore).toBe(9);
+
+            // Validate that out-of-bounds scores fail
+            const badResponse = await request(app)
+                .post("/api/agent-dashboard/register-agent-state")
+                .auth(token, { type: "bearer" })
+                .send({ energy: 11, focus: 5, motivation: 5 });
+
+            expect(badResponse.status).toBe(500); // Controller throws error
+        });
+    })
 
 
 
-
-
-
-});
+})

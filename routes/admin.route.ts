@@ -353,7 +353,7 @@ adminRouter.delete('/goals/delete/:id', checkGoalBelongsToCompany, allowedRoles(
 // GET /api/admin/assignation?companyId=1&from=2023-01-01&to=2023-01-31
 adminRouter.get('/assignation', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {
-    const { from, to } = req.query;
+    const { from, to } = req.query; 
     const companyId = req.user?.companyId
     
     if (!companyId || !from || !to) {

@@ -69,7 +69,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Add agent profile img to shared screen endpoint
 - [DONE] add page on agent profile to upload profile image 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
-- rethink timezone management btw front and back. For example, if an agent is at utc-4 and works after 8pm, such work will appear on the next day registers -> possible solution: allow admin to set timezone config. 
+- Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
 - Make UI and routes for historical level fetching
 - Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))
 - define formulas for "streak", "on fire", etc
@@ -127,25 +127,14 @@ So for this to work:
 - This "reasons" are standard/constant on any leadDesk subscription? or every company can create it's own reasons? 
 
 ----
-Hi Mike! alsmost all is perfectly suitable except one think:
+Timezones management:
+1. Frontend uses toIsoString which automatically converts time to utc time
+2. After sanitization and basic checks, when I store a value on my DB, I should use the exact date sended from the frontend, aka not shift to any other timezone, because i should assume the sended date was ".toIsoString"fied before sending to me, so is in UTC< but converted to this by the browser which does it perfectly. 
+3. When I need data grouped/selected by a from-to date for example, I should apply a shift, like receive from the call the client timezone, and use it to calculate the dates
 
-You mentioned this: "Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data."
+A small cavite:
+The only "danger" is if a user’s device clock is manually set to the wrong time. If their computer thinks it's 2024, .toISOString() will send a 2024 timestamp.
 
-So, what I'm making right now to consider if a call is a seed is: The databse is tracking the number of calls from an agent to a number, so if it is the first call from that agent to that number, that counts as a seed. 
-
-Now, you tell me that, for a call to be considered a seed, it has to 1) Be longer than 5 minutes (AKA be a long call) 2) Result in a callback appointment. 
-So, reading the Leaddesk docs, It mentions this (the highlighted text in blue on the image). 
-I suppose that this "outcome" that the agent assigns is what will let use know if a callback was appointed.
-If that's true,  I have the next plan:
-1. The webhook is triggered, and sends us a "last_call_id" parameter, which can be used to fetch call's detailed information (we are already fetching this data)
-2. In this detailed info, is a field "call_ending_reason", which I suppose, is the id of the outcome assigned to the call.
-3. So, I can use such field to know if a call ended up in a callback appointment
-
-The problem, is that we have no way to know to what reason that id corresponds (for example, it could correspond to "callback appointment", "sale", "Call ended by callee", etc)
-
-So, to apply this, we will need the admin the set on the dashboard the meaning of each one of this reason ids. For example, we can make a new tab where they see inputs like "Seed reason ids", so anytime the webhook calls us, we compare the call_ending_reason received against this inputs to know if a callback was appointed. 
-
-So I need to confirm that this "call_ending_reason" corresponds to the "outcome" assigned to the call, and if this outcome tells us if a call ended up with a callback appointment. 
-
+The Fix: For critical things like "Transaction Created At," always use the server's time (default(now()) in Prisma). Use the frontend-provided time only for things the user chooses, like "Schedule this meeting for X time."
 
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
-import { prisma } from "../../lib/prisma";
+import app from '../app';
+import { prisma } from "../lib/prisma";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 

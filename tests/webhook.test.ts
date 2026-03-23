@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi, Mocked } from 'vitest';
 import request from 'supertest';
-import app from '../../app';
-import { prisma } from "../../lib/prisma";
+import app from '../app';
+import { prisma } from "../lib/prisma";
 import axios from 'axios';
-import { getJWT } from '../../utils/authJWT';
+import { getJWT } from '../utils/authJWT';
 
 vi.mock('axios');
 

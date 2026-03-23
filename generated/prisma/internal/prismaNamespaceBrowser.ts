@@ -130,6 +130,7 @@ export const LeadDeskCustomDataScalarFieldEnum = {
   authString: 'authString',
   SeedEventIds: 'SeedEventIds',
   SaleEventIds: 'SaleEventIds',
+  IANATimeZone: 'IANATimeZone',
   companyId: 'companyId'
 } as const
 

@@ -8,8 +8,8 @@ export const getAgentPerformanceReport = async (
   page: number = 1,
   size: number = 10
 ) => {
-  const startDate = new Date(`${startDateStr}T00:00:00Z`);
-  const endDate = new Date(`${endDateStr}T23:59:59.999Z`);
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
   const offset = (page - 1) * size;
 
   /**

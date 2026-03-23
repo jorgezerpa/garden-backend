@@ -30,7 +30,8 @@ dataVisRouter.get('/get-agents-comparisson', async (req: JWTAuthRequest, res: Re
         page: Number(page) || 1,
         pageSize: Number(pageSize) || 10,
         agentIds: agents ? parseNumberArray(agents) : []
-      }
+      },
+      { IANA: "Europe/Amsterdam" }
     );
 
     return res.status(200).json(report);
@@ -103,7 +104,8 @@ dataVisRouter.get('/daily-activity', async (req: JWTAuthRequest, res: Response) 
       Number(companyId),
       startDate,
       endDate,
-      { agents: parsedAgents }
+      { agents: parsedAgents },
+      { IANA: "Europe/Amsterdam" }
     );
 
     return res.status(200).json(report);
@@ -123,8 +125,8 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (typeof from !== 'string' || !dateRegex.test(from) || typeof to !== 'string' || !dateRegex.test(to)) {
+    const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?$/;
+    if (typeof from !== 'string' || !iso8601Regex.test(from) || typeof to !== 'string' || !iso8601Regex.test(to)) {
       return res.status(400).json({ 
         error: "Invalid date format. Please use YYYY-MM-DD" 
       });
@@ -141,7 +143,8 @@ dataVisRouter.get('/block-performance', async (req: JWTAuthRequest, res: Respons
       from,
       to,
       sId, 
-      { days: parsedDays, types: parsedTypes, agents: parsedAgents }
+      { days: parsedDays, types: parsedTypes, agents: parsedAgents },
+      { IANA: "Europe/Amsterdam" }
     );
 
     return res.status(200).json(data);
@@ -200,7 +203,8 @@ dataVisRouter.get('/seed-timeline-heatmap', async (req: JWTAuthRequest, res: Res
     const heatmapData = await DataVisController.getSeedTimelineHeatmap(
       Number(companyId),
       Number(year),
-      { agents: parsedAgents }
+      { agents: parsedAgents },
+      { IANA: "Europe/Amsterdam" }
     );
 
     return res.status(200).json(heatmapData);
@@ -229,7 +233,8 @@ dataVisRouter.get('/seed-timeline-heatmap-per-day', async (req: JWTAuthRequest, 
     const heatmapData = await DataVisController.getSeedTimelineHeatmapPerDay(
       Number(companyId),
       day,
-      { agents: parsedAgents }
+      { agents: parsedAgents },
+      { IANA:"Europe/Amsterdam" }
     );
 
     return res.status(200).json(heatmapData);
@@ -287,7 +292,8 @@ dataVisRouter.get('/consistency-streak', async (req: JWTAuthRequest, res: Respon
       Number(companyId),
       start,
       end,
-      { agents: parsedAgents, days: parsedDays }
+      { agents: parsedAgents, days: parsedDays },
+      { IANA: "Europe/Amsterdam" }
     );
 
     return res.status(200).json(history);

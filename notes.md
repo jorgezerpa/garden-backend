@@ -70,11 +70,11 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] add page on agent profile to upload profile image 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
 - Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
-- Make UI and routes for historical level fetching
 - Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))
 - define formulas for "streak", "on fire", etc
 - define formulas for order the users on the shared dashboard -> posibbly a weigthed avg 
 - Implement real time updates of shared-screen  
+- Make UI and routes for historical level fetching
 
 ## Ranking system 
 **Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data.**
@@ -138,3 +138,27 @@ The only "danger" is if a user’s device clock is manually set to the wrong tim
 The Fix: For critical things like "Transaction Created At," always use the server's time (default(now()) in Prisma). Use the frontend-provided time only for things the user chooses, like "Schedule this meeting for X time."
 
 
+affected routes:
+**should send IANA time zone in params to make convertion**
+- dataVis
+- SharedScreen
+**should use stored "webhookTimeZoneIANA" variable to calculate shifting to UTC so aboves convertion does works differently for each time**
+- leadDeskWebHook
+
+# NEW PLAN
+- all routes receives the full ISO 8601 date, sended from the frontend. SO front dates are the only source of truth (of course front should make the calculation and always send the correspondant utc time to the dates they what to query)
+- for example, if I'm in UTC-4, and I want to query 2026-10-10 data, I should send -> from "2026-10-10T04:00:00:00Z" and "2026-10-11T04:00:00:00Z"
+- as rule -> ALL QUERY INFO ENDPOINTS SHOULD RECEIVE FROM AND TO DATES, NOT A SINGLE DATE VALUE (except for future schedules like block schedules and goals schedules)
+
+- for sums/avg/etc: select date -> convert to iso utc -> send that to api -> render values
+- for data grouped by days, weeks, etc: select date -> convert to iso utc -> send it and the selected IANA -> back converts dates to the IANA and use IANA on queries
+
+NOTE:
+- frontend ALWAYS send dates in utc for "affected routes". backend converts it when necessary
+
+
+
+-------temporal note
+use this DATE("startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
+then modfy the group by
+query in utc, return in IANA

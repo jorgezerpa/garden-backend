@@ -5,6 +5,7 @@ import axios from 'axios';
 import { getJWT } from '../utils/authJWT';
 import { prisma } from '../lib/prisma';
 import { updateLevels } from '../controllers/cron';
+import { getUTCIsoString } from '../utils/date';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -68,14 +69,18 @@ describe('Datavis', () => {
     // 3. Generate Key-pair
     const responseKeysGeneration = await request(app).post('/api/auth/generate-key-pair').auth(token, { type: "bearer" });
     if(registerResponse.error) throw("error registering company");
+    
     const { publicKey, secretKey } = responseKeysGeneration.body;
     PUBLIC_KEY = publicKey
     SECRET_KEY = secretKey
     // 4. Register the LeadDesk auth string
     const registerLeadDeskAuthStringResponse = await request(app).post('/api/admin/upsertLeadDeskAPIAuthString').auth(token, { type: "bearer" }).send({authString:"authString"});
     await request(app).post('/api/admin/upsertLeadDeskEventIds').auth(token, { type: "bearer" }).send({ seedEventIds: [1,2,3], saleEventIds: [4,5,6] }).expect(201);
+    await request(app).post('/api/admin/upsertLeadDeskEventIds').auth(token, { type: "bearer" }).send({ seedEventIds: [1,2,3], saleEventIds: [4,5,6] }).expect(201);
     if(registerLeadDeskAuthStringResponse.error) throw("error storing auth string")
     vi.clearAllMocks();
+
+
 
     // 5. create block schemas
     await request(app)
@@ -207,9 +212,12 @@ describe('Datavis', () => {
     it("Should return a ranked list of agents with performance scores and levels", async () => {
       const token = await getJWT(app, "admin@test.com", "123456");
 
+      const from = getUTCIsoString("2026-01-01T00:00:00.000Z", "Europe/Amsterdam");
+      const to = getUTCIsoString("2026-01-01T23:59:59.999Z", "Europe/Amsterdam");
+
       const query = {
-        from: "2026-01-01",
-        to: "2026-01-01",
+        from,
+        to,
         page: 1,
         pageSize: 10
       };

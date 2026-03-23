@@ -4,6 +4,7 @@ import app from '../app';
 import { prisma } from "../lib/prisma";
 import axios from 'axios';
 import { getJWT } from '../utils/authJWT';
+import { convertDBToUTC, getUTC } from '../utils/date';
 
 vi.mock('axios');
 
@@ -44,6 +45,7 @@ describe('LeadDesk Webhook', () => {
     // 3. Register the LeadDesk auth string
     // if no auth string, will fail @todo
     const registerLeadDeskAuthStringResponse = await request(app).post('/api/admin/upsertLeadDeskAPIAuthString').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" }).send({authString:"authString"});
+    await request(app).post('/api/admin/upsertLeadDeskEventIds').auth(await getJWT(app, "admin@test.com", "12345"), { type: "bearer" }).send({ seedEventIds: [1,2,3], saleEventIds: [4,5,6] }).expect(201);
     if(registerLeadDeskAuthStringResponse.error) throw("error storing auth string")
     vi.clearAllMocks();
   });
@@ -78,7 +80,7 @@ describe('LeadDesk Webhook', () => {
         comment: "test comment",
         agent_group_id: "13",
         agent_group_name: "test group",
-        call_ending_reason: "15", 
+        call_ending_reason: String(Math.floor(Math.random() * 6)+1), 
         call_ending_reason_name: "test reason",
         handling_stop: "2016-02-02 14:20:30",
         direction: "out",
@@ -117,7 +119,7 @@ describe('LeadDesk Webhook', () => {
       expect(dbCall?.startAt.getUTCFullYear()).toBe(2016);
       expect(dbCall?.startAt.getUTCMonth()).toBe(0); 
       expect(dbCall?.startAt.getUTCDate()).toBe(1); 
-      expect(dbCall?.startAt.getUTCHours()).toBe(12); 
+      expect(dbCall?.startAt.getUTCHours()).toBe(convertDBToUTC("2016-01-01 12:13:10", "Europe/Amsterdam").getUTCHours()); 
       expect(dbCall?.startAt.getUTCMinutes()).toBe(13); 
       expect(dbCall?.startAt.getUTCSeconds()).toBe(14); 
     });

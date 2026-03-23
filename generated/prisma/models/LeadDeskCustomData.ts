@@ -39,12 +39,14 @@ export type LeadDeskCustomDataSumAggregateOutputType = {
 export type LeadDeskCustomDataMinAggregateOutputType = {
   id: number | null
   authString: string | null
+  IANATimeZone: string | null
   companyId: number | null
 }
 
 export type LeadDeskCustomDataMaxAggregateOutputType = {
   id: number | null
   authString: string | null
+  IANATimeZone: string | null
   companyId: number | null
 }
 
@@ -53,6 +55,7 @@ export type LeadDeskCustomDataCountAggregateOutputType = {
   authString: number
   SeedEventIds: number
   SaleEventIds: number
+  IANATimeZone: number
   companyId: number
   _all: number
 }
@@ -71,12 +74,14 @@ export type LeadDeskCustomDataSumAggregateInputType = {
 export type LeadDeskCustomDataMinAggregateInputType = {
   id?: true
   authString?: true
+  IANATimeZone?: true
   companyId?: true
 }
 
 export type LeadDeskCustomDataMaxAggregateInputType = {
   id?: true
   authString?: true
+  IANATimeZone?: true
   companyId?: true
 }
 
@@ -85,6 +90,7 @@ export type LeadDeskCustomDataCountAggregateInputType = {
   authString?: true
   SeedEventIds?: true
   SaleEventIds?: true
+  IANATimeZone?: true
   companyId?: true
   _all?: true
 }
@@ -180,6 +186,7 @@ export type LeadDeskCustomDataGroupByOutputType = {
   authString: string | null
   SeedEventIds: string[]
   SaleEventIds: string[]
+  IANATimeZone: string
   companyId: number
   _count: LeadDeskCustomDataCountAggregateOutputType | null
   _avg: LeadDeskCustomDataAvgAggregateOutputType | null
@@ -211,6 +218,7 @@ export type LeadDeskCustomDataWhereInput = {
   authString?: Prisma.StringNullableFilter<"LeadDeskCustomData"> | string | null
   SeedEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
   SaleEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
+  IANATimeZone?: Prisma.StringFilter<"LeadDeskCustomData"> | string
   companyId?: Prisma.IntFilter<"LeadDeskCustomData"> | number
   company?: Prisma.XOR<Prisma.CompanyScalarRelationFilter, Prisma.CompanyWhereInput>
 }
@@ -220,6 +228,7 @@ export type LeadDeskCustomDataOrderByWithRelationInput = {
   authString?: Prisma.SortOrderInput | Prisma.SortOrder
   SeedEventIds?: Prisma.SortOrder
   SaleEventIds?: Prisma.SortOrder
+  IANATimeZone?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
   company?: Prisma.CompanyOrderByWithRelationInput
 }
@@ -233,6 +242,7 @@ export type LeadDeskCustomDataWhereUniqueInput = Prisma.AtLeast<{
   authString?: Prisma.StringNullableFilter<"LeadDeskCustomData"> | string | null
   SeedEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
   SaleEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
+  IANATimeZone?: Prisma.StringFilter<"LeadDeskCustomData"> | string
   company?: Prisma.XOR<Prisma.CompanyScalarRelationFilter, Prisma.CompanyWhereInput>
 }, "id" | "companyId">
 
@@ -241,6 +251,7 @@ export type LeadDeskCustomDataOrderByWithAggregationInput = {
   authString?: Prisma.SortOrderInput | Prisma.SortOrder
   SeedEventIds?: Prisma.SortOrder
   SaleEventIds?: Prisma.SortOrder
+  IANATimeZone?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
   _count?: Prisma.LeadDeskCustomDataCountOrderByAggregateInput
   _avg?: Prisma.LeadDeskCustomDataAvgOrderByAggregateInput
@@ -257,6 +268,7 @@ export type LeadDeskCustomDataScalarWhereWithAggregatesInput = {
   authString?: Prisma.StringNullableWithAggregatesFilter<"LeadDeskCustomData"> | string | null
   SeedEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
   SaleEventIds?: Prisma.StringNullableListFilter<"LeadDeskCustomData">
+  IANATimeZone?: Prisma.StringWithAggregatesFilter<"LeadDeskCustomData"> | string
   companyId?: Prisma.IntWithAggregatesFilter<"LeadDeskCustomData"> | number
 }
 
@@ -264,6 +276,7 @@ export type LeadDeskCustomDataCreateInput = {
   authString?: string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataCreateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataCreateSaleEventIdsInput | string[]
+  IANATimeZone?: string
   company: Prisma.CompanyCreateNestedOneWithoutLeadDeskCustomDataInput
 }
 
@@ -272,6 +285,7 @@ export type LeadDeskCustomDataUncheckedCreateInput = {
   authString?: string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataCreateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataCreateSaleEventIdsInput | string[]
+  IANATimeZone?: string
   companyId: number
 }
 
@@ -279,6 +293,7 @@ export type LeadDeskCustomDataUpdateInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
   company?: Prisma.CompanyUpdateOneRequiredWithoutLeadDeskCustomDataNestedInput
 }
 
@@ -287,6 +302,7 @@ export type LeadDeskCustomDataUncheckedUpdateInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -295,6 +311,7 @@ export type LeadDeskCustomDataCreateManyInput = {
   authString?: string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataCreateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataCreateSaleEventIdsInput | string[]
+  IANATimeZone?: string
   companyId: number
 }
 
@@ -302,6 +319,7 @@ export type LeadDeskCustomDataUpdateManyMutationInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type LeadDeskCustomDataUncheckedUpdateManyInput = {
@@ -309,6 +327,7 @@ export type LeadDeskCustomDataUncheckedUpdateManyInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
   companyId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -330,6 +349,7 @@ export type LeadDeskCustomDataCountOrderByAggregateInput = {
   authString?: Prisma.SortOrder
   SeedEventIds?: Prisma.SortOrder
   SaleEventIds?: Prisma.SortOrder
+  IANATimeZone?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
 }
 
@@ -341,12 +361,14 @@ export type LeadDeskCustomDataAvgOrderByAggregateInput = {
 export type LeadDeskCustomDataMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   authString?: Prisma.SortOrder
+  IANATimeZone?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
 }
 
 export type LeadDeskCustomDataMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   authString?: Prisma.SortOrder
+  IANATimeZone?: Prisma.SortOrder
   companyId?: Prisma.SortOrder
 }
 
@@ -413,6 +435,7 @@ export type LeadDeskCustomDataCreateWithoutCompanyInput = {
   authString?: string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataCreateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataCreateSaleEventIdsInput | string[]
+  IANATimeZone?: string
 }
 
 export type LeadDeskCustomDataUncheckedCreateWithoutCompanyInput = {
@@ -420,6 +443,7 @@ export type LeadDeskCustomDataUncheckedCreateWithoutCompanyInput = {
   authString?: string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataCreateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataCreateSaleEventIdsInput | string[]
+  IANATimeZone?: string
 }
 
 export type LeadDeskCustomDataCreateOrConnectWithoutCompanyInput = {
@@ -442,6 +466,7 @@ export type LeadDeskCustomDataUpdateWithoutCompanyInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type LeadDeskCustomDataUncheckedUpdateWithoutCompanyInput = {
@@ -449,6 +474,7 @@ export type LeadDeskCustomDataUncheckedUpdateWithoutCompanyInput = {
   authString?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   SeedEventIds?: Prisma.LeadDeskCustomDataUpdateSeedEventIdsInput | string[]
   SaleEventIds?: Prisma.LeadDeskCustomDataUpdateSaleEventIdsInput | string[]
+  IANATimeZone?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -458,6 +484,7 @@ export type LeadDeskCustomDataSelect<ExtArgs extends runtime.Types.Extensions.In
   authString?: boolean
   SeedEventIds?: boolean
   SaleEventIds?: boolean
+  IANATimeZone?: boolean
   companyId?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["leadDeskCustomData"]>
@@ -467,6 +494,7 @@ export type LeadDeskCustomDataSelectCreateManyAndReturn<ExtArgs extends runtime.
   authString?: boolean
   SeedEventIds?: boolean
   SaleEventIds?: boolean
+  IANATimeZone?: boolean
   companyId?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["leadDeskCustomData"]>
@@ -476,6 +504,7 @@ export type LeadDeskCustomDataSelectUpdateManyAndReturn<ExtArgs extends runtime.
   authString?: boolean
   SeedEventIds?: boolean
   SaleEventIds?: boolean
+  IANATimeZone?: boolean
   companyId?: boolean
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["leadDeskCustomData"]>
@@ -485,10 +514,11 @@ export type LeadDeskCustomDataSelectScalar = {
   authString?: boolean
   SeedEventIds?: boolean
   SaleEventIds?: boolean
+  IANATimeZone?: boolean
   companyId?: boolean
 }
 
-export type LeadDeskCustomDataOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "authString" | "SeedEventIds" | "SaleEventIds" | "companyId", ExtArgs["result"]["leadDeskCustomData"]>
+export type LeadDeskCustomDataOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "authString" | "SeedEventIds" | "SaleEventIds" | "IANATimeZone" | "companyId", ExtArgs["result"]["leadDeskCustomData"]>
 export type LeadDeskCustomDataInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   company?: boolean | Prisma.CompanyDefaultArgs<ExtArgs>
 }
@@ -509,6 +539,7 @@ export type $LeadDeskCustomDataPayload<ExtArgs extends runtime.Types.Extensions.
     authString: string | null
     SeedEventIds: string[]
     SaleEventIds: string[]
+    IANATimeZone: string
     companyId: number
   }, ExtArgs["result"]["leadDeskCustomData"]>
   composites: {}
@@ -938,6 +969,7 @@ export interface LeadDeskCustomDataFieldRefs {
   readonly authString: Prisma.FieldRef<"LeadDeskCustomData", 'String'>
   readonly SeedEventIds: Prisma.FieldRef<"LeadDeskCustomData", 'String[]'>
   readonly SaleEventIds: Prisma.FieldRef<"LeadDeskCustomData", 'String[]'>
+  readonly IANATimeZone: Prisma.FieldRef<"LeadDeskCustomData", 'String'>
   readonly companyId: Prisma.FieldRef<"LeadDeskCustomData", 'Int'>
 }
     

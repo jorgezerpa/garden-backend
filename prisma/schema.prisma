@@ -118,6 +118,7 @@ model LeadDeskCustomData {
   authString    String? // 32-bytes string provided by LeadDesk to authenticate calls to its API -> used, for example, when fetch call data in webhook handler
   SeedEventIds  String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a callback apointment
   SaleEventIds  String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a sale/deal
+  IANATimeZone  String   @default("Europe/Amsterdam")   // The timezone of the webhook server -> helps us to now at what timezone corresponds the dates and hours on the call data, to shift it to utc zulu 
   //
   company       Company  @relation(fields: [companyId], references: [id]) 
   companyId     Int      @unique

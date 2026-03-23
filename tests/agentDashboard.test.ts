@@ -72,7 +72,9 @@ describe('Datavis', () => {
     SECRET_KEY = secretKey
     // 4. Register the LeadDesk auth string
     const registerLeadDeskAuthStringResponse = await request(app).post('/api/admin/upsertLeadDeskAPIAuthString').auth(token, { type: "bearer" }).send({authString:"authString"});
+    await request(app).post('/api/admin/upsertLeadDeskEventIds').auth(token, { type: "bearer" }).send({ seedEventIds: [1,2,3], saleEventIds: [4,5,6] }).expect(201);
     if(registerLeadDeskAuthStringResponse.error) throw("error storing auth string")
+      
     vi.clearAllMocks();
 
     // 5. create block schemas

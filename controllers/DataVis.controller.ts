@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
+import { getDayBoundariesInUTC, getYearBoundariesInUTC, getYYYYMMDD, getZonedUtcDate } from "../utils/date";
 
 export const getLastRegister = async (companyId: number) => {
   const lastCall = await prisma.call.findFirst({
@@ -10,17 +11,8 @@ export const getLastRegister = async (companyId: number) => {
 
   if (!lastCall) return { lastCallDate: null };
 
-  // Use Date.now() for a clean UTC comparison
-  const lastCallTime = lastCall.startAt.getTime();
-  const currentTime = Date.now();
-
-  if (lastCallTime > currentTime) {
-    // Return the current date as a "YYYY-MM-DD" string to lock it in
-    return { lastCallDate: new Date().toISOString().split('T')[0] };
-  }
-
   // Return only the Date portion as a string
-  return { lastCallDate: lastCall.startAt.toISOString().split('T')[0] };
+  return { lastCallDate: lastCall.startAt.toISOString() };
 };
 
 
@@ -30,8 +22,8 @@ export const getGeneralInsights = async (
   endDateStr: string,
   filters: { agents: number[] }
 ) => {
-  const startDate = new Date(`${startDateStr}T00:00:00Z`)
-  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+  const startDate = new Date(startDateStr)
+  const endDate =  new Date(endDateStr)
   // 1. Common Filter for Agent IDs
   const agentFilter = filters.agents?.length > 0 ? { in: filters.agents } : undefined;
 
@@ -67,8 +59,7 @@ export const getGeneralInsights = async (
   });
 
   // Helper to extract count from grouped results
-  const getEventCount = (type: EventType) => 
-    eventCounts.find((e) => e.type === type)?._count.id || 0;
+  const getEventCount = (type: EventType) => eventCounts.find((e) => e.type === type)?._count.id || 0;
 
   const totalSeeds = getEventCount(EventType.SEED);
   const totalLeads = getEventCount(EventType.LEAD);
@@ -97,13 +88,14 @@ export const getGeneralInsights = async (
 
 export const getDailyActivity = async (
   companyId: number,
-  startDateStr: string,
-  endDateStr: string,
-  filters: { agents: number[] }
+  startDateStr: string, // utc
+  endDateStr: string, // utc
+  filters: { agents: number[] },
+  config: { IANA: string }
 ) => {
-  // 0
-  const startDate = new Date(`${startDateStr}T00:00:00Z`)
-  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+  // 0. convert to selected timezone
+  const startDate = new Date(startDateStr)
+  const endDate =  new Date(endDateStr)
 
   // 1. Prepare the Dynamic Filter for Agents
   // If agents array is empty, we use a "1=1" style true condition or skip it.
@@ -119,7 +111,7 @@ export const getDailyActivity = async (
   // 2. Aggregate Call data
   const dailyCalls: any[] = await prisma.$queryRaw`
     SELECT 
-      DATE("startAt") as "date",
+      DATE("startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       SUM("durationSeconds") as "talkTime",
       COUNT(id) as "calls"
     FROM "Call"
@@ -127,14 +119,13 @@ export const getDailyActivity = async (
       AND "startAt" >= ${startDate}
       AND "startAt" <= ${endDate}
       ${agentFilter}
-    GROUP BY DATE("startAt")
-    ORDER BY DATE("startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `;
-
   // 3. Aggregate FunnelEvent data (Seeds)
   const dailySeeds: any[] = await prisma.$queryRaw`
     SELECT 
-      DATE(fe."timestamp") as "date",
+      DATE(fe."timestamp" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       COUNT(fe.id) as "seeds"
     FROM "FunnelEvent" fe
     JOIN "Agent" a ON fe."agentId" = a.id
@@ -143,16 +134,15 @@ export const getDailyActivity = async (
       AND fe."timestamp" >= ${startDate}
       AND fe."timestamp" <= ${endDate}
       ${seedAgentFilter}
-    GROUP BY DATE(fe."timestamp")
+    GROUP BY "date"
   `;
 
 
   // 4. Merge the datasets
-  return dailyCalls.map(callDay => {
+  const result = dailyCalls.map(callDay => {
     // Note: Some SQL drivers return "date" as a string or a Date object. 
     // Ensuring it's a Date object before calling toISOString.
-    const dateObj = new Date(callDay.date);
-    const dayString = dateObj.toISOString().split('T')[0];
+    const dayString = getYYYYMMDD(callDay.date);
     
     const seedData = dailySeeds.find(s => {
       const sDateObj = new Date(s.date);
@@ -166,6 +156,8 @@ export const getDailyActivity = async (
       seeds: Number(seedData?.seeds) || 0
     };
   });
+
+  return result
 };
 
 
@@ -175,11 +167,12 @@ export const getBlockPerformance = async (
   from: string,
   to: string,
   schemaId: number,
-  filters: { days: boolean[]; types: boolean[], agents: number[] }
+  filters: { days: boolean[]; types: boolean[], agents: number[] },
+  config: { IANA: string }
 ) => {
   // 0. Format start and end date 
-  const startDate = new Date(`${from}T00:00:00.000Z`);
-  const endDate = new Date(`${to}T23:59:59.999Z`);
+  const startDate = new Date(from);
+  const endDate = new Date(to);
 
   // 1. Map the 'types' boolean array to BlockType enums
   // Index 0: WORKING, 1: REST, 2: EXTRA_TIME
@@ -240,7 +233,8 @@ export const getBlockPerformance = async (
   // 5. Map calls to the filtered blocks
   calls.forEach((call, i) => {
     
-    const callMinutes = call.startAt.getUTCHours() * 60 + call.startAt.getUTCMinutes(); // minutes from midnight
+    const startAtTimeZoned = getZonedUtcDate(call.startAt.toISOString(), config.IANA)
+    const callMinutes = startAtTimeZoned.getHours() * 60 + startAtTimeZoned.getMinutes(); // minutes from midnight
     
     // Find the target block among the allowed blocks
     const targetBlock = blockStats.find(b => 
@@ -275,10 +269,10 @@ export const getLongCallDistribution = async (
   companyId: number,
   startDateStr: string,
   endDateStr: string,
-  filters: { agents: number[] }
+  filters: { agents: number[] },
 ) => {
-  const startDate = new Date(`${startDateStr}T00:00:00Z`)
-  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+  const startDate = new Date(startDateStr)
+  const endDate =  new Date(endDateStr)
   // 1. Prepare conditional SQL fragment
   const agentFilter = filters.agents && filters.agents.length > 0 
     ? Prisma.sql`AND "agentId" IN (${Prisma.join(filters.agents)})` 
@@ -323,10 +317,13 @@ export const getLongCallDistribution = async (
 export const getSeedTimelineHeatmap = async (
   companyId: number,
   year: number,
-  filters: { agents: number[] }
+  filters: { agents: number[] },
+  config: { IANA: string }
 ) => {
-  const startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0));
-  const endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+  const yearBoundaries = getYearBoundariesInUTC(year, config.IANA)
+  const startDate = yearBoundaries.startDate
+  const endDate = yearBoundaries.endDate
+
 
   // 2. SQL Filter
   const agentFilter = filters.agents && filters.agents.length > 0 
@@ -336,7 +333,7 @@ export const getSeedTimelineHeatmap = async (
   // 3. Fetch data
   const dailyData: any[] = await prisma.$queryRaw`
     SELECT 
-      DATE(c."startAt") as "date",
+      DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id AND fe."type" = ${EventType.SEED}
@@ -344,8 +341,8 @@ export const getSeedTimelineHeatmap = async (
       AND c."startAt" >= ${startDate}
       AND c."startAt" <= ${endDate}
       ${agentFilter}
-    GROUP BY DATE(c."startAt")
-    ORDER BY DATE(c."startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `;
 
   // 4. Create a Map of existing data for quick lookup
@@ -379,9 +376,9 @@ const calculateLevel = (val: number, min: number, max: number): number => {
 
   // 6. Generate the full year array (Backfilling)
   const fullYearData = [];
-  const currentDate = new Date(startDate);
-
-  while (currentDate <= endDate) {
+  const currentDate = new Date(`${year}-01-01T00:00:00.000Z`)
+  const loopEndDate = new Date(`${year}-12-31T23:59:59.999Z`)
+  while (currentDate <= loopEndDate) {
     const dateStr = currentDate.toISOString().split('T')[0];
     const seeds = dataMap.get(dateStr) || 0;
     
@@ -400,13 +397,15 @@ const calculateLevel = (val: number, min: number, max: number): number => {
 
 export const getSeedTimelineHeatmapPerDay = async (
   companyId: number,
-  targetDate: String,
-  filters: { agents: number[] }
+  targetDate: string,
+  filters: { agents: number[] },
+  config: { IANA: string }
 ) => {
   // 1. Explicitly parse the YYYY-MM-DD string to avoid timezone shifts
   // This ensures we are looking at the 24h window of that specific calendar date
-  const startOfDay = new Date(`${targetDate}T00:00:00.000Z`);
-  const endOfDay = new Date(`${targetDate}T23:59:59.999Z`);
+  const dayBoundaries = getDayBoundariesInUTC(targetDate, config.IANA) 
+  const startOfDay = dayBoundaries.startDate;
+  const endOfDay = dayBoundaries.endDate;
 
   // 2. Prepare conditional SQL fragment
   const agentFilter = filters.agents && filters.agents.length > 0 
@@ -416,7 +415,7 @@ export const getSeedTimelineHeatmapPerDay = async (
   // 3. Fetch hourly seeds (Added explicit casting for Enum)
   const hourlyData: { hour: number; seeds: number }[] = await prisma.$queryRaw`
     SELECT 
-      EXTRACT(HOUR FROM (c."startAt"::timestamp)) as "hour",
+      EXTRACT(HOUR FROM (c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA})) as "hour",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id 
@@ -428,9 +427,9 @@ export const getSeedTimelineHeatmapPerDay = async (
     GROUP BY "hour"
     ORDER BY "hour" ASC
   `;
-
   // 4. Map results
   const hourMap = new Map(hourlyData.map(d => [Number(d.hour), Number(d.seeds)]));
+
   // 5. Scaling logic
   const seedValues = Array.from(hourMap.values());
   const maxSeeds = seedValues.length > 0 ? Math.max(...seedValues) : 0;
@@ -465,8 +464,8 @@ export const getConversionFunnel = async (
   endDateStr: string,
   filters: { agents: number[] }
 ) => {
-  const startDate = new Date(`${startDateStr}T00:00:00Z`)
-  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+  const startDate = new Date(startDateStr)
+  const endDate =  new Date(endDateStr)
   // We use groupBy on the FunnelEvent table.
   // We filter by companyId by joining with the Agent table.
   const eventCounts = await prisma.funnelEvent.groupBy({
@@ -510,10 +509,11 @@ export const getConsistencyHistory = async (
   companyId: number,
   startDateStr: string,
   endDateStr: string,
-  filters: { agents: number[], days: boolean[] }
+  filters: { agents: number[], days: boolean[] },
+  config: { IANA: string }
 ) => {
-  const startDate = new Date(`${startDateStr}T00:00:00Z`)
-  const endDate =  new Date(`${endDateStr}T23:59:59.999Z`)
+  const startDate = new Date(startDateStr)
+  const endDate =  new Date(endDateStr)
   // 1. Fetch the benchmark goals
   const goal = await prisma.temporalGoals.findUnique({
     where: { id: goalId }
@@ -546,7 +546,7 @@ export const getConsistencyHistory = async (
   // 3. Fetch daily performance stats
   const dailyStats: any[] = await prisma.$queryRaw`
     SELECT 
-      DATE(c."startAt") as "date",
+      DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       SUM(c."durationSeconds") / 60.0 as "talkTime",
       COUNT(c.id) as "calls",
       COUNT(fe_seed.id) as "seeds",
@@ -561,8 +561,8 @@ export const getConsistencyHistory = async (
       AND c."startAt" <= ${endDate}
       ${agentFilter}
       ${dayFilter}
-    GROUP BY DATE(c."startAt")
-    ORDER BY DATE(c."startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `;
 
   // 4. Calculation logic
@@ -597,22 +597,23 @@ export const getConsistencyHistory = async (
 
 export const getAgentsSorted = async (
   companyId: number,
-  from: string, // "YYYY-MM-DD"
-  to: string,   // "YYYY-MM-DD"
+  from: string, 
+  to: string,   
   params: {
     sortKey: 'talkTime' | 'seeds' | 'conversion' | 'consistency' | 'longCallRatio';
     direction: 'asc' | 'desc';
     page: number;
     pageSize: number;
     agentIds?: number[];
-  }
+  },
+  config: { IANA: string }
 ) => {
   const { sortKey, direction, page, pageSize, agentIds } = params;
   const offset = (page - 1) * pageSize;
 
   // 1. Precise Date Windows (UTC)
-  const startDate = new Date(`${from}T00:00:00.000Z`);
-  const endDate = new Date(`${to}T23:59:59.999Z`);
+  const startDate = new Date(from);
+  const endDate = new Date(to);
 
   // 2. Dynamic Agent Filter
   const agentFilter = agentIds && agentIds.length > 0 
@@ -632,7 +633,7 @@ export const getAgentsSorted = async (
       SELECT
         c.id,
         c."agentId",
-        DATE(c."startAt") as call_date,
+        DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as call_date,
         c."durationSeconds",
         COUNT(CASE WHEN fe.type = 'SEED' THEN 1 END) as seed_cnt,
         COUNT(CASE WHEN fe.type = 'LEAD' THEN 1 END) as lead_cnt,
@@ -676,7 +677,7 @@ export const getAgentsSorted = async (
         ) as daily_consistency
       FROM daily_stats ds
       -- Join on the specific Goal Assignation for that day
-      JOIN "GoalsAssignation" ga ON ga."companyId" = ${companyId} AND DATE(ga.date) = ds.call_date
+      JOIN "GoalsAssignation" ga ON ga."companyId" = ${companyId} AND DATE(ga.date AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) = ds.call_date
       JOIN "TemporalGoals" tg ON tg.id = ga."goalId"
     ),
     agent_consistency AS (

@@ -4,6 +4,7 @@ import app from '../app';
 import axios from 'axios';
 import { getJWT } from '../utils/authJWT';
 import { prisma } from '../lib/prisma';
+import { getDailyWeekBoundariesInUTC } from '../utils/date';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -235,7 +236,7 @@ describe('Datavis', () => {
         });
         const agentId = user?.agentId;
         if(!agentId) throw("no agent")
-        const targetDate = "2026-01-01"; // The seeded Thursday
+        const targetDate = "2026-01-01T00:00:00.000Z"; // The seeded Thursday
 
         // 2. Execute Request
         const response = await request(app)
@@ -244,11 +245,12 @@ describe('Datavis', () => {
           .query({ date: targetDate });
 
         expect(response.status).toBe(200);
-
+  
         // 3. Independent DB check for this specific agent on that specific day
-        const startOfDay = new Date(`${targetDate}T00:00:00.000Z`);
-        const endOfDay = new Date(`${targetDate}T23:59:59.999Z`);
-
+        const dailyWeekBoundaries = getDailyWeekBoundariesInUTC(targetDate, "Europe/Amsterdam")
+        const startOfDay = dailyWeekBoundaries[3].startDate; // 2026-01-01 was thu
+        const endOfDay = dailyWeekBoundaries[3].endDate; // 2026-01-01 was thu
+ 
         const [calls, events, deepCalls] = await Promise.all([
           prisma.call.count({ where: { agentId, startAt: { gte: startOfDay, lte: endOfDay } } }),
           prisma.funnelEvent.findMany({ where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } } }),

@@ -1,9 +1,11 @@
 import { prisma } from "../lib/prisma";
 import { EventType } from "../generated/prisma/client";
+import { getDailyWeekBoundariesInUTC, getDayBoundariesInUTC } from "../utils/date";
 
-export const getAgentDayInsights = async (userId: number, date: string) => {
-  const startOfDay = new Date(`${date}T00:00:00.000Z`);
-  const endOfDay = new Date(`${date}T23:59:59.999Z`);
+export const getAgentDayInsights = async (userId: number, date: string, config: { IANA:string }) => {
+  const dayBoundaries = getDayBoundariesInUTC(date, config.IANA)
+  const startOfDay = dayBoundaries.startDate;
+  const endOfDay = dayBoundaries.endDate;
   const user = await prisma.user.findUnique({ where: { id: userId } })
   const agentId = user?.agentId
   
@@ -115,33 +117,25 @@ export const getAssignedSchema = async (userId: number, dateStr: string) => {
   return schema
 }
 
-export const getAgentWeeklyGrowth = async (userId: number, dateStr: string) => {
+// this is not calculating dates using the correct utc boundaries using the IANA 
+// for this: create array of pairs [from, to] (correspondant to IANA in utc) and loop with does values instead of sum a initial start
+// OR set the correct day/hour to initial one, but aboves one is more bulletproof  
+export const getAgentWeeklyGrowth = async (userId: number, dateStr: string, config: { IANA:string }) => {
   const user = await prisma.user.findUnique({ where: { id: userId } })
   const agentId = user?.agentId
   
   if(!agentId) throw("No agent")
 
-  // Create date in UTC
-  const date = new Date(`${dateStr}T00:00:00Z`);
-  const day = date.getUTCDay(); // Calculate day of week (0 is Sunday, 1 is Monday...)
-  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust to ensure Monday is the start (Mon=1, Sun=0)
-  const startOfWeek = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
-
+  const weekDays = getDailyWeekBoundariesInUTC(dateStr, config.IANA)
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const weeklyData = [];
 
-  for (let i = 0; i < 7; i++) {
-    const startOfDay = new Date(startOfWeek);
-    startOfDay.setUTCDate(startOfWeek.getUTCDate() + i);
-    
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
+  for(let i = 0; i<weekDays.length; i++) {
     // prisma will now query using pure UTC boundaries
     const [calls, events, deepCalls] = await Promise.all([
-      prisma.call.count({ where: { agentId, startAt: { gte: startOfDay, lte: endOfDay } } }),
-      prisma.funnelEvent.findMany({ where: { agentId, timestamp: { gte: startOfDay, lte: endOfDay } } }),
-      prisma.call.count({ where: { agentId, startAt: { gte: startOfDay, lte: endOfDay }, durationSeconds: { gte: 300 } } }),
+      prisma.call.count({ where: { agentId, startAt: { gte: weekDays[i].startDate, lte: weekDays[i].endDate } } }),
+      prisma.funnelEvent.findMany({ where: { agentId, timestamp: { gte: weekDays[i].startDate, lte: weekDays[i].endDate } } }),
+      prisma.call.count({ where: { agentId, startAt: { gte: weekDays[i].startDate, lte: weekDays[i].endDate }, durationSeconds: { gte: 300 } } }),
     ]);
 
     const s = events.filter(e => e.type === EventType.SEED).length;
@@ -151,6 +145,7 @@ export const getAgentWeeklyGrowth = async (userId: number, dateStr: string) => {
     const growth = s + (l * 2) + (sa * 3) + calls + (deepCalls * 2);
     weeklyData.push({ day: days[i], growth });
   }
+
 
   return weeklyData;
 };

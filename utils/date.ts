@@ -182,8 +182,12 @@ export const getYearBoundariesInUTC = (year: number, iana: string) => {
 // const bounds = getYearBoundariesInUTC(2026, 'America/New_York');
 // console.log(bounds.startDateISO); // "2026-01-01T05:00:00.000Z" (NY is -5 in Jan)
 
-
-
+interface WeekBoundaries {
+  startDate: Date;
+  endDate: Date;
+  startDateISO: string;
+  endDateISO: string;
+}
 
 
 export const getDayBoundariesInUTC = (dateStr: string, iana: string) => {
@@ -246,3 +250,78 @@ export const convertDBToUTC = (dateStr:string, ianaZone:string) => {
 
   return finalDate
 };
+
+
+
+
+interface DayBounds {
+  startDate: Date;
+  endDate: Date;
+}
+
+/**
+ * Calculates the UTC start and end dates for each day of the week 
+ * based on a reference date and a target IANA timezone.
+ */
+export function getDailyWeekBoundariesInUTC(isoString: string, ianaZone: string): DayBounds[] {
+  // 1. Remove the 'Z' and treat as a local date "wall time"
+  const wallTime = new Date(isoString.replace(/Z$/i, ''));
+  
+  // 2. Find the Monday of that week (0 = Sunday, 1 = Monday...)
+  const dayOfWeek = wallTime.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  
+  const monday = new Date(wallTime);
+  monday.setDate(wallTime.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const weekDays: DayBounds[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const currentDay = new Date(monday);
+    currentDay.setDate(monday.getDate() + i);
+
+    // Define the local start and end of this specific day
+    const localStart = new Date(currentDay);
+    const localEnd = new Date(currentDay);
+    localEnd.setHours(23, 59, 59, 999);
+
+    // 3. Convert "Wall Time" to actual UTC Date objects 
+    // based on the IANA timezone offset
+    weekDays.push({
+      startDate: convertWallTimeToUTC(localStart, ianaZone),
+      endDate: convertWallTimeToUTC(localEnd, ianaZone)
+    });
+  }
+
+  return weekDays;
+}
+
+/**
+ * Helper: Adjusts a 'wall clock' date to a real UTC Date 
+ * by subtracting the timezone offset.
+ */
+function convertWallTimeToUTC(date: Date, timeZone: string): Date {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+
+  const dateInZone = new Date(
+    `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value} ${parts.find(p => p.type === 'hour')?.value}:${parts.find(p => p.type === 'minute')?.value}:${parts.find(p => p.type === 'second')?.value}`
+  );
+
+  // The offset is the difference between the "fake" zone date and the original date
+  const offset = dateInZone.getTime() - date.getTime();
+  return new Date(date.getTime() - offset);
+}
+
+// Example Usage:
+// const schedule = getWeekDaysInTimezone("2024-05-20T12:00:00Z", "Europe/Amsterdam");
+// console.log(schedule);

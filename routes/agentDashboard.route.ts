@@ -15,7 +15,7 @@ agentDashboardRouter.get('/get-agent-day-insights', async (req: JWTAuthRequest, 
   if(!userId) return res.status(400).json({ error: "Missing userId" });
   if(!date) return res.status(400).json({ error: "Missing date" });
 
-  const report = await AgentDashboardController.getAgentDayInsights(userId, date as string)
+  const report = await AgentDashboardController.getAgentDayInsights(userId, date as string, { IANA: "Europe/Amsterdam" })
 
     return res.status(200).json(report);
   } catch (err: any) {
@@ -36,7 +36,7 @@ agentDashboardRouter.get('/get-agent-weekly-growth', async (req: JWTAuthRequest,
   if(!userId) return res.status(400).json({ error: "Missing agentId" });
   if(!date) return res.status(400).json({ error: "Missing date" });
 
-  const report = await AgentDashboardController.getAgentWeeklyGrowth(userId, date as string)
+  const report = await AgentDashboardController.getAgentWeeklyGrowth(userId, date as string, { IANA: "Europe/Amsterdam" })
 
     return res.status(200).json(report);
   } catch (err: any) {

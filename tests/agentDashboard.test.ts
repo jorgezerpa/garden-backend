@@ -236,7 +236,7 @@ describe('Datavis', () => {
         });
         const agentId = user?.agentId;
         if(!agentId) throw("no agent")
-        const targetDate = "2026-01-01T00:00:00.000Z"; // The seeded Thursday
+        const targetDate = "2026-01-01"; // The seeded Thursday
 
         // 2. Execute Request
         const response = await request(app)

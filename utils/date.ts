@@ -263,9 +263,9 @@ interface DayBounds {
  * Calculates the UTC start and end dates for each day of the week 
  * based on a reference date and a target IANA timezone.
  */
-export function getDailyWeekBoundariesInUTC(isoString: string, ianaZone: string): DayBounds[] {
+export function getDailyWeekBoundariesInUTC(yymmdd: string, ianaZone: string): DayBounds[] {
   // 1. Remove the 'Z' and treat as a local date "wall time"
-  const wallTime = new Date(isoString.replace(/Z$/i, ''));
+  const wallTime = new Date(`${yymmdd}T00:00:00.000Z`.replace(/Z$/i, ''));
   
   // 2. Find the Monday of that week (0 = Sunday, 1 = Monday...)
   const dayOfWeek = wallTime.getDay();

@@ -38,6 +38,42 @@ export const getZonedUtcDate = (
   return new Date(targetTime.getTime() - diff);
 };
 
+/**
+ * Converts a precise UTC Date/string into a Date object representing 
+ * the "Wall Clock" time in a specific IANA timezone.
+ * * Example: If UTC is 12:00 PM and Bogota is UTC-5, 
+ * this returns a Date object set to 07:00 AM.
+ */
+export const getZonedLocalTime = (
+  utcDate: Date | string, 
+  ianaTimezone: string
+): Date => {
+  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+
+  // 1. Ask Intl what the clock says in that specific timezone right now
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: ianaTimezone,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const v: Record<string, string> = {};
+  parts.forEach(p => (v[p.type] = p.value));
+
+  // 2. Construct a Date object that reflects those "local" numbers
+  // We use Date.UTC so the numbers aren't shifted by the browser's local timezone
+  return new Date(Date.UTC(
+    Number(v.year),
+    Number(v.month) - 1,
+    Number(v.day),
+    Number(v.hour),
+    Number(v.minute),
+    Number(v.second)
+  ));
+};
+
 export const getYYYYMMDD = (d: any) => {
   const dateObj = new Date(d);
   const year = dateObj.getUTCFullYear();

@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { Prisma, EventType, BlockType, WEEK_DAYS } from "../generated/prisma/client";
-import { getDayBoundariesInUTC, getYearBoundariesInUTC, getYYYYMMDD, getZonedUtcDate } from "../utils/date";
+import { getDayBoundariesInUTC, getYearBoundariesInUTC, getYYYYMMDD, getZonedLocalTime, getZonedUtcDate } from "../utils/date";
 
 export const getLastRegister = async (companyId: number) => {
   const lastCall = await prisma.call.findFirst({
@@ -12,7 +12,8 @@ export const getLastRegister = async (companyId: number) => {
   if (!lastCall) return { lastCallDate: null };
 
   // Return only the Date portion as a string
-  return { lastCallDate: lastCall.startAt.toISOString() };
+  // INSTEAD OF THIS, CREATE A NEW FUNCTION THAT DOES THE OPPOSITE
+  return { lastCallDate: getZonedLocalTime(lastCall.startAt.toISOString(), "Europe/Amsterdam") };
 };
 
 

@@ -69,7 +69,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Add agent profile img to shared screen endpoint
 - [DONE] add page on agent profile to upload profile image 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
-- Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
+- [DONE] Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
 - Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))
 - define formulas for "streak", "on fire", etc
 - define formulas for order the users on the shared dashboard -> posibbly a weigthed avg 

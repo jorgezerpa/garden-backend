@@ -1,19 +1,35 @@
 version: '3.8'
 
 services:
-  # The database service
   db:
     image: postgres:16-alpine
-    container_name: my_postgres_db
     restart: always
     environment:
-      POSTGRES_USER: 12345
-      POSTGRES_PASSWORD: 12345
-      POSTGRES_DB: gardenDB
+      - POSTGRES_USER=12345
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=gardenDB
     ports:
-      - "5432:5432" # Maps port 5432 on your machine to 5432 in the container
-    # volumes:
-    #   - postgres_data:/var/lib/postgresql/data
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U 12345 -d gardenDB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-# volumes:
-#   postgres_data: # Persists data even if you stop the container
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://12345:12345@db:5432/gardenDB?schema=public
+      - JWT_SECRET=your_local_secret
+      - PORT=3001
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=AKIA24OR4QIJPPM4HKGC
+      - AWS_SECRET_ACCESS_KEY=eWqGPJkrke88Gc/qcqBbtr3yGYeJpLWnqR3u4WSZ
+      - AWS_S_BUCKET_NAME=garden-bucket-test-0x2222
+    depends_on:
+      db:
+        condition: service_healthy

@@ -2,44 +2,24 @@ import express, { Router } from "express";
 import axios from "axios";
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import * as path from "node:path";
+import * as path$1 from "node:path";
 import { fileURLToPath } from "node:url";
 import * as runtime from "@prisma/client/runtime/client";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import * as bcrypt from "bcrypt";
 import { compare, hash } from "bcrypt";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import path from "path";
 import cors from "cors";
-//#region \0rolldown/runtime.js
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
-var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-		key = keys[i];
-		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-			get: ((k) => from[k]).bind(null, key),
-			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-		});
-	}
-	return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
-	value: mod,
-	enumerable: true
-}) : target, mod));
-//#endregion
 //#region generated/prisma/internal/class.ts
 const config = {
 	"previewFeatures": [],
 	"clientVersion": "7.4.1",
 	"engineVersion": "55ae170b1ced7fc6ed07a15f110549408c501bb3",
 	"activeProvider": "postgresql",
-	"inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\n// IMPORTANT\n// - Leaddesk API does not allows ut to fetch a list of agents, so, We will just store it once a call is performed. MAYBE from LD dashboard a agents list can be downloaded and uploaded here?\n\n/**\n * MAIN FLOW\n * - A company manager gets into our dashboard\n * - He registers as a manager, providing email, password.\n * - Is redirected to the dashboard in the page \"Connections\"\n * - It is required to input the leaddesk auth token\n * - ?? enters the agents -> autofetching(leaddesk api does not provide a way to fetch agents), manual input or upload csv or excel file\n * ---\n * - An agent performs a call\n * - Leaddesk webhook calls the api endpoint \"manage_webhook\"\n * - \"manage_webhook\" will read the parameter \"last_call_id\"\n * - Call the leaddesk endpoint \"https://api.leaddesk.com?auth=X&mod=call&cmd=get&call_ref_id=last_call_id\"\n * - The endpoint returns the next data:\n * {\n * \"id\": \"4999\",\n * \"agent_id\": \"11\",\n * \"agent_username\": \"teuvotest\",\n * \"talk_time\": \"45\",\n * \"talk_start\": \"2016-01-01 12:13:14\",\n * \"talk_end\": \"2016-02-02 14:12:10\",\n * \"number\": \"+358123123\",\n * \"campaign\": \"14\",\n * \"campaign_name\": \"test campaign\",\n * \"record_file\": \"test_recording.wav.mp3\",\n * \"created_at\": \"2016-01-01 12:13:10\",\n * \"customer_id\": \"21\",\n * \"comment\": \"test comment\",\n * \"agent_group_id\": \"13\",\n * \"agent_group_name\": \"test group\",\n * \"call_ending_reason\": \"15\",\n * \"call_ending_reason_name\": \"test reason\",\n * \"handling_stop\": \"2016-02-02 14:20:30\",\n * \"direction\": \"out\",\n * \"call_type\": \"1\",\n * \"contact_id\": \"1\",\n * \"call_type_name\": \"semi\",\n * \"order_ids\": [\n * 1,\n * 3\n * ]\n * }\n * - WE use that info to register in our database:\n * -\n */\n\ngenerator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum Role {\n  MAIN_ADMIN\n  MANAGER\n  AGENT\n}\n\nenum BlockType {\n  WORKING\n  REST\n  EXTRA_TIME\n}\n\nenum SchemaType {\n  DAILY\n  WEEKLY\n  MONTHLY\n}\n\nenum EventType {\n  SEED // CALLBACK. books a call as a \"Callback\" -> Since I have now exact way to now this, I will just count each call as a seed, by now.\n  LEAD // WATERING. Callback is performed AKA agent calls a callee more than 1 time: Every call from this increases +1 LEAD\n  SALE // HARVEST. Agent books a call as a deal -> the call data has order_ids.length more than 1\n}\n\nenum UserStatus {\n  PAUSED\n  ACTIVE\n  REMOVED // not return point, but we keep it due to historical reasons\n}\n\nenum THIRD_PARTY_SERVICES {\n  LEADDESK\n}\n\nenum WEEK_DAYS {\n  MONDAY\n  TUESDAY\n  WEDNESDAY\n  THURSDAY\n  FRIDAY\n  SATURDAY\n  SUNDAY\n}\n\nmodel User {\n  id           Int      @id @default(autoincrement())\n  email        String   @unique\n  passwordHash String // Store hashed passwords only\n  role         Role     @default(AGENT)\n  isActive     Boolean  @default(true)\n  createdAt    DateTime @default(now())\n  updatedAt    DateTime @updatedAt\n\n  // Relations to your existing entities\n  companyId Int\n  company   Company @relation(fields: [companyId], references: [id])\n\n  // Optional links depending on the role\n  managerProfile Manager? @relation(fields: [managerId], references: [id])\n  managerId      Int?     @unique\n\n  agentProfile Agent? @relation(fields: [agentId], references: [id])\n  agentId      Int?   @unique\n\n  status UserStatus @default(ACTIVE) // REMOVED is used when \"deleted\" -> we can not delete it directly due to historical data. \n  // Constraint: One MAIN_ADMIN per company\n  // This is enforced via a unique partial index in the DB (see note below)\n}\n\nmodel Company {\n  id                Int                 @id @default(autoincrement())\n  name              String\n  createdAt         DateTime            @default(now())\n  managers          Manager[]\n  agents            Agent[]\n  calls             Call[]\n  TimeSchemas       Schema[]\n  users             User[]\n  temporalGoals     TemporalGoals[] // goals list \n  GoalsAssignation  GoalsAssignation[] // assigns 1 TemporalGoal to a specific day (date)\n  schemaAssignation SchemaAssignation[] // assigns 1 TemporalGoal to a specific day (date)\n  apiKey            APIKeysAuth?\n}\n\n// 1-to-1 company-key (used to authenticate webhook call origin)\n// @dev@IMPORTANT probably not the most secure approach, research how is this managed in secure apps \nmodel APIKeysAuth {\n  id Int @id @default(autoincrement())\n\n  // Use UUIDs for the keys. \n  // 'public' is a reserved keyword in some DBs, 'publicKey' is safer.\n  publicKey     String  @unique // uuid prefixed with a specific string exp: \"prefix-uuid\" \n  secretKeyHash String  @unique // hashed secret \n  // Link to company and ensure 1-to-1\n  company       Company @relation(fields: [companyId], references: [id])\n  companyId     Int     @unique\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n}\n\nmodel Manager {\n  id            Int             @id @default(autoincrement())\n  name          String\n  email         String          @unique\n  company       Company         @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table\n  companyId     Int\n  user          User?\n  temporalGoals TemporalGoals[]\n  schemas       Schema[]\n}\n\nmodel Agent {\n  id                    Int             @id @default(autoincrement())\n  name                  String\n  company               Company         @relation(fields: [companyId], references: [id])\n  companyId             Int\n  calls                 Call[]\n  feelings              AgentState[]\n  events                FunnelEvent[]\n  user                  User?\n  totalAttempsPerCallee agentToCallee[]\n  agentToThird          AgentToThird[]\n}\n\nmodel AgentToThird {\n  id                     Int                  @id @default(autoincrement())\n  serviceIdentifier      THIRD_PARTY_SERVICES\n  agentServiceIdentifier String\n\n  // Relation fields\n  agent   Agent @relation(fields: [agentId], references: [id])\n  agentId Int\n\n  @@unique([agentId, serviceIdentifier]) // agent can have only 1 relation for the same service\n  @@unique([serviceIdentifier, agentServiceIdentifier]) // only 1 agent service identifier per service\n}\n\nmodel Callee {\n  id                   Int             @id @default(autoincrement())\n  phoneNumber          String          @unique\n  totalAttempts        Int             @default(0)\n  calls                Call[]\n  totalAttempsPerAgent agentToCallee[]\n}\n\n// tracks the number of times an agent calls the same number\n// @dev maybe in future, would be better to track \"per campaign\" too\nmodel agentToCallee {\n  id           Int    @id @default(autoincrement())\n  agent        Agent  @relation(fields: [agentId], references: [id])\n  agentId      Int\n  callee       Callee @relation(fields: [calleeId], references: [id])\n  calleeId     Int\n  totalAttemps Int    @default(0)\n\n  @@unique([agentId, calleeId])\n}\n\n// --- BLOCKS MASKS ---\n// Managers create time schedules by block, so the can filter the call querying by such blocks \n\nmodel Schema {\n  id                 Int                 @id @default(autoincrement())\n  name               String\n  company            Company             @relation(fields: [companyId], references: [id])\n  companyId          Int\n  creator            Manager             @relation(fields: [creatorId], references: [id])\n  creatorId          Int\n  blocks             SchemaBlock[]\n  schemaAssignations SchemaAssignation[]\n}\n\nmodel SchemaBlock {\n  id                       Int       @id @default(autoincrement())\n  startMinutesFromMidnight Int\n  endMinutesFromMidnight   Int\n  blockType                BlockType @default(WORKING)\n  name                     String? // (e.g., \"Morning Blitz\", \"Afternoon Follow-ups\")\n  Schema                   Schema    @relation(fields: [schemaId], references: [id])\n  schemaId                 Int\n}\n\nmodel SchemaAssignation {\n  id        Int      @id @default(autoincrement())\n  company   Company  @relation(fields: [companyId], references: [id])\n  companyId Int\n  schema    Schema   @relation(fields: [schemaId], references: [id])\n  schemaId  Int\n  date      DateTime // day at which the goals are assigned \n\n  @@unique([companyId, date])\n}\n\n// --- PERFORMANCE DATA ---\n\nmodel Call {\n  id              Int       @id @default(autoincrement())\n  leadDeskId      String? //@todo  // Not unique because can variate per company. Also, this is temporary, will be better to create another table so we can handle multiple services aside leaddesk \n  agent           Agent     @relation(fields: [agentId], references: [id])\n  agentId         Int\n  callee          Callee    @relation(fields: [calleeId], references: [id])\n  calleeId        Int\n  company         Company   @relation(fields: [companyId], references: [id])\n  companyId       Int\n  startAt         DateTime  @default(now())\n  endAt           DateTime?\n  durationSeconds Int       @default(0)\n  // isEffective       Boolean          @default(false)\n\n  events FunnelEvent[]\n\n  // \n  dayOfTheWeek WEEK_DAYS\n}\n\nmodel FunnelEvent {\n  id        Int       @id @default(autoincrement())\n  type      EventType\n  timestamp DateTime  @default(now())\n  call      Call      @relation(fields: [callId], references: [id])\n  callId    Int\n  agent     Agent     @relation(fields: [agentId], references: [id])\n  agentId   Int\n}\n\n// @todo make \"funnelEventCountPerUser\" and \"funnelEventCount\" models for quicker fetches for related graphics @IMPORTANT \n\nmodel AgentState {\n  id              Int      @id @default(autoincrement())\n  agent           Agent    @relation(fields: [agentId], references: [id])\n  agentId         Int\n  timestamp       DateTime @default(now())\n  energyScore     Int // 1-10\n  focusScore      Int // 1-10\n  motivationScore Int // 1-10\n}\n\nmodel TemporalGoals {\n  id   Int    @id @default(autoincrement())\n  name String // i.e hard goals, newbies goals...\n\n  // Productivity Targets\n  talkTimeMinutes   Int      @default(0)\n  seeds             Int      @default(0)\n  callbacks         Int      @default(0)\n  leads             Int      @default(0)\n  sales             Int      @default(0)\n  numberOfCalls     Int      @default(0)\n  numberOfLongCalls Int      @default(0)\n  // Relations\n  company           Company  @relation(fields: [companyId], references: [id])\n  companyId         Int\n  creator           Manager  @relation(fields: [creatorId], references: [id])\n  creatorId         Int\n  createdAt         DateTime @default(now())\n  updatedAt         DateTime @updatedAt\n\n  goalsAssignation GoalsAssignation[]\n}\n\nmodel GoalsAssignation {\n  id        Int           @id @default(autoincrement())\n  company   Company       @relation(fields: [companyId], references: [id])\n  companyId Int\n  goal      TemporalGoals @relation(fields: [goalId], references: [id])\n  goalId    Int\n  date      DateTime // day at which the goals are assigned \n\n  @@unique([companyId, date])\n}\n\n/**\n * Looking at this prisma schema:\n * ```\n * ```\n * Let me know if it is possible to fetch the next information:\n * I'm gonna need to fetch data as follows:\n * - Per agent, per time (from-to values used to select a time gap)\n * - Per agent, per block (from-to values used to search for in-range blocks)\n * - Per selected agents, per time (from-to values used to select a time gap)\n * - Per selected agents, per block (from-to values used to search for in-range blocks)\n * - Per team, per time (from-to values used to select a time gap)\n * - Per team, per block (from-to values used to search for in-range blocks)\n * - ALL AGENTS DATA, per time (from-to values used to select a time gap)\n * - ALL AGENTS DATA, per block (from-to values used to search for in-range blocks)\n * I would need to fetch the next values (individually, then I prepare the views):\n * • Total effective talk time\n * • Number of logged calls\n * • Number of calls longer than 5 minutes\n * • Average call duration\n * • Calls per hour\n * • Active time vs idle time (time in call vs time of)\n * • Long call ratio\n * total Seeds\n * • total Callbacks\n * • total Leads\n * • total Sales\n * energy\n * focus\n * motivation\n * When I say \"fetch\" I just want to now if it is possible to fetch each individual point, because that means I an create compound queires that give me specific views.\n * Also, for each point, give me a path to access to each point, for example: \"Per agent, per time calls per hour: agentId->calls inside from-to -> divide results in hours and calculate counting the n. of calls perfomed\"\n * If there is one point I can not access, let me know, but I think is possible access to all.\n */\n",
+	"inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nenum Role {\n  MAIN_ADMIN\n  MANAGER\n  AGENT\n}\n\nenum BlockType {\n  WORKING\n  REST\n  EXTRA_TIME\n}\n\nenum SchemaType {\n  DAILY\n  WEEKLY\n  MONTHLY\n}\n\nenum EventType {\n  SEED // CALLBACK. books a call as a \"Callback\" -> Since I have now exact way to now this, I will just count each call as a seed, by now.\n  LEAD // WATERING. Callback is performed AKA agent calls a callee more than 1 time: Every call from this increases +1 LEAD\n  SALE // HARVEST. Agent books a call as a deal -> the call data has order_ids.length more than 1\n}\n\nenum UserStatus {\n  PAUSED\n  ACTIVE\n  REMOVED // not return point, but we keep it due to historical reasons\n}\n\nenum THIRD_PARTY_SERVICES {\n  LEADDESK\n}\n\nenum WEEK_DAYS {\n  MONDAY\n  TUESDAY\n  WEDNESDAY\n  THURSDAY\n  FRIDAY\n  SATURDAY\n  SUNDAY\n}\n\nmodel User {\n  id           Int      @id @default(autoincrement())\n  email        String   @unique\n  passwordHash String // Store hashed passwords only\n  role         Role     @default(AGENT)\n  isActive     Boolean  @default(true)\n  createdAt    DateTime @default(now())\n  updatedAt    DateTime @updatedAt\n\n  // Relations to your existing entities\n  companyId Int\n  company   Company @relation(fields: [companyId], references: [id])\n\n  // Optional links depending on the role\n  managerProfile Manager? @relation(fields: [managerId], references: [id])\n  managerId      Int?     @unique\n\n  agentProfile Agent? @relation(fields: [agentId], references: [id])\n  agentId      Int?   @unique\n\n  status UserStatus @default(ACTIVE) // REMOVED is used when \"deleted\" -> we can not delete it directly due to historical data. \n  // Constraint: One MAIN_ADMIN per company\n  // This is enforced via a unique partial index in the DB (see note below)\n}\n\nmodel Company {\n  id                 Int                 @id @default(autoincrement())\n  name               String\n  createdAt          DateTime            @default(now())\n  managers           Manager[]\n  agents             Agent[]\n  calls              Call[]\n  TimeSchemas        Schema[]\n  users              User[]\n  temporalGoals      TemporalGoals[] // goals list \n  GoalsAssignation   GoalsAssignation[] // assigns 1 TemporalGoal to a specific day (date)\n  schemaAssignation  SchemaAssignation[] // assigns 1 TemporalGoal to a specific day (date)\n  apiKey             APIKeysAuth?\n  // Third party custom data \n  leadDeskCustomData LeadDeskCustomData?\n}\n\n// 1-to-1 company-key (used to authenticate webhook call origin)\nmodel APIKeysAuth {\n  id Int @id @default(autoincrement())\n\n  // Use UUIDs for the keys. \n  // 'public' is a reserved keyword in some DBs, 'publicKey' is safer.\n  publicKey     String  @unique // uuid prefixed with a specific string exp: \"prefix-uuid\" \n  secretKeyHash String  @unique // hashed secret \n  // Link to company and ensure 1-to-1\n  company       Company @relation(fields: [companyId], references: [id])\n  companyId     Int     @unique\n\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n}\n\n// -------- START CUSTOM DATA SECTION ---------\n// For each connection to third party, is required some specific data that variates depending on the service\n// for that reason, we create a specific table for each service (if needed) designed to store the specific values \n// all this models are named with the convention [ThirdPartyName]+CustomMetadata\nmodel LeadDeskCustomData {\n  id           Int      @id @default(autoincrement())\n  authString   String? // 32-bytes string provided by LeadDesk to authenticate calls to its API -> used, for example, when fetch call data in webhook handler\n  SeedEventIds String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a callback apointment\n  SaleEventIds String[] // list of strings to be compared against call.call_ending_reason or call.call_ending_reason_name during the webhook call, to know if the call finished up with a sale/deal\n  IANATimeZone String   @default(\"Europe/Amsterdam\") // The timezone of the webhook server -> helps us to now at what timezone corresponds the dates and hours on the call data, to shift it to utc zulu \n  //\n  company      Company  @relation(fields: [companyId], references: [id])\n  companyId    Int      @unique\n}\n\n// -------- END CUSTOM DATA SECTION ---------\n\nmodel Manager {\n  id            Int             @id @default(autoincrement())\n  name          String\n  email         String          @unique\n  company       Company         @relation(fields: [companyId], references: [id]) // companyId is the foreign key, and it is compared with the `id` field of the other table\n  companyId     Int\n  user          User?\n  temporalGoals TemporalGoals[]\n  schemas       Schema[]\n}\n\nmodel Agent {\n  id                    Int             @id @default(autoincrement())\n  name                  String\n  company               Company         @relation(fields: [companyId], references: [id])\n  companyId             Int\n  calls                 Call[]\n  feelings              AgentState[]\n  events                FunnelEvent[]\n  user                  User?\n  totalAttempsPerCallee agentToCallee[]\n  agentToThird          AgentToThird[]\n  agentLevel            AgentLevel[]\n  // \n  profileImg            String?\n}\n\nmodel AgentToThird {\n  id                     Int                  @id @default(autoincrement())\n  serviceIdentifier      THIRD_PARTY_SERVICES\n  agentServiceIdentifier String\n\n  // Relation fields\n  agent   Agent @relation(fields: [agentId], references: [id])\n  agentId Int\n\n  @@unique([agentId, serviceIdentifier]) // agent can have only 1 relation for the same service\n  @@unique([serviceIdentifier, agentServiceIdentifier]) // only 1 agent service identifier per service\n}\n\nmodel Callee {\n  id                   Int             @id @default(autoincrement())\n  phoneNumber          String          @unique\n  totalAttempts        Int             @default(0)\n  calls                Call[]\n  totalAttempsPerAgent agentToCallee[]\n}\n\n// tracks the number of times an agent calls the same number\n// @dev maybe in future, would be better to track \"per campaign\" too\nmodel agentToCallee {\n  id           Int    @id @default(autoincrement())\n  agent        Agent  @relation(fields: [agentId], references: [id])\n  agentId      Int\n  callee       Callee @relation(fields: [calleeId], references: [id])\n  calleeId     Int\n  totalAttemps Int    @default(0)\n\n  @@unique([agentId, calleeId])\n}\n\n// --- BLOCKS MASKS ---\n// Managers create time schedules by block, so the can filter the call querying by such blocks \n\nmodel Schema {\n  id                 Int                 @id @default(autoincrement())\n  name               String\n  company            Company             @relation(fields: [companyId], references: [id])\n  companyId          Int\n  creator            Manager             @relation(fields: [creatorId], references: [id])\n  creatorId          Int\n  blocks             SchemaBlock[]\n  schemaAssignations SchemaAssignation[]\n}\n\nmodel SchemaBlock {\n  id                       Int       @id @default(autoincrement())\n  startMinutesFromMidnight Int\n  endMinutesFromMidnight   Int\n  blockType                BlockType @default(WORKING)\n  name                     String? // (e.g., \"Morning Blitz\", \"Afternoon Follow-ups\")\n  Schema                   Schema    @relation(fields: [schemaId], references: [id])\n  schemaId                 Int\n}\n\nmodel SchemaAssignation {\n  id        Int      @id @default(autoincrement())\n  company   Company  @relation(fields: [companyId], references: [id])\n  companyId Int\n  schema    Schema   @relation(fields: [schemaId], references: [id])\n  schemaId  Int\n  date      DateTime // day at which the goals are assigned \n\n  @@unique([companyId, date])\n}\n\n// --- PERFORMANCE DATA ---\n\nmodel Call {\n  id              Int       @id @default(autoincrement())\n  agent           Agent     @relation(fields: [agentId], references: [id])\n  agentId         Int\n  callee          Callee    @relation(fields: [calleeId], references: [id])\n  calleeId        Int\n  company         Company   @relation(fields: [companyId], references: [id])\n  companyId       Int\n  startAt         DateTime  @default(now())\n  endAt           DateTime?\n  durationSeconds Int       @default(0)\n  // isEffective       Boolean          @default(false)\n\n  events FunnelEvent[]\n\n  // \n  dayOfTheWeek WEEK_DAYS\n}\n\nmodel FunnelEvent {\n  id        Int       @id @default(autoincrement())\n  type      EventType\n  timestamp DateTime  @default(now())\n  call      Call      @relation(fields: [callId], references: [id])\n  callId    Int\n  agent     Agent     @relation(fields: [agentId], references: [id])\n  agentId   Int\n}\n\nmodel AgentState {\n  id              Int      @id @default(autoincrement())\n  agent           Agent    @relation(fields: [agentId], references: [id])\n  agentId         Int\n  timestamp       DateTime @default(now())\n  energyScore     Int // 1-10\n  focusScore      Int // 1-10\n  motivationScore Int // 1-10\n}\n\n// 1 agent to many agentLevel\n// updated weekly automatically could be AWS lambda updates (per batch of users), native pg-cron or AWS functions\n/**\n * Cool, finally, the current agentLevel depends on the next:\n * - 1 agent has many Call rows. A call has a  durationSeconds column.\n * - So, the level depends on: if total call duration of the week was more than X, then is level one, if was less than X but more than Y, is level 2, and if was less than Y, is level 3.\n * - So, by calculating this, the stored procedure should: if the state doesnt, changes, dont make anything. If changes, creates the new row, and update the till and durationInWeeks column of the previous latest row.\n */\nmodel AgentLevel {\n  id              Int       @id @default(autoincrement())\n  agent           Agent     @relation(fields: [agentId], references: [id])\n  agentId         Int\n  since           DateTime  @default(now())\n  till            DateTime?\n  durationInWeeks Int       @default(0) // everytime a new row for a user is created, we calculate this ones, then just SUM the values and calculate on-the-fly for the latest row\n  level           Int // 1 GOLD. 2 SILVER. 3 BRONZE \n\n  @@index([agentId, level])\n}\n\nmodel TemporalGoals {\n  id   Int    @id @default(autoincrement())\n  name String // i.e hard goals, newbies goals...\n\n  // Productivity Targets\n  talkTimeMinutes   Int      @default(0)\n  seeds             Int      @default(0)\n  callbacks         Int      @default(0)\n  leads             Int      @default(0)\n  sales             Int      @default(0)\n  numberOfCalls     Int      @default(0)\n  numberOfLongCalls Int      @default(0)\n  // Relations\n  company           Company  @relation(fields: [companyId], references: [id])\n  companyId         Int\n  creator           Manager  @relation(fields: [creatorId], references: [id])\n  creatorId         Int\n  createdAt         DateTime @default(now())\n  updatedAt         DateTime @updatedAt\n\n  goalsAssignation GoalsAssignation[]\n}\n\nmodel GoalsAssignation {\n  id        Int           @id @default(autoincrement())\n  company   Company       @relation(fields: [companyId], references: [id])\n  companyId Int\n  goal      TemporalGoals @relation(fields: [goalId], references: [id])\n  goalId    Int\n  date      DateTime // day at which the goals are assigned \n\n  @@unique([companyId, date])\n}\n",
 	"runtimeDataModel": {
 		"models": {},
 		"enums": {},
@@ -50,10 +30,10 @@ const config = {
 		"graph": ""
 	}
 };
-config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"passwordHash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"Role\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToUser\"},{\"name\":\"managerProfile\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToUser\"},{\"name\":\"managerId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agentProfile\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToUser\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"UserStatus\"}],\"dbName\":null},\"Company\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"managers\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"CompanyToManager\"},{\"name\":\"agents\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToCompany\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToCompany\"},{\"name\":\"TimeSchemas\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"CompanyToSchema\"},{\"name\":\"users\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"CompanyToUser\"},{\"name\":\"temporalGoals\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"CompanyToTemporalGoals\"},{\"name\":\"GoalsAssignation\",\"kind\":\"object\",\"type\":\"GoalsAssignation\",\"relationName\":\"CompanyToGoalsAssignation\"},{\"name\":\"schemaAssignation\",\"kind\":\"object\",\"type\":\"SchemaAssignation\",\"relationName\":\"CompanyToSchemaAssignation\"},{\"name\":\"apiKey\",\"kind\":\"object\",\"type\":\"APIKeysAuth\",\"relationName\":\"APIKeysAuthToCompany\"}],\"dbName\":null},\"APIKeysAuth\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"publicKey\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"secretKeyHash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"APIKeysAuthToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Manager\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToManager\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"ManagerToUser\"},{\"name\":\"temporalGoals\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"ManagerToTemporalGoals\"},{\"name\":\"schemas\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"ManagerToSchema\"}],\"dbName\":null},\"Agent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"AgentToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"AgentToCall\"},{\"name\":\"feelings\",\"kind\":\"object\",\"type\":\"AgentState\",\"relationName\":\"AgentToAgentState\"},{\"name\":\"events\",\"kind\":\"object\",\"type\":\"FunnelEvent\",\"relationName\":\"AgentToFunnelEvent\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"AgentToUser\"},{\"name\":\"totalAttempsPerCallee\",\"kind\":\"object\",\"type\":\"agentToCallee\",\"relationName\":\"AgentToagentToCallee\"},{\"name\":\"agentToThird\",\"kind\":\"object\",\"type\":\"AgentToThird\",\"relationName\":\"AgentToAgentToThird\"}],\"dbName\":null},\"AgentToThird\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"serviceIdentifier\",\"kind\":\"enum\",\"type\":\"THIRD_PARTY_SERVICES\"},{\"name\":\"agentServiceIdentifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToAgentToThird\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"Callee\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"phoneNumber\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"totalAttempts\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToCallee\"},{\"name\":\"totalAttempsPerAgent\",\"kind\":\"object\",\"type\":\"agentToCallee\",\"relationName\":\"CalleeToagentToCallee\"}],\"dbName\":null},\"agentToCallee\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToagentToCallee\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callee\",\"kind\":\"object\",\"type\":\"Callee\",\"relationName\":\"CalleeToagentToCallee\"},{\"name\":\"calleeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"totalAttemps\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"Schema\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToSchema\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToSchema\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"blocks\",\"kind\":\"object\",\"type\":\"SchemaBlock\",\"relationName\":\"SchemaToSchemaBlock\"},{\"name\":\"schemaAssignations\",\"kind\":\"object\",\"type\":\"SchemaAssignation\",\"relationName\":\"SchemaToSchemaAssignation\"}],\"dbName\":null},\"SchemaBlock\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"startMinutesFromMidnight\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"endMinutesFromMidnight\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"blockType\",\"kind\":\"enum\",\"type\":\"BlockType\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"Schema\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"SchemaToSchemaBlock\"},{\"name\":\"schemaId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"SchemaAssignation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToSchemaAssignation\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"schema\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"SchemaToSchemaAssignation\"},{\"name\":\"schemaId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Call\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"leadDeskId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToCall\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callee\",\"kind\":\"object\",\"type\":\"Callee\",\"relationName\":\"CallToCallee\"},{\"name\":\"calleeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CallToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"startAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"endAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"durationSeconds\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"events\",\"kind\":\"object\",\"type\":\"FunnelEvent\",\"relationName\":\"CallToFunnelEvent\"},{\"name\":\"dayOfTheWeek\",\"kind\":\"enum\",\"type\":\"WEEK_DAYS\"}],\"dbName\":null},\"FunnelEvent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"EventType\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"call\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToFunnelEvent\"},{\"name\":\"callId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToFunnelEvent\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"AgentState\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToAgentState\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"energyScore\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"focusScore\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"motivationScore\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"TemporalGoals\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"talkTimeMinutes\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seeds\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callbacks\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"leads\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sales\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"numberOfCalls\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"numberOfLongCalls\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToTemporalGoals\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToTemporalGoals\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"goalsAssignation\",\"kind\":\"object\",\"type\":\"GoalsAssignation\",\"relationName\":\"GoalsAssignationToTemporalGoals\"}],\"dbName\":null},\"GoalsAssignation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToGoalsAssignation\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"goal\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"GoalsAssignationToTemporalGoals\"},{\"name\":\"goalId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}");
+config.runtimeDataModel = JSON.parse("{\"models\":{\"User\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"passwordHash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"role\",\"kind\":\"enum\",\"type\":\"Role\"},{\"name\":\"isActive\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToUser\"},{\"name\":\"managerProfile\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToUser\"},{\"name\":\"managerId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agentProfile\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToUser\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"UserStatus\"}],\"dbName\":null},\"Company\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"managers\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"CompanyToManager\"},{\"name\":\"agents\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToCompany\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToCompany\"},{\"name\":\"TimeSchemas\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"CompanyToSchema\"},{\"name\":\"users\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"CompanyToUser\"},{\"name\":\"temporalGoals\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"CompanyToTemporalGoals\"},{\"name\":\"GoalsAssignation\",\"kind\":\"object\",\"type\":\"GoalsAssignation\",\"relationName\":\"CompanyToGoalsAssignation\"},{\"name\":\"schemaAssignation\",\"kind\":\"object\",\"type\":\"SchemaAssignation\",\"relationName\":\"CompanyToSchemaAssignation\"},{\"name\":\"apiKey\",\"kind\":\"object\",\"type\":\"APIKeysAuth\",\"relationName\":\"APIKeysAuthToCompany\"},{\"name\":\"leadDeskCustomData\",\"kind\":\"object\",\"type\":\"LeadDeskCustomData\",\"relationName\":\"CompanyToLeadDeskCustomData\"}],\"dbName\":null},\"APIKeysAuth\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"publicKey\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"secretKeyHash\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"APIKeysAuthToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"LeadDeskCustomData\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"authString\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"SeedEventIds\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"SaleEventIds\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"IANATimeZone\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToLeadDeskCustomData\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"Manager\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToManager\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"ManagerToUser\"},{\"name\":\"temporalGoals\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"ManagerToTemporalGoals\"},{\"name\":\"schemas\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"ManagerToSchema\"}],\"dbName\":null},\"Agent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"AgentToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"AgentToCall\"},{\"name\":\"feelings\",\"kind\":\"object\",\"type\":\"AgentState\",\"relationName\":\"AgentToAgentState\"},{\"name\":\"events\",\"kind\":\"object\",\"type\":\"FunnelEvent\",\"relationName\":\"AgentToFunnelEvent\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"User\",\"relationName\":\"AgentToUser\"},{\"name\":\"totalAttempsPerCallee\",\"kind\":\"object\",\"type\":\"agentToCallee\",\"relationName\":\"AgentToagentToCallee\"},{\"name\":\"agentToThird\",\"kind\":\"object\",\"type\":\"AgentToThird\",\"relationName\":\"AgentToAgentToThird\"},{\"name\":\"agentLevel\",\"kind\":\"object\",\"type\":\"AgentLevel\",\"relationName\":\"AgentToAgentLevel\"},{\"name\":\"profileImg\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null},\"AgentToThird\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"serviceIdentifier\",\"kind\":\"enum\",\"type\":\"THIRD_PARTY_SERVICES\"},{\"name\":\"agentServiceIdentifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToAgentToThird\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"Callee\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"phoneNumber\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"totalAttempts\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"calls\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToCallee\"},{\"name\":\"totalAttempsPerAgent\",\"kind\":\"object\",\"type\":\"agentToCallee\",\"relationName\":\"CalleeToagentToCallee\"}],\"dbName\":null},\"agentToCallee\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToagentToCallee\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callee\",\"kind\":\"object\",\"type\":\"Callee\",\"relationName\":\"CalleeToagentToCallee\"},{\"name\":\"calleeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"totalAttemps\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"Schema\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToSchema\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToSchema\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"blocks\",\"kind\":\"object\",\"type\":\"SchemaBlock\",\"relationName\":\"SchemaToSchemaBlock\"},{\"name\":\"schemaAssignations\",\"kind\":\"object\",\"type\":\"SchemaAssignation\",\"relationName\":\"SchemaToSchemaAssignation\"}],\"dbName\":null},\"SchemaBlock\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"startMinutesFromMidnight\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"endMinutesFromMidnight\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"blockType\",\"kind\":\"enum\",\"type\":\"BlockType\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"Schema\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"SchemaToSchemaBlock\"},{\"name\":\"schemaId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"SchemaAssignation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToSchemaAssignation\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"schema\",\"kind\":\"object\",\"type\":\"Schema\",\"relationName\":\"SchemaToSchemaAssignation\"},{\"name\":\"schemaId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Call\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToCall\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callee\",\"kind\":\"object\",\"type\":\"Callee\",\"relationName\":\"CallToCallee\"},{\"name\":\"calleeId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CallToCompany\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"startAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"endAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"durationSeconds\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"events\",\"kind\":\"object\",\"type\":\"FunnelEvent\",\"relationName\":\"CallToFunnelEvent\"},{\"name\":\"dayOfTheWeek\",\"kind\":\"enum\",\"type\":\"WEEK_DAYS\"}],\"dbName\":null},\"FunnelEvent\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"type\",\"kind\":\"enum\",\"type\":\"EventType\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"call\",\"kind\":\"object\",\"type\":\"Call\",\"relationName\":\"CallToFunnelEvent\"},{\"name\":\"callId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToFunnelEvent\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"AgentState\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToAgentState\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"timestamp\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"energyScore\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"focusScore\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"motivationScore\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"AgentLevel\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"agent\",\"kind\":\"object\",\"type\":\"Agent\",\"relationName\":\"AgentToAgentLevel\"},{\"name\":\"agentId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"since\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"till\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"durationInWeeks\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"level\",\"kind\":\"scalar\",\"type\":\"Int\"}],\"dbName\":null},\"TemporalGoals\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"talkTimeMinutes\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"seeds\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"callbacks\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"leads\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"sales\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"numberOfCalls\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"numberOfLongCalls\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToTemporalGoals\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"creator\",\"kind\":\"object\",\"type\":\"Manager\",\"relationName\":\"ManagerToTemporalGoals\"},{\"name\":\"creatorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"goalsAssignation\",\"kind\":\"object\",\"type\":\"GoalsAssignation\",\"relationName\":\"GoalsAssignationToTemporalGoals\"}],\"dbName\":null},\"GoalsAssignation\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"company\",\"kind\":\"object\",\"type\":\"Company\",\"relationName\":\"CompanyToGoalsAssignation\"},{\"name\":\"companyId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"goal\",\"kind\":\"object\",\"type\":\"TemporalGoals\",\"relationName\":\"GoalsAssignationToTemporalGoals\"},{\"name\":\"goalId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"date\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}");
 config.parameterizationSchema = {
-	strings: JSON.parse("[\"where\",\"orderBy\",\"cursor\",\"company\",\"user\",\"creator\",\"goal\",\"goalsAssignation\",\"_count\",\"temporalGoals\",\"Schema\",\"blocks\",\"schema\",\"schemaAssignations\",\"schemas\",\"managers\",\"agent\",\"calls\",\"callee\",\"totalAttempsPerAgent\",\"call\",\"events\",\"feelings\",\"totalAttempsPerCallee\",\"agentToThird\",\"agents\",\"TimeSchemas\",\"users\",\"GoalsAssignation\",\"schemaAssignation\",\"apiKey\",\"managerProfile\",\"agentProfile\",\"User.findUnique\",\"User.findUniqueOrThrow\",\"User.findFirst\",\"User.findFirstOrThrow\",\"User.findMany\",\"data\",\"User.createOne\",\"User.createMany\",\"User.createManyAndReturn\",\"User.updateOne\",\"User.updateMany\",\"User.updateManyAndReturn\",\"create\",\"update\",\"User.upsertOne\",\"User.deleteOne\",\"User.deleteMany\",\"having\",\"_avg\",\"_sum\",\"_min\",\"_max\",\"User.groupBy\",\"User.aggregate\",\"Company.findUnique\",\"Company.findUniqueOrThrow\",\"Company.findFirst\",\"Company.findFirstOrThrow\",\"Company.findMany\",\"Company.createOne\",\"Company.createMany\",\"Company.createManyAndReturn\",\"Company.updateOne\",\"Company.updateMany\",\"Company.updateManyAndReturn\",\"Company.upsertOne\",\"Company.deleteOne\",\"Company.deleteMany\",\"Company.groupBy\",\"Company.aggregate\",\"APIKeysAuth.findUnique\",\"APIKeysAuth.findUniqueOrThrow\",\"APIKeysAuth.findFirst\",\"APIKeysAuth.findFirstOrThrow\",\"APIKeysAuth.findMany\",\"APIKeysAuth.createOne\",\"APIKeysAuth.createMany\",\"APIKeysAuth.createManyAndReturn\",\"APIKeysAuth.updateOne\",\"APIKeysAuth.updateMany\",\"APIKeysAuth.updateManyAndReturn\",\"APIKeysAuth.upsertOne\",\"APIKeysAuth.deleteOne\",\"APIKeysAuth.deleteMany\",\"APIKeysAuth.groupBy\",\"APIKeysAuth.aggregate\",\"Manager.findUnique\",\"Manager.findUniqueOrThrow\",\"Manager.findFirst\",\"Manager.findFirstOrThrow\",\"Manager.findMany\",\"Manager.createOne\",\"Manager.createMany\",\"Manager.createManyAndReturn\",\"Manager.updateOne\",\"Manager.updateMany\",\"Manager.updateManyAndReturn\",\"Manager.upsertOne\",\"Manager.deleteOne\",\"Manager.deleteMany\",\"Manager.groupBy\",\"Manager.aggregate\",\"Agent.findUnique\",\"Agent.findUniqueOrThrow\",\"Agent.findFirst\",\"Agent.findFirstOrThrow\",\"Agent.findMany\",\"Agent.createOne\",\"Agent.createMany\",\"Agent.createManyAndReturn\",\"Agent.updateOne\",\"Agent.updateMany\",\"Agent.updateManyAndReturn\",\"Agent.upsertOne\",\"Agent.deleteOne\",\"Agent.deleteMany\",\"Agent.groupBy\",\"Agent.aggregate\",\"AgentToThird.findUnique\",\"AgentToThird.findUniqueOrThrow\",\"AgentToThird.findFirst\",\"AgentToThird.findFirstOrThrow\",\"AgentToThird.findMany\",\"AgentToThird.createOne\",\"AgentToThird.createMany\",\"AgentToThird.createManyAndReturn\",\"AgentToThird.updateOne\",\"AgentToThird.updateMany\",\"AgentToThird.updateManyAndReturn\",\"AgentToThird.upsertOne\",\"AgentToThird.deleteOne\",\"AgentToThird.deleteMany\",\"AgentToThird.groupBy\",\"AgentToThird.aggregate\",\"Callee.findUnique\",\"Callee.findUniqueOrThrow\",\"Callee.findFirst\",\"Callee.findFirstOrThrow\",\"Callee.findMany\",\"Callee.createOne\",\"Callee.createMany\",\"Callee.createManyAndReturn\",\"Callee.updateOne\",\"Callee.updateMany\",\"Callee.updateManyAndReturn\",\"Callee.upsertOne\",\"Callee.deleteOne\",\"Callee.deleteMany\",\"Callee.groupBy\",\"Callee.aggregate\",\"agentToCallee.findUnique\",\"agentToCallee.findUniqueOrThrow\",\"agentToCallee.findFirst\",\"agentToCallee.findFirstOrThrow\",\"agentToCallee.findMany\",\"agentToCallee.createOne\",\"agentToCallee.createMany\",\"agentToCallee.createManyAndReturn\",\"agentToCallee.updateOne\",\"agentToCallee.updateMany\",\"agentToCallee.updateManyAndReturn\",\"agentToCallee.upsertOne\",\"agentToCallee.deleteOne\",\"agentToCallee.deleteMany\",\"agentToCallee.groupBy\",\"agentToCallee.aggregate\",\"Schema.findUnique\",\"Schema.findUniqueOrThrow\",\"Schema.findFirst\",\"Schema.findFirstOrThrow\",\"Schema.findMany\",\"Schema.createOne\",\"Schema.createMany\",\"Schema.createManyAndReturn\",\"Schema.updateOne\",\"Schema.updateMany\",\"Schema.updateManyAndReturn\",\"Schema.upsertOne\",\"Schema.deleteOne\",\"Schema.deleteMany\",\"Schema.groupBy\",\"Schema.aggregate\",\"SchemaBlock.findUnique\",\"SchemaBlock.findUniqueOrThrow\",\"SchemaBlock.findFirst\",\"SchemaBlock.findFirstOrThrow\",\"SchemaBlock.findMany\",\"SchemaBlock.createOne\",\"SchemaBlock.createMany\",\"SchemaBlock.createManyAndReturn\",\"SchemaBlock.updateOne\",\"SchemaBlock.updateMany\",\"SchemaBlock.updateManyAndReturn\",\"SchemaBlock.upsertOne\",\"SchemaBlock.deleteOne\",\"SchemaBlock.deleteMany\",\"SchemaBlock.groupBy\",\"SchemaBlock.aggregate\",\"SchemaAssignation.findUnique\",\"SchemaAssignation.findUniqueOrThrow\",\"SchemaAssignation.findFirst\",\"SchemaAssignation.findFirstOrThrow\",\"SchemaAssignation.findMany\",\"SchemaAssignation.createOne\",\"SchemaAssignation.createMany\",\"SchemaAssignation.createManyAndReturn\",\"SchemaAssignation.updateOne\",\"SchemaAssignation.updateMany\",\"SchemaAssignation.updateManyAndReturn\",\"SchemaAssignation.upsertOne\",\"SchemaAssignation.deleteOne\",\"SchemaAssignation.deleteMany\",\"SchemaAssignation.groupBy\",\"SchemaAssignation.aggregate\",\"Call.findUnique\",\"Call.findUniqueOrThrow\",\"Call.findFirst\",\"Call.findFirstOrThrow\",\"Call.findMany\",\"Call.createOne\",\"Call.createMany\",\"Call.createManyAndReturn\",\"Call.updateOne\",\"Call.updateMany\",\"Call.updateManyAndReturn\",\"Call.upsertOne\",\"Call.deleteOne\",\"Call.deleteMany\",\"Call.groupBy\",\"Call.aggregate\",\"FunnelEvent.findUnique\",\"FunnelEvent.findUniqueOrThrow\",\"FunnelEvent.findFirst\",\"FunnelEvent.findFirstOrThrow\",\"FunnelEvent.findMany\",\"FunnelEvent.createOne\",\"FunnelEvent.createMany\",\"FunnelEvent.createManyAndReturn\",\"FunnelEvent.updateOne\",\"FunnelEvent.updateMany\",\"FunnelEvent.updateManyAndReturn\",\"FunnelEvent.upsertOne\",\"FunnelEvent.deleteOne\",\"FunnelEvent.deleteMany\",\"FunnelEvent.groupBy\",\"FunnelEvent.aggregate\",\"AgentState.findUnique\",\"AgentState.findUniqueOrThrow\",\"AgentState.findFirst\",\"AgentState.findFirstOrThrow\",\"AgentState.findMany\",\"AgentState.createOne\",\"AgentState.createMany\",\"AgentState.createManyAndReturn\",\"AgentState.updateOne\",\"AgentState.updateMany\",\"AgentState.updateManyAndReturn\",\"AgentState.upsertOne\",\"AgentState.deleteOne\",\"AgentState.deleteMany\",\"AgentState.groupBy\",\"AgentState.aggregate\",\"TemporalGoals.findUnique\",\"TemporalGoals.findUniqueOrThrow\",\"TemporalGoals.findFirst\",\"TemporalGoals.findFirstOrThrow\",\"TemporalGoals.findMany\",\"TemporalGoals.createOne\",\"TemporalGoals.createMany\",\"TemporalGoals.createManyAndReturn\",\"TemporalGoals.updateOne\",\"TemporalGoals.updateMany\",\"TemporalGoals.updateManyAndReturn\",\"TemporalGoals.upsertOne\",\"TemporalGoals.deleteOne\",\"TemporalGoals.deleteMany\",\"TemporalGoals.groupBy\",\"TemporalGoals.aggregate\",\"GoalsAssignation.findUnique\",\"GoalsAssignation.findUniqueOrThrow\",\"GoalsAssignation.findFirst\",\"GoalsAssignation.findFirstOrThrow\",\"GoalsAssignation.findMany\",\"GoalsAssignation.createOne\",\"GoalsAssignation.createMany\",\"GoalsAssignation.createManyAndReturn\",\"GoalsAssignation.updateOne\",\"GoalsAssignation.updateMany\",\"GoalsAssignation.updateManyAndReturn\",\"GoalsAssignation.upsertOne\",\"GoalsAssignation.deleteOne\",\"GoalsAssignation.deleteMany\",\"GoalsAssignation.groupBy\",\"GoalsAssignation.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"companyId\",\"goalId\",\"date\",\"equals\",\"in\",\"notIn\",\"lt\",\"lte\",\"gt\",\"gte\",\"not\",\"name\",\"talkTimeMinutes\",\"seeds\",\"callbacks\",\"leads\",\"sales\",\"numberOfCalls\",\"numberOfLongCalls\",\"creatorId\",\"createdAt\",\"updatedAt\",\"contains\",\"startsWith\",\"endsWith\",\"agentId\",\"timestamp\",\"energyScore\",\"focusScore\",\"motivationScore\",\"EventType\",\"type\",\"callId\",\"leadDeskId\",\"calleeId\",\"startAt\",\"endAt\",\"durationSeconds\",\"WEEK_DAYS\",\"dayOfTheWeek\",\"schemaId\",\"startMinutesFromMidnight\",\"endMinutesFromMidnight\",\"BlockType\",\"blockType\",\"totalAttemps\",\"phoneNumber\",\"totalAttempts\",\"every\",\"some\",\"none\",\"THIRD_PARTY_SERVICES\",\"serviceIdentifier\",\"agentServiceIdentifier\",\"email\",\"publicKey\",\"secretKeyHash\",\"passwordHash\",\"Role\",\"role\",\"isActive\",\"managerId\",\"UserStatus\",\"status\",\"agentId_serviceIdentifier\",\"serviceIdentifier_agentServiceIdentifier\",\"agentId_calleeId\",\"companyId_date\",\"is\",\"isNot\",\"connectOrCreate\",\"upsert\",\"createMany\",\"set\",\"disconnect\",\"delete\",\"connect\",\"updateMany\",\"deleteMany\",\"increment\",\"decrement\",\"multiply\",\"divide\"]"),
-	graph: "igmoAYACEQMAAPYDACAfAAC0BAAgIAAAtQQAIKkCAACvBAAwqgIAAAcAEKsCAACvBAAwrAICAAAAAa0CAgDpAwAhwQJAAPUDACHCAkAA9QMAIcYCAgAAAAHjAgEAAAAB5gIBAOoDACHoAgAAsAToAiLpAiAAsQQAIeoCAgAAAAHsAgAAswTsAiIBAAAAAQAgCwMAAPYDACAEAAChBAAgCQAA_QMAIA4AAPsDACCpAgAAtgQAMKoCAAADABCrAgAAtgQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIeMCAQDqAwAhBAMAAPgGACAEAAD5BwAgCQAA6gcAIA4AAOgHACALAwAA9gMAIAQAAKEEACAJAAD9AwAgDgAA-wMAIKkCAAC2BAAwqgIAAAMAEKsCAAC2BAAwrAICAAAAAa0CAgDpAwAhuAIBAOoDACHjAgEAAAABAwAAAAMAIAEAAAQAMAIAAAUAIBEDAAD2AwAgHwAAtAQAICAAALUEACCpAgAArwQAMKoCAAAHABCrAgAArwQAMKwCAgDpAwAhrQICAOkDACHBAkAA9QMAIcICQAD1AwAhxgICALIEACHjAgEA6gMAIeYCAQDqAwAh6AIAALAE6AIi6QIgALEEACHqAgIAsgQAIewCAACzBOwCIgEAAAAHACATAwAA9gMAIAUAAKkEACAHAAD-AwAgqQIAAK4EADCqAgAACQAQqwIAAK4EADCsAgIA6QMAIa0CAgDpAwAhuAIBAOoDACG5AgIA6QMAIboCAgDpAwAhuwICAOkDACG8AgIA6QMAIb0CAgDpAwAhvgICAOkDACG_AgIA6QMAIcACAgDpAwAhwQJAAPUDACHCAkAA9QMAIQMDAAD4BgAgBQAA8wcAIAcAAOsHACATAwAA9gMAIAUAAKkEACAHAAD-AwAgqQIAAK4EADCqAgAACQAQqwIAAK4EADCsAgIAAAABrQICAOkDACG4AgEA6gMAIbkCAgDpAwAhugICAOkDACG7AgIA6QMAIbwCAgDpAwAhvQICAOkDACG-AgIA6QMAIb8CAgDpAwAhwAICAOkDACHBAkAA9QMAIcICQAD1AwAhAwAAAAkAIAEAAAoAMAIAAAsAIAkDAAD2AwAgBgAArQQAIKkCAACsBAAwqgIAAA0AEKsCAACsBAAwrAICAOkDACGtAgIA6QMAIa4CAgDpAwAhrwJAAPUDACECAwAA-AYAIAYAAP0HACAKAwAA9gMAIAYAAK0EACCpAgAArAQAMKoCAAANABCrAgAArAQAMKwCAgAAAAGtAgIA6QMAIa4CAgDpAwAhrwJAAPUDACHwAgAAqwQAIAMAAAANACABAAAOADACAAAPACABAAAADQAgCwMAAPYDACAFAACpBAAgCwAAqgQAIA0AAP8DACCpAgAAqAQAMKoCAAASABCrAgAAqAQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIcACAgDpAwAhBAMAAPgGACAFAADzBwAgCwAA_AcAIA0AAOwHACALAwAA9gMAIAUAAKkEACALAACqBAAgDQAA_wMAIKkCAACoBAAwqgIAABIAEKsCAACoBAAwrAICAAAAAa0CAgDpAwAhuAIBAOoDACHAAgIA6QMAIQMAAAASACABAAATADACAAAUACAKCgAApQQAIKkCAACmBAAwqgIAABYAEKsCAACmBAAwrAICAOkDACG4AgEAmwQAIdUCAgDpAwAh1gICAOkDACHXAgIA6QMAIdkCAACnBNkCIgIKAAD7BwAguAIAAOsEACAKCgAApQQAIKkCAACmBAAwqgIAABYAEKsCAACmBAAwrAICAAAAAbgCAQCbBAAh1QICAOkDACHWAgIA6QMAIdcCAgDpAwAh2QIAAKcE2QIiAwAAABYAIAEAABcAMAIAABgAIAkDAAD2AwAgDAAApQQAIKkCAACkBAAwqgIAABoAEKsCAACkBAAwrAICAOkDACGtAgIA6QMAIa8CQAD1AwAh1QICAOkDACECAwAA-AYAIAwAAPsHACAKAwAA9gMAIAwAAKUEACCpAgAApAQAMKoCAAAaABCrAgAApAQAMKwCAgAAAAGtAgIA6QMAIa8CQAD1AwAh1QICAOkDACHwAgAAowQAIAMAAAAaACABAAAbADACAAAcACABAAAAFgAgAQAAABoAIAEAAAAJACABAAAAEgAgDQMAAPYDACAEAAChBAAgEQAA6wMAIBUAAJ4EACAWAACgBAAgFwAA7AMAIBgAAKIEACCpAgAAnwQAMKoCAAAiABCrAgAAnwQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIQcDAAD4BgAgBAAA-QcAIBEAAOgFACAVAAD3BwAgFgAA-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_AMAIBwAAP4DACAdAAD_AwAgHgAAgAQAIKkCAAD4AwAwqgIAAHUAEKsCAAD4AwAwrAICAAAAAbgCAQDqAwAhwQJAAPUDACEBAAAAcgAgAQAAAHIAIA8JAAD9AwAgDwAA-QMAIBEAAOsDACAZAAD6AwAgGgAA-wMAIBsAAPwDACAcAAD-AwAgHQAA_wMAIB4AAIAEACCpAgAA-AMAMKoCAAB1ABCrAgAA-AMAMKwCAgDpAwAhuAIBAOoDACHBAkAA9QMAIQkJAADqBwAgDwAA5gcAIBEAAOgFACAZAADnBwAgGgAA6AcAIBsAAOkHACAcAADrBwAgHQAA7AcAIB4AAO0HACADAAAAdQAgAQAAdgAwAgAAcgAgAwAAAHUAIAEAAHYAMAIAAHIAIAMAAAB1ACABAAB2ADACAAByACAMCQAA4gcAIA8AAN0HACARAADfBwAgGQAA3gcAIBoAAOAHACAbAADhBwAgHAAA4wcAIB0AAOQHACAeAADlBwAgrAICAAAAAbgCAQAAAAHBAkAAAAABASYAAHoAIAOsAgIAAAABuAIBAAAAAcECQAAAAAEBJgAAfAAwASYAAHwAMAwJAACDBwAgDwAA_gYAIBEAAIAHACAZAAD_BgAgGgAAgQcAIBsAAIIHACAcAACEBwAgHQAAhQcAIB4AAIYHACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACECAAAAcgAgJgAAfwAgA6wCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQIAAAB1ACAmAACBAQAgAgAAAHUAICYAAIEBACADAAAAcgAgLQAAegAgLgAAfwAgAQAAAHIAIAEAAAB1ACAFCAAA-QYAIDMAAPoGACA0AAD9BgAgNQAA_AYAIDYAAPsGACAGqQIAAPcDADCqAgAAiAEAEKsCAAD3AwAwrAICAMUDACG4AgEAzQMAIcECQADGAwAhAwAAAHUAIAEAAIcBADAyAACIAQAgAwAAAHUAIAEAAHYAMAIAAHIAIAoDAAD2AwAgqQIAAPQDADCqAgAATQAQqwIAAPQDADCsAgIAAAABrQICAAAAAcECQAD1AwAhwgJAAPUDACHkAgEAAAAB5QIBAAAAAQEAAACLAQAgAQAAAIsBACABAwAA-AYAIAMAAABNACABAACOAQAwAgAAiwEAIAMAAABNACABAACOAQAwAgAAiwEAIAMAAABNACABAACOAQAwAgAAiwEAIAcDAAD3BgAgrAICAAAAAa0CAgAAAAHBAkAAAAABwgJAAAAAAeQCAQAAAAHlAgEAAAABASYAAJIBACAGrAICAAAAAa0CAgAAAAHBAkAAAAABwgJAAAAAAeQCAQAAAAHlAgEAAAABASYAAJQBADABJgAAlAEAMAcDAAD2BgAgrAICAL0EACGtAgIAvQQAIcECQAC8BAAhwgJAALwEACHkAgEAxwQAIeUCAQDHBAAhAgAAAIsBACAmAACXAQAgBqwCAgC9BAAhrQICAL0EACHBAkAAvAQAIcICQAC8BAAh5AIBAMcEACHlAgEAxwQAIQIAAABNACAmAACZAQAgAgAAAE0AICYAAJkBACADAAAAiwEAIC0AAJIBACAuAACXAQAgAQAAAIsBACABAAAATQAgBQgAAPEGACAzAADyBgAgNAAA9QYAIDUAAPQGACA2AADzBgAgCakCAADzAwAwqgIAAKABABCrAgAA8wMAMKwCAgDFAwAhrQICAMUDACHBAkAAxgMAIcICQADGAwAh5AIBAM0DACHlAgEAzQMAIQMAAABNACABAACfAQAwMgAAoAEAIAMAAABNACABAACOAQAwAgAAiwEAIAEAAAAFACABAAAABQAgAwAAAAMAIAEAAAQAMAIAAAUAIAMAAAADACABAAAEADACAAAFACADAAAAAwAgAQAABAAwAgAABQAgCAMAAO0GACAEAADuBgAgCQAA7wYAIA4AAPAGACCsAgIAAAABrQICAAAAAbgCAQAAAAHjAgEAAAABASYAAKgBACAErAICAAAAAa0CAgAAAAG4AgEAAAAB4wIBAAAAAQEmAACqAQAwASYAAKoBADAIAwAAygYAIAQAAMsGACAJAADMBgAgDgAAzQYAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIeMCAQDHBAAhAgAAAAUAICYAAK0BACAErAICAL0EACGtAgIAvQQAIbgCAQDHBAAh4wIBAMcEACECAAAAAwAgJgAArwEAIAIAAAADACAmAACvAQAgAwAAAAUAIC0AAKgBACAuAACtAQAgAQAAAAUAIAEAAAADACAFCAAAxQYAIDMAAMYGACA0AADJBgAgNQAAyAYAIDYAAMcGACAHqQIAAPIDADCqAgAAtgEAEKsCAADyAwAwrAICAMUDACGtAgIAxQMAIbgCAQDNAwAh4wIBAM0DACEDAAAAAwAgAQAAtQEAMDIAALYBACADAAAAAwAgAQAABAAwAgAABQAgAQAAACQAIAEAAAAkACADAAAAIgAgAQAAIwAwAgAAJAAgAwAAACIAIAEAACMAMAIAACQAIAMAAAAiACABAAAjADACAAAkACAKAwAAvgYAIAQAAMIGACARAAC_BgAgFQAAwQYAIBYAAMAGACAXAADDBgAgGAAAxAYAIKwCAgAAAAGtAgIAAAABuAIBAAAAAQEmAAC-AQAgA6wCAgAAAAGtAgIAAAABuAIBAAAAAQEmAADAAQAwASYAAMABADAKAwAA9wUAIAQAAPsFACARAAD4BQAgFQAA-gUAIBYAAPkFACAXAAD8BQAgGAAA_QUAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQIAAAAkACAmAADDAQAgA6wCAgC9BAAhrQICAL0EACG4AgEAxwQAIQIAAAAiACAmAADFAQAgAgAAACIAICYAAMUBACADAAAAJAAgLQAAvgEAIC4AAMMBACABAAAAJAAgAQAAACIAIAUIAADyBQAgMwAA8wUAIDQAAPYFACA1AAD1BQAgNgAA9AUAIAapAgAA8QMAMKoCAADMAQAQqwIAAPEDADCsAgIAxQMAIa0CAgDFAwAhuAIBAM0DACEDAAAAIgAgAQAAywEAMDIAAMwBACADAAAAIgAgAQAAIwAwAgAAJAAgAQAAAD8AIAEAAAA_ACADAAAAPQAgAQAAPgAwAgAAPwAgAwAAAD0AIAEAAD4AMAIAAD8AIAMAAAA9ACABAAA-ADACAAA_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_AgAQqwIAANEDADCsAgIAxQMAIcYCAgDFAwAhxwJAAMYDACHMAgAA0gPMAiLNAgIAxQMAIQMAAAAxACABAAD-AgAwMgAA_wIAIAMAAAAxACABAAAyADACAAAzACABAAAAOAAgAQAAADgAIAMAAAA2ACABAAA3ADACAAA4ACADAAAANgAgAQAANwAwAgAAOAAgAwAAADYAIAEAADcAMAIAADgAIAcQAADgBAAgrAICAAAAAcYCAgAAAAHHAkAAAAAByAICAAAAAckCAgAAAAHKAgIAAAABASYAAIcDACAGrAICAAAAAcYCAgAAAAHHAkAAAAAByAICAAAAAckCAgAAAAHKAgIAAAABASYAAIkDADABJgAAiQMAMAcQAADfBAAgrAICAL0EACHGAgIAvQQAIccCQAC8BAAhyAICAL0EACHJAgIAvQQAIcoCAgC9BAAhAgAAADgAICYAAIwDACAGrAICAL0EACHGAgIAvQQAIccCQAC8BAAhyAICAL0EACHJAgIAvQQAIcoCAgC9BAAhAgAAADYAICYAAI4DACACAAAANgAgJgAAjgMAIAMAAAA4ACAtAACHAwAgLgAAjAMAIAEAAAA4ACABAAAANgAgBQgAANoEACAzAADbBAAgNAAA3gQAIDUAAN0EACA2AADcBAAgCakCAADQAwAwqgIAAJUDABCrAgAA0AMAMKwCAgDFAwAhxgICAMUDACHHAkAAxgMAIcgCAgDFAwAhyQICAMUDACHKAgIAxQMAIQMAAAA2ACABAACUAwAwMgAAlQMAIAMAAAA2ACABAAA3ADACAAA4ACABAAAACwAgAQAAAAsAIAMAAAAJACABAAAKADACAAALACADAAAACQAgAQAACgAwAgAACwAgAwAAAAkAIAEAAAoAMAIAAAsAIBADAADXBAAgBQAA2AQAIAcAANkEACCsAgIAAAABrQICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_AgIAAAABwAICAAAAAcECQAAAAAHCAkAAAAABASYAAJ0DACANrAICAAAAAa0CAgAAAAG4AgEAAAABuQICAAAAAboCAgAAAAG7AgIAAAABvAICAAAAAb0CAgAAAAG-AgIAAAABvwICAAAAAcACAgAAAAHBAkAAAAABwgJAAAAAAQEmAACfAwAwASYAAJ8DADAQAwAAyAQAIAUAAMkEACAHAADKBAAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhuQICAL0EACG6AgIAvQQAIbsCAgC9BAAhvAICAL0EACG9AgIAvQQAIb4CAgC9BAAhvwICAL0EACHAAgIAvQQAIcECQAC8BAAhwgJAALwEACECAAAACwAgJgAAogMAIA2sAgIAvQQAIa0CAgC9BAAhuAIBAMcEACG5AgIAvQQAIboCAgC9BAAhuwICAL0EACG8AgIAvQQAIb0CAgC9BAAhvgICAL0EACG_AgIAvQQAIcACAgC9BAAhwQJAALwEACHCAkAAvAQAIQIAAAAJACAmAACkAwAgAgAAAAkAICYAAKQDACADAAAACwAgLQAAnQMAIC4AAKIDACABAAAACwAgAQAAAAkAIAUIAADCBAAgMwAAwwQAIDQAAMYEACA1AADFBAAgNgAAxAQAIBCpAgAAzAMAMKoCAACrAwAQqwIAAMwDADCsAgIAxQMAIa0CAgDFAwAhuAIBAM0DACG5AgIAxQMAIboCAgDFAwAhuwICAMUDACG8AgIAxQMAIb0CAgDFAwAhvgICAMUDACG_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_AMAIBwAAP4DACAdAAD_AwAgHgAAgAQAIKkCAAD4AwAwqgIAAHUAEKsCAAD4AwAwrAICAOkDACG4AgEA6gMAIcECQAD1AwAh8QIAAHUAIPICAAB1ACAGqQIAAPcDADCqAgAAiAEAEKsCAAD3AwAwrAICAMUDACG4AgEAzQMAIcECQADGAwAhDwkAAP0DACAPAAD5AwAgEQAA6wMAIBkAAPoDACAaAAD7AwAgGwAA_AMAIBwAAP4DACAdAAD_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_wMAIKkCAACoBAAwqgIAABIAEKsCAACoBAAwrAICAOkDACGtAgIA6QMAIbgCAQDqAwAhwAICAOkDACENAwAA9gMAIAQAAKEEACAJAAD9AwAgDgAA-wMAIKkCAAC2BAAwqgIAAAMAEKsCAAC2BAAwrAICAOkDACGtAgIA6QMAIbgCAQDqAwAh4wIBAOoDACHxAgAAAwAg8gIAAAMAIAPdAgAAFgAg3gIAABYAIN8CAAAWACACrQICAAAAAa8CQAAAAAEJAwAA9gMAIAYAAK0EACCpAgAArAQAMKoCAAANABCrAgAArAQAMKwCAgDpAwAhrQICAOkDACGuAgIA6QMAIa8CQAD1AwAhFQMAAPYDACAFAACpBAAgBwAA_gMAIKkCAACuBAAwqgIAAAkAEKsCAACuBAAwrAICAOkDACGtAgIA6QMAIbgCAQDqAwAhuQICAOkDACG6AgIA6QMAIbsCAgDpAwAhvAICAOkDACG9AgIA6QMAIb4CAgDpAwAhvwICAOkDACHAAgIA6QMAIcECQAD1AwAhwgJAAPUDACHxAgAACQAg8gIAAAkAIBMDAAD2AwAgBQAAqQQAIAcAAP4DACCpAgAArgQAMKoCAAAJABCrAgAArgQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIbkCAgDpAwAhugICAOkDACG7AgIA6QMAIbwCAgDpAwAhvQICAOkDACG-AgIA6QMAIb8CAgDpAwAhwAICAOkDACHBAkAA9QMAIcICQAD1AwAhEQMAAPYDACAfAAC0BAAgIAAAtQQAIKkCAACvBAAwqgIAAAcAEKsCAACvBAAwrAICAOkDACGtAgIA6QMAIcECQAD1AwAhwgJAAPUDACHGAgIAsgQAIeMCAQDqAwAh5gIBAOoDACHoAgAAsAToAiLpAiAAsQQAIeoCAgCyBAAh7AIAALME7AIiBLACAAAA6AICsQIAAADoAgiyAgAAAOgCCLcCAACNBOgCIgKwAiAAAAABtwIgAIsEACEIsAICAAAAAbECAgAAAAWyAgIAAAAFswICAAAAAbQCAgAAAAG1AgIAAAABtgICAAAAAbcCAgDcAwAhBLACAAAA7AICsQIAAADsAgiyAgAAAOwCCLcCAACHBOwCIg0DAAD2AwAgBAAAoQQAIAkAAP0DACAOAAD7AwAgqQIAALYEADCqAgAAAwAQqwIAALYEADCsAgIA6QMAIa0CAgDpAwAhuAIBAOoDACHjAgEA6gMAIfECAAADACDyAgAAAwAgDwMAAPYDACAEAAChBAAgEQAA6wMAIBUAAJ4EACAWAACgBAAgFwAA7AMAIBgAAKIEACCpAgAAnwQAMKoCAAAiABCrAgAAnwQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIfECAAAiACDyAgAAIgAgCwMAAPYDACAEAAChBAAgCQAA_QMAIA4AAPsDACCpAgAAtgQAMKoCAAADABCrAgAAtgQAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIeMCAQDqAwAhAAAAAAAB9gJAAAAAAQX2AgIAAAAB_AICAAAAAf0CAgAAAAH-AgIAAAAB_wICAAAAAQUtAACDCQAgLgAAiQkAIPMCAACECQAg9AIAAIgJACD5AgAAcgAgBS0AAIEJACAuAACGCQAg8wIAAIIJACD0AgAAhQkAIPkCAAALACADLQAAgwkAIPMCAACECQAg-QIAAHIAIAMtAACBCQAg8wIAAIIJACD5AgAACwAgAAAAAAAB9gIBAAAAAQUtAAD4CAAgLgAA_wgAIPMCAAD5CAAg9AIAAP4IACD5AgAAcgAgBS0AAPYIACAuAAD8CAAg8wIAAPcIACD0AgAA-wgAIPkCAAAFACALLQAAywQAMC4AANAEADDzAgAAzAQAMPQCAADNBAAw9QIAAM4EACD2AgAAzwQAMPcCAADPBAAw-AIAAM8EADD5AgAAzwQAMPoCAADRBAAw-wIAANIEADAEAwAAwAQAIKwCAgAAAAGtAgIAAAABrwJAAAAAAQIAAAAPACAtAADWBAAgAwAAAA8AIC0AANYEACAuAADVBAAgASYAAPoIADAKAwAA9gMAIAYAAK0EACCpAgAArAQAMKoCAAANABCrAgAArAQAMKwCAgAAAAGtAgIA6QMAIa4CAgDpAwAhrwJAAPUDACHwAgAAqwQAIAIAAAAPACAmAADVBAAgAgAAANMEACAmAADUBAAgB6kCAADSBAAwqgIAANMEABCrAgAA0gQAMKwCAgDpAwAhrQICAOkDACGuAgIA6QMAIa8CQAD1AwAhB6kCAADSBAAwqgIAANMEABCrAgAA0gQAMKwCAgDpAwAhrQICAOkDACGuAgIA6QMAIa8CQAD1AwAhA6wCAgC9BAAhrQICAL0EACGvAkAAvAQAIQQDAAC-BAAgrAICAL0EACGtAgIAvQQAIa8CQAC8BAAhBAMAAMAEACCsAgIAAAABrQICAAAAAa8CQAAAAAEDLQAA-AgAIPMCAAD5CAAg-QIAAHIAIAMtAAD2CAAg8wIAAPcIACD5AgAABQAgBC0AAMsEADDzAgAAzAQAMPUCAADOBAAg-QIAAM8EADAAAAAAAAUtAADxCAAgLgAA9AgAIPMCAADyCAAg9AIAAPMIACD5AgAAJAAgAy0AAPEIACDzAgAA8ggAIPkCAAAkACAAAAAAAAH2AgAAAMwCAgUtAADpCAAgLgAA7wgAIPMCAADqCAAg9AIAAO4IACD5AgAAKAAgBS0AAOcIACAuAADsCAAg8wIAAOgIACD0AgAA6wgAIPkCAAAkACADLQAA6QgAIPMCAADqCAAg-QIAACgAIAMtAADnCAAg8wIAAOgIACD5AgAAJAAgAAAAAAAAAfYCAQAAAAEB9gJAAAAAAQH2AgAAANQCAgUtAADbCAAgLgAA5QgAIPMCAADcCAAg9AIAAOQIACD5AgAAJAAgBS0AANkIACAuAADiCAAg8wIAANoIACD0AgAA4QgAIPkCAADlAQAgBS0AANcIACAuAADfCAAg8wIAANgIACD0AgAA3ggAIPkCAAByACALLQAA-AQAMC4AAP0EADDzAgAA-QQAMPQCAAD6BAAw9QIAAPsEACD2AgAA_AQAMPcCAAD8BAAw-AIAAPwEADD5AgAA_AQAMPoCAAD-BAAw-wIAAP8EADAFEAAA6gQAIKwCAgAAAAHGAgIAAAABxwJAAAAAAcwCAAAAzAICAgAAADMAIC0AAIMFACADAAAAMwAgLQAAgwUAIC4AAIIFACABJgAA3QgAMAoQAACSBAAgFAAAlgQAIKkCAACUBAAwqgIAADEAEKsCAACUBAAwrAICAAAAAcYCAgDpAwAhxwJAAPUDACHMAgAAlQTMAiLNAgIA6QMAIQIAAAAzACAmAACCBQAgAgAAAIAFACAmAACBBQAgCKkCAAD_BAAwqgIAAIAFABCrAgAA_wQAMKwCAgDpAwAhxgICAOkDACHHAkAA9QMAIcwCAACVBMwCIs0CAgDpAwAhCKkCAAD_BAAwqgIAAIAFABCrAgAA_wQAMKwCAgDpAwAhxgICAOkDACHHAkAA9QMAIcwCAACVBMwCIs0CAgDpAwAhBKwCAgC9BAAhxgICAL0EACHHAkAAvAQAIcwCAADmBMwCIgUQAADoBAAgrAICAL0EACHGAgIAvQQAIccCQAC8BAAhzAIAAOYEzAIiBRAAAOoEACCsAgIAAAABxgICAAAAAccCQAAAAAHMAgAAAMwCAgMtAADbCAAg8wIAANwIACD5AgAAJAAgAy0AANkIACDzAgAA2ggAIPkCAADlAQAgAy0AANcIACDzAgAA2AgAIPkCAAByACAELQAA-AQAMPMCAAD5BAAw9QIAAPsEACD5AgAA_AQAMAAAAAAABS0AAM8IACAuAADVCAAg8wIAANAIACD0AgAA1AgAIPkCAAByACAFLQAAzQgAIC4AANIIACDzAgAAzggAIPQCAADRCAAg-QIAABQAIAMtAADPCAAg8wIAANAIACD5AgAAcgAgAy0AAM0IACDzAgAAzggAIPkCAAAUACAAAAAAAAH2AgAAANkCAgUtAADICAAgLgAAywgAIPMCAADJCAAg9AIAAMoIACD5AgAAFAAgAy0AAMgIACDzAgAAyQgAIPkCAAAUACAAAAAAAAUtAAC-CAAgLgAAxggAIPMCAAC_CAAg9AIAAMUIACD5AgAAcgAgBS0AALwIACAuAADDCAAg8wIAAL0IACD0AgAAwggAIPkCAAAFACALLQAArgUAMC4AALMFADDzAgAArwUAMPQCAACwBQAw9QIAALEFACD2AgAAsgUAMPcCAACyBQAw-AIAALIFADD5AgAAsgUAMPoCAAC0BQAw-wIAALUFADALLQAAogUAMC4AAKcFADDzAgAAowUAMPQCAACkBQAw9QIAAKUFACD2AgAApgUAMPcCAACmBQAw-AIAAKYFADD5AgAApgUAMPoCAACoBQAw-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_AQAMPgCAAD8BAAw-QIAAPwEADD6AgAApQYAMPsCAAD_BAAwBy0AAJMGACAuAACWBgAg8wIAAJQGACD0AgAAlQYAIPcCAAAHACD4AgAABwAg-QIAAAEAIAstAACKBgAwLgAAjgYAMPMCAACLBgAw9AIAAIwGADD1AgAAjQYAIPYCAADSBQAw9wIAANIFADD4AgAA0gUAMPkCAADSBQAw-gIAAI8GADD7AgAA1QUAMAstAAD-BQAwLgAAgwYAMPMCAAD_BQAw9AIAAIAGADD1AgAAgQYAIPYCAACCBgAw9wIAAIIGADD4AgAAggYAMPkCAACCBgAw-gIAAIQGADD7AgAAhQYAMAOsAgIAAAAB4QIAAADhAgLiAgEAAAABAgAAAD8AIC0AAIkGACADAAAAPwAgLQAAiQYAIC4AAIgGACABJgAApwgAMAoQAACSBAAgqQIAAJAEADCqAgAAPQAQqwIAAJAEADCsAgIAAAABxgICAOkDACHhAgAAkQThAiLiAgEA6gMAIe0CAACOBAAg7gIAAI8EACACAAAAPwAgJgAAiAYAIAIAAACGBgAgJgAAhwYAIAepAgAAhQYAMKoCAACGBgAQqwIAAIUGADCsAgIA6QMAIcYCAgDpAwAh4QIAAJEE4QIi4gIBAOoDACEHqQIAAIUGADCqAgAAhgYAEKsCAACFBgAwrAICAOkDACHGAgIA6QMAIeECAACRBOECIuICAQDqAwAhA6wCAgC9BAAh4QIAAO8F4QIi4gIBAMcEACEDrAICAL0EACHhAgAA7wXhAiLiAgEAxwQAIQOsAgIAAAAB4QIAAADhAgLiAgEAAAABBBIAAMYFACCsAgIAAAABzwICAAAAAdoCAgAAAAECAAAALQAgLQAAkgYAIAMAAAAtACAtAACSBgAgLgAAkQYAIAEmAACmCAAwAgAAAC0AICYAAJEGACACAAAA1gUAICYAAJAGACADrAICAL0EACHPAgIAvQQAIdoCAgC9BAAhBBIAAMQFACCsAgIAvQQAIc8CAgC9BAAh2gICAL0EACEEEgAAxgUAIKwCAgAAAAHPAgIAAAAB2gICAAAAAQwDAACeBgAgHwAAnwYAIKwCAgAAAAGtAgIAAAABwQJAAAAAAcICQAAAAAHjAgEAAAAB5gIBAAAAAegCAAAA6AIC6QIgAAAAAeoCAgAAAAHsAgAAAOwCAgIAAAABACAtAACTBgAgAwAAAAcAIC0AAJMGACAuAACXBgAgDgAAAAcAIAMAAJsGACAfAACcBgAgJgAAlwYAIKwCAgC9BAAhrQICAL0EACHBAkAAvAQAIcICQAC8BAAh4wIBAMcEACHmAgEAxwQAIegCAACYBugCIukCIACZBgAh6gICAJ0GACHsAgAAmgbsAiIMAwAAmwYAIB8AAJwGACCsAgIAvQQAIa0CAgC9BAAhwQJAALwEACHCAkAAvAQAIeMCAQDHBAAh5gIBAMcEACHoAgAAmAboAiLpAiAAmQYAIeoCAgCdBgAh7AIAAJoG7AIiAfYCAAAA6AICAfYCIAAAAAEB9gIAAADsAgIFLQAAnggAIC4AAKQIACDzAgAAnwgAIPQCAACjCAAg-QIAAHIAIActAACcCAAgLgAAoQgAIPMCAACdCAAg9AIAAKAIACD3AgAAAwAg-AIAAAMAIPkCAAAFACAF9gICAAAAAfwCAgAAAAH9AgIAAAAB_gICAAAAAf8CAgAAAAEDLQAAnggAIPMCAACfCAAg-QIAAHIAIAMtAACcCAAg8wIAAJ0IACD5AgAABQAgBRQAAOkEACCsAgIAAAABxwJAAAAAAcwCAAAAzAICzQICAAAAAQIAAAAzACAtAACoBgAgAwAAADMAIC0AAKgGACAuAACnBgAgASYAAJsIADACAAAAMwAgJgAApwYAIAIAAACABQAgJgAApgYAIASsAgIAvQQAIccCQAC8BAAhzAIAAOYEzAIizQICAL0EACEFFAAA5wQAIKwCAgC9BAAhxwJAALwEACHMAgAA5gTMAiLNAgIAvQQAIQUUAADpBAAgrAICAAAAAccCQAAAAAHMAgAAAMwCAs0CAgAAAAEFrAICAAAAAccCQAAAAAHIAgIAAAAByQICAAAAAcoCAgAAAAECAAAAOAAgLQAAtAYAIAMAAAA4ACAtAAC0BgAgLgAAswYAIAEmAACaCAAwChAAAJIEACCpAgAAkwQAMKoCAAA2ABCrAgAAkwQAMKwCAgAAAAHGAgIA6QMAIccCQAD1AwAhyAICAOkDACHJAgIA6QMAIcoCAgDpAwAhAgAAADgAICYAALMGACACAAAAsQYAICYAALIGACAJqQIAALAGADCqAgAAsQYAEKsCAACwBgAwrAICAOkDACHGAgIA6QMAIccCQAD1AwAhyAICAOkDACHJAgIA6QMAIcoCAgDpAwAhCakCAACwBgAwqgIAALEGABCrAgAAsAYAMKwCAgDpAwAhxgICAOkDACHHAkAA9QMAIcgCAgDpAwAhyQICAOkDACHKAgIA6QMAIQWsAgIAvQQAIccCQAC8BAAhyAICAL0EACHJAgIAvQQAIcoCAgC9BAAhBawCAgC9BAAhxwJAALwEACHIAgIAvQQAIckCAgC9BAAhygICAL0EACEFrAICAAAAAccCQAAAAAHIAgIAAAAByQICAAAAAcoCAgAAAAELAwAAhgUAIBIAAIUFACAVAACHBQAgrAICAAAAAa0CAgAAAAHOAgEAAAABzwICAAAAAdACQAAAAAHRAkAAAAAB0gICAAAAAdQCAAAA1AICAgAAACgAIC0AAL0GACADAAAAKAAgLQAAvQYAIC4AALwGACABJgAAmQgAMAIAAAAoACAmAAC8BgAgAgAAAOIFACAmAAC7BgAgCKwCAgC9BAAhrQICAL0EACHOAgEA8QQAIc8CAgC9BAAh0AJAALwEACHRAkAA8gQAIdICAgC9BAAh1AIAAPME1AIiCwMAAPYEACASAAD1BAAgFQAA9wQAIKwCAgC9BAAhrQICAL0EACHOAgEA8QQAIc8CAgC9BAAh0AJAALwEACHRAkAA8gQAIdICAgC9BAAh1AIAAPME1AIiCwMAAIYFACASAACFBQAgFQAAhwUAIKwCAgAAAAGtAgIAAAABzgIBAAAAAc8CAgAAAAHQAkAAAAAB0QJAAAAAAdICAgAAAAHUAgAAANQCAgMtAACXCAAg8wIAAJgIACD5AgAAcgAgBC0AALUGADDzAgAAtgYAMPUCAAC4BgAg-QIAAN4FADAELQAAqQYAMPMCAACqBgAw9QIAAKwGACD5AgAArQYAMAQtAACgBgAw8wIAAKEGADD1AgAAowYAIPkCAAD8BAAwAy0AAJMGACDzAgAAlAYAIPkCAAABACAELQAAigYAMPMCAACLBgAw9QIAAI0GACD5AgAA0gUAMAQtAAD-BQAw8wIAAP8FADD1AgAAgQYAIPkCAACCBgAwAAAAAAAFLQAAiwgAIC4AAJUIACDzAgAAjAgAIPQCAACUCAAg-QIAAHIAIActAADmBgAgLgAA6QYAIPMCAADnBgAg9AIAAOgGACD3AgAABwAg-AIAAAcAIPkCAAABACALLQAA2gYAMC4AAN8GADDzAgAA2wYAMPQCAADcBgAw9QIAAN0GACD2AgAA3gYAMPcCAADeBgAw-AIAAN4GADD5AgAA3gYAMPoCAADgBgAw-wIAAOEGADALLQAAzgYAMC4AANMGADDzAgAAzwYAMPQCAADQBgAw9QIAANEGACD2AgAA0gYAMPcCAADSBgAw-AIAANIGADD5AgAA0gYAMPoCAADUBgAw-wIAANUGADAGAwAAugUAIAsAALwFACANAAC9BQAgrAICAAAAAa0CAgAAAAG4AgEAAAABAgAAABQAIC0AANkGACADAAAAFAAgLQAA2QYAIC4AANgGACABJgAAkwgAMAsDAAD2AwAgBQAAqQQAIAsAAKoEACANAAD_AwAgqQIAAKgEADCqAgAAEgAQqwIAAKgEADCsAgIAAAABrQICAOkDACG4AgEA6gMAIcACAgDpAwAhAgAAABQAICYAANgGACACAAAA1gYAICYAANcGACAHqQIAANUGADCqAgAA1gYAEKsCAADVBgAwrAICAOkDACGtAgIA6QMAIbgCAQDqAwAhwAICAOkDACEHqQIAANUGADCqAgAA1gYAEKsCAADVBgAwrAICAOkDACGtAgIA6QMAIbgCAQDqAwAhwAICAOkDACEDrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhBgMAAJ4FACALAACgBQAgDQAAoQUAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQYDAAC6BQAgCwAAvAUAIA0AAL0FACCsAgIAAAABrQICAAAAAbgCAQAAAAEOAwAA1wQAIAcAANkEACCsAgIAAAABrQICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_AgIAAAABwQJAAAAAAcICQAAAAAECAAAACwAgLQAA5QYAIAMAAAALACAtAADlBgAgLgAA5AYAIAEmAACSCAAwEwMAAPYDACAFAACpBAAgBwAA_gMAIKkCAACuBAAwqgIAAAkAEKsCAACuBAAwrAICAAAAAa0CAgDpAwAhuAIBAOoDACG5AgIA6QMAIboCAgDpAwAhuwICAOkDACG8AgIA6QMAIb0CAgDpAwAhvgICAOkDACG_AgIA6QMAIcACAgDpAwAhwQJAAPUDACHCAkAA9QMAIQIAAAALACAmAADkBgAgAgAAAOIGACAmAADjBgAgEKkCAADhBgAwqgIAAOIGABCrAgAA4QYAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIbkCAgDpAwAhugICAOkDACG7AgIA6QMAIbwCAgDpAwAhvQICAOkDACG-AgIA6QMAIb8CAgDpAwAhwAICAOkDACHBAkAA9QMAIcICQAD1AwAhEKkCAADhBgAwqgIAAOIGABCrAgAA4QYAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIbkCAgDpAwAhugICAOkDACG7AgIA6QMAIbwCAgDpAwAhvQICAOkDACG-AgIA6QMAIb8CAgDpAwAhwAICAOkDACHBAkAA9QMAIcICQAD1AwAhDKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIbkCAgC9BAAhugICAL0EACG7AgIAvQQAIbwCAgC9BAAhvQICAL0EACG-AgIAvQQAIb8CAgC9BAAhwQJAALwEACHCAkAAvAQAIQ4DAADIBAAgBwAAygQAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIbkCAgC9BAAhugICAL0EACG7AgIAvQQAIbwCAgC9BAAhvQICAL0EACG-AgIAvQQAIb8CAgC9BAAhwQJAALwEACHCAkAAvAQAIQ4DAADXBAAgBwAA2QQAIKwCAgAAAAGtAgIAAAABuAIBAAAAAbkCAgAAAAG6AgIAAAABuwICAAAAAbwCAgAAAAG9AgIAAAABvgICAAAAAb8CAgAAAAHBAkAAAAABwgJAAAAAAQwDAACeBgAgIAAA7AYAIKwCAgAAAAGtAgIAAAABwQJAAAAAAcICQAAAAAHGAgIAAAAB4wIBAAAAAeYCAQAAAAHoAgAAAOgCAukCIAAAAAHsAgAAAOwCAgIAAAABACAtAADmBgAgAwAAAAcAIC0AAOYGACAuAADqBgAgDgAAAAcAIAMAAJsGACAgAADrBgAgJgAA6gYAIKwCAgC9BAAhrQICAL0EACHBAkAAvAQAIcICQAC8BAAhxgICAJ0GACHjAgEAxwQAIeYCAQDHBAAh6AIAAJgG6AIi6QIgAJkGACHsAgAAmgbsAiIMAwAAmwYAICAAAOsGACCsAgIAvQQAIa0CAgC9BAAhwQJAALwEACHCAkAAvAQAIcYCAgCdBgAh4wIBAMcEACHmAgEAxwQAIegCAACYBugCIukCIACZBgAh7AIAAJoG7AIiBy0AAI0IACAuAACQCAAg8wIAAI4IACD0AgAAjwgAIPcCAAAiACD4AgAAIgAg-QIAACQAIAMtAACNCAAg8wIAAI4IACD5AgAAJAAgAy0AAIsIACDzAgAAjAgAIPkCAAByACADLQAA5gYAIPMCAADnBgAg-QIAAAEAIAQtAADaBgAw8wIAANsGADD1AgAA3QYAIPkCAADeBgAwBC0AAM4GADDzAgAAzwYAMPUCAADRBgAg-QIAANIGADAAAAAAAAUtAACGCAAgLgAAiQgAIPMCAACHCAAg9AIAAIgIACD5AgAAcgAgAy0AAIYIACDzAgAAhwgAIPkCAAByACAJCQAA6gcAIA8AAOYHACARAADoBQAgGQAA5wcAIBoAAOgHACAbAADpBwAgHAAA6wcAIB0AAOwHACAeAADtBwAgAAAAAAALLQAA0QcAMC4AANYHADDzAgAA0gcAMPQCAADTBwAw9QIAANQHACD2AgAA1QcAMPcCAADVBwAw-AIAANUHADD5AgAA1QcAMPoCAADXBwAw-wIAANgHADALLQAAxQcAMC4AAMoHADDzAgAAxgcAMPQCAADHBwAw9QIAAMgHACD2AgAAyQcAMPcCAADJBwAw-AIAAMkHADD5AgAAyQcAMPoCAADLBwAw-wIAAMwHADALLQAAvAcAMC4AAMAHADDzAgAAvQcAMPQCAAC-BwAw9QIAAL8HACD2AgAA3gUAMPcCAADeBQAw-AIAAN4FADD5AgAA3gUAMPoCAADBBwAw-wIAAOEFADALLQAAswcAMC4AALcHADDzAgAAtAcAMPQCAAC1BwAw9QIAALYHACD2AgAA0gYAMPcCAADSBgAw-AIAANIGADD5AgAA0gYAMPoCAAC4BwAw-wIAANUGADALLQAApwcAMC4AAKwHADDzAgAAqAcAMPQCAACpBwAw9QIAAKoHACD2AgAAqwcAMPcCAACrBwAw-AIAAKsHADD5AgAAqwcAMPoCAACtBwAw-wIAAK4HADALLQAAngcAMC4AAKIHADDzAgAAnwcAMPQCAACgBwAw9QIAAKEHACD2AgAA3gYAMPcCAADeBgAw-AIAAN4GADD5AgAA3gYAMPoCAACjBwAw-wIAAOEGADALLQAAlQcAMC4AAJkHADDzAgAAlgcAMPQCAACXBwAw9QIAAJgHACD2AgAAzwQAMPcCAADPBAAw-AIAAM8EADD5AgAAzwQAMPoCAACaBwAw-wIAANIEADALLQAAjAcAMC4AAJAHADDzAgAAjQcAMPQCAACOBwAw9QIAAI8HACD2AgAApgUAMPcCAACmBQAw-AIAAKYFADD5AgAApgUAMPoCAACRBwAw-wIAAKkFADAHLQAAhwcAIC4AAIoHACDzAgAAiAcAIPQCAACJBwAg9wIAAE0AIPgCAABNACD5AgAAiwEAIAWsAgIAAAABwQJAAAAAAcICQAAAAAHkAgEAAAAB5QIBAAAAAQIAAACLAQAgLQAAhwcAIAMAAABNACAtAACHBwAgLgAAiwcAIAcAAABNACAmAACLBwAgrAICAL0EACHBAkAAvAQAIcICQAC8BAAh5AIBAMcEACHlAgEAxwQAIQWsAgIAvQQAIcECQAC8BAAhwgJAALwEACHkAgEAxwQAIeUCAQDHBAAhBAwAAJAFACCsAgIAAAABrwJAAAAAAdUCAgAAAAECAAAAHAAgLQAAlAcAIAMAAAAcACAtAACUBwAgLgAAkwcAIAEmAACFCAAwAgAAABwAICYAAJMHACACAAAAqgUAICYAAJIHACADrAICAL0EACGvAkAAvAQAIdUCAgC9BAAhBAwAAI4FACCsAgIAvQQAIa8CQAC8BAAh1QICAL0EACEEDAAAkAUAIKwCAgAAAAGvAkAAAAAB1QICAAAAAQQGAADBBAAgrAICAAAAAa4CAgAAAAGvAkAAAAABAgAAAA8AIC0AAJ0HACADAAAADwAgLQAAnQcAIC4AAJwHACABJgAAhAgAMAIAAAAPACAmAACcBwAgAgAAANMEACAmAACbBwAgA6wCAgC9BAAhrgICAL0EACGvAkAAvAQAIQQGAAC_BAAgrAICAL0EACGuAgIAvQQAIa8CQAC8BAAhBAYAAMEEACCsAgIAAAABrgICAAAAAa8CQAAAAAEOBQAA2AQAIAcAANkEACCsAgIAAAABuAIBAAAAAbkCAgAAAAG6AgIAAAABuwICAAAAAbwCAgAAAAG9AgIAAAABvgICAAAAAb8CAgAAAAHAAgIAAAABwQJAAAAAAcICQAAAAAECAAAACwAgLQAApgcAIAMAAAALACAtAACmBwAgLgAApQcAIAEmAACDCAAwAgAAAAsAICYAAKUHACACAAAA4gYAICYAAKQHACAMrAICAL0EACG4AgEAxwQAIbkCAgC9BAAhugICAL0EACG7AgIAvQQAIbwCAgC9BAAhvQICAL0EACG-AgIAvQQAIb8CAgC9BAAhwAICAL0EACHBAkAAvAQAIcICQAC8BAAhDgUAAMkEACAHAADKBAAgrAICAL0EACG4AgEAxwQAIbkCAgC9BAAhugICAL0EACG7AgIAvQQAIbwCAgC9BAAhvQICAL0EACG-AgIAvQQAIb8CAgC9BAAhwAICAL0EACHBAkAAvAQAIcICQAC8BAAhDgUAANgEACAHAADZBAAgrAICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_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-wUAIBEAAPgFACAVAAD6BQAgFgAA-QUAIBcAAPwFACAYAAD9BQAgrAICAL0EACG4AgEAxwQAIQgEAADCBgAgEQAAvwYAIBUAAMEGACAWAADABgAgFwAAwwYAIBgAAMQGACCsAgIAAAABuAIBAAAAAQYEAADuBgAgCQAA7wYAIA4AAPAGACCsAgIAAAABuAIBAAAAAeMCAQAAAAECAAAABQAgLQAA3AcAIAMAAAAFACAtAADcBwAgLgAA2wcAIAEmAAD-BwAwCwMAAPYDACAEAAChBAAgCQAA_QMAIA4AAPsDACCpAgAAtgQAMKoCAAADABCrAgAAtgQAMKwCAgAAAAGtAgIA6QMAIbgCAQDqAwAh4wIBAAAAAQIAAAAFACAmAADbBwAgAgAAANkHACAmAADaBwAgB6kCAADYBwAwqgIAANkHABCrAgAA2AcAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIeMCAQDqAwAhB6kCAADYBwAwqgIAANkHABCrAgAA2AcAMKwCAgDpAwAhrQICAOkDACG4AgEA6gMAIeMCAQDqAwAhA6wCAgC9BAAhuAIBAMcEACHjAgEAxwQAIQYEAADLBgAgCQAAzAYAIA4AAM0GACCsAgIAvQQAIbgCAQDHBAAh4wIBAMcEACEGBAAA7gYAIAkAAO8GACAOAADwBgAgrAICAAAAAbgCAQAAAAHjAgEAAAABBC0AANEHADDzAgAA0gcAMPUCAADUBwAg-QIAANUHADAELQAAxQcAMPMCAADGBwAw9QIAAMgHACD5AgAAyQcAMAQtAAC8BwAw8wIAAL0HADD1AgAAvwcAIPkCAADeBQAwBC0AALMHADDzAgAAtAcAMPUCAAC2BwAg-QIAANIGADAELQAApwcAMPMCAACoBwAw9QIAAKoHACD5AgAAqwcAMAQtAACeBwAw8wIAAJ8HADD1AgAAoQcAIPkCAADeBgAwBC0AAJUHADDzAgAAlgcAMPUCAACYBwAg-QIAAM8EADAELQAAjAcAMPMCAACNBwAw9QIAAI8HACD5AgAApgUAMAMtAACHBwAg8wIAAIgHACD5AgAAiwEAIAAAAAAAAAABAwAA-AYAIAAAAAAABAMAAPgGACAEAAD5BwAgCQAA6gcAIA4AAOgHACAHAwAA-AYAIAQAAPkHACARAADoBQAgFQAA9wcAIBYAAPgHACAXAADpBQAgGAAA-gcAIAYDAAD4BgAgEAAA9AcAIBIAAPYHACAVAAD3BwAgzgIAAOsEACDRAgAA6wQAIAIRAADoBQAgEwAA6QUAIAAABQMAAPgGACAfAADzBwAgIAAA9AcAIMYCAADrBAAg6gIAAOsEACAABAMAAPgGACAFAADzBwAgCwAA_AcAIA0AAOwHACAAAwMAAPgGACAFAADzBwAgBwAA6wcAIAOsAgIAAAABuAIBAAAAAeMCAQAAAAECrAICAAAAAbgCAQAAAAEIrAICAAAAAcYCAgAAAAHOAgEAAAABzwICAAAAAdACQAAAAAHRAkAAAAAB0gICAAAAAdQCAAAA1AICA6wCAgAAAAG4AgEAAAABwAICAAAAAQqsAgIAAAABwQJAAAAAAcICQAAAAAHGAgIAAAAB4wIBAAAAAeYCAQAAAAHoAgAAAOgCAukCIAAAAAHqAgIAAAAB7AIAAADsAgIMrAICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_AgIAAAABwAICAAAAAcECQAAAAAHCAkAAAAABA6wCAgAAAAGuAgIAAAABrwJAAAAAAQOsAgIAAAABrwJAAAAAAdUCAgAAAAELCQAA4gcAIA8AAN0HACARAADfBwAgGQAA3gcAIBoAAOAHACAbAADhBwAgHAAA4wcAIB0AAOQHACCsAgIAAAABuAIBAAAAAcECQAAAAAECAAAAcgAgLQAAhggAIAMAAAB1ACAtAACGCAAgLgAAiggAIA0AAAB1ACAJAACDBwAgDwAA_gYAIBEAAIAHACAZAAD_BgAgGgAAgQcAIBsAAIIHACAcAACEBwAgHQAAhQcAICYAAIoIACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACELCQAAgwcAIA8AAP4GACARAACABwAgGQAA_wYAIBoAAIEHACAbAACCBwAgHAAAhAcAIB0AAIUHACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACELCQAA4gcAIBEAAN8HACAZAADeBwAgGgAA4AcAIBsAAOEHACAcAADjBwAgHQAA5AcAIB4AAOUHACCsAgIAAAABuAIBAAAAAcECQAAAAAECAAAAcgAgLQAAiwgAIAkDAAC-BgAgEQAAvwYAIBUAAMEGACAWAADABgAgFwAAwwYAIBgAAMQGACCsAgIAAAABrQICAAAAAbgCAQAAAAECAAAAJAAgLQAAjQgAIAMAAAAiACAtAACNCAAgLgAAkQgAIAsAAAAiACADAAD3BQAgEQAA-AUAIBUAAPoFACAWAAD5BQAgFwAA_AUAIBgAAP0FACAmAACRCAAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhCQMAAPcFACARAAD4BQAgFQAA-gUAIBYAAPkFACAXAAD8BQAgGAAA_QUAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQysAgIAAAABrQICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_AgIAAAABwQJAAAAAAcICQAAAAAEDrAICAAAAAa0CAgAAAAG4AgEAAAABAwAAAHUAIC0AAIsIACAuAACWCAAgDQAAAHUAIAkAAIMHACARAACABwAgGQAA_wYAIBoAAIEHACAbAACCBwAgHAAAhAcAIB0AAIUHACAeAACGBwAgJgAAlggAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAACDBwAgEQAAgAcAIBkAAP8GACAaAACBBwAgGwAAggcAIBwAAIQHACAdAACFBwAgHgAAhgcAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAADiBwAgDwAA3QcAIBEAAN8HACAaAADgBwAgGwAA4QcAIBwAAOMHACAdAADkBwAgHgAA5QcAIKwCAgAAAAG4AgEAAAABwQJAAAAAAQIAAAByACAtAACXCAAgCKwCAgAAAAGtAgIAAAABzgIBAAAAAc8CAgAAAAHQAkAAAAAB0QJAAAAAAdICAgAAAAHUAgAAANQCAgWsAgIAAAABxwJAAAAAAcgCAgAAAAHJAgIAAAABygICAAAAAQSsAgIAAAABxwJAAAAAAcwCAAAAzAICzQICAAAAAQcDAADtBgAgCQAA7wYAIA4AAPAGACCsAgIAAAABrQICAAAAAbgCAQAAAAHjAgEAAAABAgAAAAUAIC0AAJwIACALCQAA4gcAIA8AAN0HACARAADfBwAgGQAA3gcAIBoAAOAHACAcAADjBwAgHQAA5AcAIB4AAOUHACCsAgIAAAABuAIBAAAAAcECQAAAAAECAAAAcgAgLQAAnggAIAMAAAADACAtAACcCAAgLgAAoggAIAkAAAADACADAADKBgAgCQAAzAYAIA4AAM0GACAmAACiCAAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAh4wIBAMcEACEHAwAAygYAIAkAAMwGACAOAADNBgAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAh4wIBAMcEACEDAAAAdQAgLQAAnggAIC4AAKUIACANAAAAdQAgCQAAgwcAIA8AAP4GACARAACABwAgGQAA_wYAIBoAAIEHACAcAACEBwAgHQAAhQcAIB4AAIYHACAmAAClCAAgrAICAL0EACG4AgEAxwQAIcECQAC8BAAhCwkAAIMHACAPAAD-BgAgEQAAgAcAIBkAAP8GACAaAACBBwAgHAAAhAcAIB0AAIUHACAeAACGBwAgrAICAL0EACG4AgEAxwQAIcECQAC8BAAhA6wCAgAAAAHPAgIAAAAB2gICAAAAAQOsAgIAAAAB4QIAAADhAgLiAgEAAAABAwAAAHUAIC0AAJcIACAuAACqCAAgDQAAAHUAIAkAAIMHACAPAAD-BgAgEQAAgAcAIBoAAIEHACAbAACCBwAgHAAAhAcAIB0AAIUHACAeAACGBwAgJgAAqggAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAACDBwAgDwAA_gYAIBEAAIAHACAaAACBBwAgGwAAggcAIBwAAIQHACAdAACFBwAgHgAAhgcAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQkDAAC-BgAgBAAAwgYAIBEAAL8GACAVAADBBgAgFgAAwAYAIBcAAMMGACCsAgIAAAABrQICAAAAAbgCAQAAAAECAAAAJAAgLQAAqwgAIAMAAAAiACAtAACrCAAgLgAArwgAIAsAAAAiACADAAD3BQAgBAAA-wUAIBEAAPgFACAVAAD6BQAgFgAA-QUAIBcAAPwFACAmAACvCAAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhCQMAAPcFACAEAAD7BQAgEQAA-AUAIBUAAPoFACAWAAD5BQAgFwAA_AUAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQisAgIAAAABrQICAAAAAcYCAgAAAAHOAgEAAAAB0AJAAAAAAdECQAAAAAHSAgIAAAAB1AIAAADUAgIDrAICAAAAAcYCAgAAAAHaAgIAAAABBBEAAOYFACCsAgIAAAAB2wIBAAAAAdwCAgAAAAECAAAA5QEAIC0AALIIACAJAwAAvgYAIAQAAMIGACARAAC_BgAgFQAAwQYAIBYAAMAGACAYAADEBgAgrAICAAAAAa0CAgAAAAG4AgEAAAABAgAAACQAIC0AALQIACADAAAA6AEAIC0AALIIACAuAAC4CAAgBgAAAOgBACARAADMBQAgJgAAuAgAIKwCAgC9BAAh2wIBAMcEACHcAgIAvQQAIQQRAADMBQAgrAICAL0EACHbAgEAxwQAIdwCAgC9BAAhAwAAACIAIC0AALQIACAuAAC7CAAgCwAAACIAIAMAAPcFACAEAAD7BQAgEQAA-AUAIBUAAPoFACAWAAD5BQAgGAAA_QUAICYAALsIACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACEJAwAA9wUAIAQAAPsFACARAAD4BQAgFQAA-gUAIBYAAPkFACAYAAD9BQAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhBwMAAO0GACAEAADuBgAgCQAA7wYAIKwCAgAAAAGtAgIAAAABuAIBAAAAAeMCAQAAAAECAAAABQAgLQAAvAgAIAsJAADiBwAgDwAA3QcAIBEAAN8HACAZAADeBwAgGwAA4QcAIBwAAOMHACAdAADkBwAgHgAA5QcAIKwCAgAAAAG4AgEAAAABwQJAAAAAAQIAAAByACAtAAC-CAAgBawCAgAAAAG4AgEAAAAB1gICAAAAAdcCAgAAAAHZAgAAANkCAgOsAgIAAAABrQICAAAAAa8CQAAAAAEDAAAAAwAgLQAAvAgAIC4AAMQIACAJAAAAAwAgAwAAygYAIAQAAMsGACAJAADMBgAgJgAAxAgAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIeMCAQDHBAAhBwMAAMoGACAEAADLBgAgCQAAzAYAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIeMCAQDHBAAhAwAAAHUAIC0AAL4IACAuAADHCAAgDQAAAHUAIAkAAIMHACAPAAD-BgAgEQAAgAcAIBkAAP8GACAbAACCBwAgHAAAhAcAIB0AAIUHACAeAACGBwAgJgAAxwgAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAACDBwAgDwAA_gYAIBEAAIAHACAZAAD_BgAgGwAAggcAIBwAAIQHACAdAACFBwAgHgAAhgcAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQcDAAC6BQAgBQAAuwUAIA0AAL0FACCsAgIAAAABrQICAAAAAbgCAQAAAAHAAgIAAAABAgAAABQAIC0AAMgIACADAAAAEgAgLQAAyAgAIC4AAMwIACAJAAAAEgAgAwAAngUAIAUAAJ8FACANAAChBQAgJgAAzAgAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIcACAgC9BAAhBwMAAJ4FACAFAACfBQAgDQAAoQUAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIcACAgC9BAAhBwMAALoFACAFAAC7BQAgCwAAvAUAIKwCAgAAAAGtAgIAAAABuAIBAAAAAcACAgAAAAECAAAAFAAgLQAAzQgAIAsJAADiBwAgDwAA3QcAIBEAAN8HACAZAADeBwAgGgAA4AcAIBsAAOEHACAcAADjBwAgHgAA5QcAIKwCAgAAAAG4AgEAAAABwQJAAAAAAQIAAAByACAtAADPCAAgAwAAABIAIC0AAM0IACAuAADTCAAgCQAAABIAIAMAAJ4FACAFAACfBQAgCwAAoAUAICYAANMIACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACHAAgIAvQQAIQcDAACeBQAgBQAAnwUAIAsAAKAFACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACHAAgIAvQQAIQMAAAB1ACAtAADPCAAgLgAA1ggAIA0AAAB1ACAJAACDBwAgDwAA_gYAIBEAAIAHACAZAAD_BgAgGgAAgQcAIBsAAIIHACAcAACEBwAgHgAAhgcAICYAANYIACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACELCQAAgwcAIA8AAP4GACARAACABwAgGQAA_wYAIBoAAIEHACAbAACCBwAgHAAAhAcAIB4AAIYHACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACELCQAA4gcAIA8AAN0HACAZAADeBwAgGgAA4AcAIBsAAOEHACAcAADjBwAgHQAA5AcAIB4AAOUHACCsAgIAAAABuAIBAAAAAcECQAAAAAECAAAAcgAgLQAA1wgAIAQTAADnBQAgrAICAAAAAdsCAQAAAAHcAgIAAAABAgAAAOUBACAtAADZCAAgCQMAAL4GACAEAADCBgAgFQAAwQYAIBYAAMAGACAXAADDBgAgGAAAxAYAIKwCAgAAAAGtAgIAAAABuAIBAAAAAQIAAAAkACAtAADbCAAgBKwCAgAAAAHGAgIAAAABxwJAAAAAAcwCAAAAzAICAwAAAHUAIC0AANcIACAuAADgCAAgDQAAAHUAIAkAAIMHACAPAAD-BgAgGQAA_wYAIBoAAIEHACAbAACCBwAgHAAAhAcAIB0AAIUHACAeAACGBwAgJgAA4AgAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAACDBwAgDwAA_gYAIBkAAP8GACAaAACBBwAgGwAAggcAIBwAAIQHACAdAACFBwAgHgAAhgcAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQMAAADoAQAgLQAA2QgAIC4AAOMIACAGAAAA6AEAIBMAAM0FACAmAADjCAAgrAICAL0EACHbAgEAxwQAIdwCAgC9BAAhBBMAAM0FACCsAgIAvQQAIdsCAQDHBAAh3AICAL0EACEDAAAAIgAgLQAA2wgAIC4AAOYIACALAAAAIgAgAwAA9wUAIAQAAPsFACAVAAD6BQAgFgAA-QUAIBcAAPwFACAYAAD9BQAgJgAA5ggAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQkDAAD3BQAgBAAA-wUAIBUAAPoFACAWAAD5BQAgFwAA_AUAIBgAAP0FACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACEJAwAAvgYAIAQAAMIGACARAAC_BgAgFgAAwAYAIBcAAMMGACAYAADEBgAgrAICAAAAAa0CAgAAAAG4AgEAAAABAgAAACQAIC0AAOcIACAMAwAAhgUAIBAAAIQFACASAACFBQAgrAICAAAAAa0CAgAAAAHGAgIAAAABzgIBAAAAAc8CAgAAAAHQAkAAAAAB0QJAAAAAAdICAgAAAAHUAgAAANQCAgIAAAAoACAtAADpCAAgAwAAACIAIC0AAOcIACAuAADtCAAgCwAAACIAIAMAAPcFACAEAAD7BQAgEQAA-AUAIBYAAPkFACAXAAD8BQAgGAAA_QUAICYAAO0IACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACEJAwAA9wUAIAQAAPsFACARAAD4BQAgFgAA-QUAIBcAAPwFACAYAAD9BQAgrAICAL0EACGtAgIAvQQAIbgCAQDHBAAhAwAAACYAIC0AAOkIACAuAADwCAAgDgAAACYAIAMAAPYEACAQAAD0BAAgEgAA9QQAICYAAPAIACCsAgIAvQQAIa0CAgC9BAAhxgICAL0EACHOAgEA8QQAIc8CAgC9BAAh0AJAALwEACHRAkAA8gQAIdICAgC9BAAh1AIAAPME1AIiDAMAAPYEACAQAAD0BAAgEgAA9QQAIKwCAgC9BAAhrQICAL0EACHGAgIAvQQAIc4CAQDxBAAhzwICAL0EACHQAkAAvAQAIdECQADyBAAh0gICAL0EACHUAgAA8wTUAiIJAwAAvgYAIAQAAMIGACARAAC_BgAgFQAAwQYAIBcAAMMGACAYAADEBgAgrAICAAAAAa0CAgAAAAG4AgEAAAABAgAAACQAIC0AAPEIACADAAAAIgAgLQAA8QgAIC4AAPUIACALAAAAIgAgAwAA9wUAIAQAAPsFACARAAD4BQAgFQAA-gUAIBcAAPwFACAYAAD9BQAgJgAA9QgAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIQkDAAD3BQAgBAAA-wUAIBEAAPgFACAVAAD6BQAgFwAA_AUAIBgAAP0FACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACEHAwAA7QYAIAQAAO4GACAOAADwBgAgrAICAAAAAa0CAgAAAAG4AgEAAAAB4wIBAAAAAQIAAAAFACAtAAD2CAAgCw8AAN0HACARAADfBwAgGQAA3gcAIBoAAOAHACAbAADhBwAgHAAA4wcAIB0AAOQHACAeAADlBwAgrAICAAAAAbgCAQAAAAHBAkAAAAABAgAAAHIAIC0AAPgIACADrAICAAAAAa0CAgAAAAGvAkAAAAABAwAAAAMAIC0AAPYIACAuAAD9CAAgCQAAAAMAIAMAAMoGACAEAADLBgAgDgAAzQYAICYAAP0IACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACHjAgEAxwQAIQcDAADKBgAgBAAAywYAIA4AAM0GACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACHjAgEAxwQAIQMAAAB1ACAtAAD4CAAgLgAAgAkAIA0AAAB1ACAPAAD-BgAgEQAAgAcAIBkAAP8GACAaAACBBwAgGwAAggcAIBwAAIQHACAdAACFBwAgHgAAhgcAICYAAIAJACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACELDwAA_gYAIBEAAIAHACAZAAD_BgAgGgAAgQcAIBsAAIIHACAcAACEBwAgHQAAhQcAIB4AAIYHACCsAgIAvQQAIbgCAQDHBAAhwQJAALwEACEPAwAA1wQAIAUAANgEACCsAgIAAAABrQICAAAAAbgCAQAAAAG5AgIAAAABugICAAAAAbsCAgAAAAG8AgIAAAABvQICAAAAAb4CAgAAAAG_AgIAAAABwAICAAAAAcECQAAAAAHCAkAAAAABAgAAAAsAIC0AAIEJACALCQAA4gcAIA8AAN0HACARAADfBwAgGQAA3gcAIBoAAOAHACAbAADhBwAgHQAA5AcAIB4AAOUHACCsAgIAAAABuAIBAAAAAcECQAAAAAECAAAAcgAgLQAAgwkAIAMAAAAJACAtAACBCQAgLgAAhwkAIBEAAAAJACADAADIBAAgBQAAyQQAICYAAIcJACCsAgIAvQQAIa0CAgC9BAAhuAIBAMcEACG5AgIAvQQAIboCAgC9BAAhuwICAL0EACG8AgIAvQQAIb0CAgC9BAAhvgICAL0EACG_AgIAvQQAIcACAgC9BAAhwQJAALwEACHCAkAAvAQAIQ8DAADIBAAgBQAAyQQAIKwCAgC9BAAhrQICAL0EACG4AgEAxwQAIbkCAgC9BAAhugICAL0EACG7AgIAvQQAIbwCAgC9BAAhvQICAL0EACG-AgIAvQQAIb8CAgC9BAAhwAICAL0EACHBAkAAvAQAIcICQAC8BAAhAwAAAHUAIC0AAIMJACAuAACKCQAgDQAAAHUAIAkAAIMHACAPAAD-BgAgEQAAgAcAIBkAAP8GACAaAACBBwAgGwAAggcAIB0AAIUHACAeAACGBwAgJgAAigkAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQsJAACDBwAgDwAA_gYAIBEAAIAHACAZAAD_BgAgGgAAgQcAIBsAAIIHACAdAACFBwAgHgAAhgcAIKwCAgC9BAAhuAIBAMcEACHBAkAAvAQAIQMDAAIfVwMgWAwKCAAXCUoEDwYDEUYNGSUMGkcHG0kBHEsFHUwJHk4WBQMAAgQIAQgACwkMBA4VBwQDAAIFAAMHEAUIAAYCAwACBgAEAQcRAAUDAAIFAAMIAAoLGQgNHQkBCgAHAgMAAgwABwILHgANHwACCSAADiEACAMAAgQ7AQgAFREpDRU6ERY5Exc8DxhAFAUDAAIIABIQAAwSAA4VNBEDCAAQESoNEy4PAhAADBIADgIRLwATMAACEAAMFAANARU1AAEQAAwBEAAMBRFBABVDABZCABdEABhFAAEDAAIICVQAD08AEVEAGVAAGlIAG1MAHFUAHVYAAAMDAAIfYgMgYwwDAwACH2kDIGoMBQgAHDMAHTQAHjUAHzYAIAAAAAAABQgAHDMAHTQAHjUAHzYAIAAABQgAJTMAJjQAJzUAKDYAKQAAAAAABQgAJTMAJjQAJzUAKDYAKQEDAAIBAwACBQgALjMALzQAMDUAMTYAMgAAAAAABQgALjMALzQAMDUAMTYAMgEDAAIBAwACBQgANzMAODQAOTUAOjYAOwAAAAAABQgANzMAODQAOTUAOjYAOwEDAAIBAwACBQgAQDMAQTQAQjUAQzYARAAAAAAABQgAQDMAQTQAQjUAQzYARAEQAAwBEAAMBQgASTMASjQASzUATDYATQAAAAAABQgASTMASjQASzUATDYATQAABQgAUjMAUzQAVDUAVTYAVgAAAAAABQgAUjMAUzQAVDUAVTYAVgIQAAwSAA4CEAAMEgAOBQgAWzMAXDQAXTUAXjYAXwAAAAAABQgAWzMAXDQAXTUAXjYAXwIDAAIFAAMCAwACBQADBQgAZDMAZTQAZjUAZzYAaAAAAAAABQgAZDMAZTQAZjUAZzYAaAEKAAcBCgAHBQgAbTMAbjQAbzUAcDYAcQAAAAAABQgAbTMAbjQAbzUAcDYAcQIDAAIMAAcCAwACDAAHBQgAdjMAdzQAeDUAeTYAegAAAAAABQgAdjMAdzQAeDUAeTYAegMDAAIQAAwSAA4DAwACEAAMEgAOBQgAfzMAgAE0AIEBNQCCATYAgwEAAAAAAAUIAH8zAIABNACBATUAggE2AIMBAhAADBQADQIQAAwUAA0FCACIATMAiQE0AIoBNQCLATYAjAEAAAAAAAUIAIgBMwCJATQAigE1AIsBNgCMAQEQAAwBEAAMBQgAkQEzAJIBNACTATUAlAE2AJUBAAAAAAAFCACRATMAkgE0AJMBNQCUATYAlQECAwACBQADAgMAAgUAAwUIAJoBMwCbATQAnAE1AJ0BNgCeAQAAAAAABQgAmgEzAJsBNACcATUAnQE2AJ4BAgMAAgYABAIDAAIGAAQFCACjATMApAE0AKUBNQCmATYApwEAAAAAAAUIAKMBMwCkATQApQE1AKYBNgCnASECASJZASNaASRbASVcASdeAShgGClhGSplAStnGCxoGi9rATBsATFtGDdwGzhxITlzAjp0Ajt3Ajx4Aj15Aj57Aj99GEB-IkGAAQJCggEYQ4MBI0SEAQJFhQECRoYBGEeJASRIigEqSYwBFkqNARZLjwEWTJABFk2RARZOkwEWT5UBGFCWAStRmAEWUpoBGFObASxUnAEWVZ0BFlaeARhXoQEtWKIBM1mjAQNapAEDW6UBA1ymAQNdpwEDXqkBA1-rARhgrAE0Ya4BA2KwARhjsQE1ZLIBA2WzAQNmtAEYZ7cBNmi4ATxpuQEMaroBDGu7AQxsvAEMbb0BDG6_AQxvwQEYcMIBPXHEAQxyxgEYc8cBPnTIAQx1yQEMdsoBGHfNAT94zgFFec8BFHrQARR70QEUfNIBFH3TARR-1QEUf9cBGIAB2AFGgQHaARSCAdwBGIMB3QFHhAHeARSFAd8BFIYB4AEYhwHjAUiIAeQBTokB5gEOigHnAQ6LAeoBDowB6wEOjQHsAQ6OAe4BDo8B8AEYkAHxAU-RAfMBDpIB9QEYkwH2AVCUAfcBDpUB-AEOlgH5ARiXAfwBUZgB_QFXmQH-AQ-aAf8BD5sBgAIPnAGBAg-dAYICD54BhAIPnwGGAhigAYcCWKEBiQIPogGLAhijAYwCWaQBjQIPpQGOAg-mAY8CGKcBkgJaqAGTAmCpAZQCB6oBlQIHqwGWAgesAZcCB60BmAIHrgGaAgevAZwCGLABnQJhsQGfAgeyAaECGLMBogJitAGjAge1AaQCB7YBpQIYtwGoAmO4AakCabkBqgIIugGrAgi7AawCCLwBrQIIvQGuAgi-AbACCL8BsgIYwAGzAmrBAbUCCMIBtwIYwwG4AmvEAbkCCMUBugIIxgG7AhjHAb4CbMgBvwJyyQHAAgnKAcECCcsBwgIJzAHDAgnNAcQCCc4BxgIJzwHIAhjQAckCc9EBywIJ0gHNAhjTAc4CdNQBzwIJ1QHQAgnWAdECGNcB1AJ12AHVAnvZAdYCDdoB1wIN2wHYAg3cAdkCDd0B2gIN3gHcAg3fAd4CGOAB3wJ84QHhAg3iAeMCGOMB5AJ95AHlAg3lAeYCDeYB5wIY5wHqAn7oAesChAHpAewCEeoB7QIR6wHuAhHsAe8CEe0B8AIR7gHyAhHvAfQCGPAB9QKFAfEB9wIR8gH5AhjzAfoChgH0AfsCEfUB_AIR9gH9Ahj3AYADhwH4AYEDjQH5AYIDE_oBgwMT-wGEAxP8AYUDE_0BhgMT_gGIAxP_AYoDGIACiwOOAYECjQMTggKPAxiDApADjwGEApEDE4UCkgMThgKTAxiHApYDkAGIApcDlgGJApgDBIoCmQMEiwKaAwSMApsDBI0CnAMEjgKeAwSPAqADGJACoQOXAZECowMEkgKlAxiTAqYDmAGUAqcDBJUCqAMElgKpAxiXAqwDmQGYAq0DnwGZAq4DBZoCrwMFmwKwAwWcArEDBZ0CsgMFngK0AwWfArYDGKACtwOgAaECuQMFogK7AxijArwDoQGkAr0DBaUCvgMFpgK_AxinAsIDogGoAsMDqAE"
+	strings: JSON.parse("[\"where\",\"orderBy\",\"cursor\",\"company\",\"user\",\"creator\",\"goal\",\"goalsAssignation\",\"_count\",\"temporalGoals\",\"Schema\",\"blocks\",\"schema\",\"schemaAssignations\",\"schemas\",\"managers\",\"agent\",\"calls\",\"callee\",\"totalAttempsPerAgent\",\"call\",\"events\",\"feelings\",\"totalAttempsPerCallee\",\"agentToThird\",\"agentLevel\",\"agents\",\"TimeSchemas\",\"users\",\"GoalsAssignation\",\"schemaAssignation\",\"apiKey\",\"leadDeskCustomData\",\"managerProfile\",\"agentProfile\",\"User.findUnique\",\"User.findUniqueOrThrow\",\"User.findFirst\",\"User.findFirstOrThrow\",\"User.findMany\",\"data\",\"User.createOne\",\"User.createMany\",\"User.createManyAndReturn\",\"User.updateOne\",\"User.updateMany\",\"User.updateManyAndReturn\",\"create\",\"update\",\"User.upsertOne\",\"User.deleteOne\",\"User.deleteMany\",\"having\",\"_avg\",\"_sum\",\"_min\",\"_max\",\"User.groupBy\",\"User.aggregate\",\"Company.findUnique\",\"Company.findUniqueOrThrow\",\"Company.findFirst\",\"Company.findFirstOrThrow\",\"Company.findMany\",\"Company.createOne\",\"Company.createMany\",\"Company.createManyAndReturn\",\"Company.updateOne\",\"Company.updateMany\",\"Company.updateManyAndReturn\",\"Company.upsertOne\",\"Company.deleteOne\",\"Company.deleteMany\",\"Company.groupBy\",\"Company.aggregate\",\"APIKeysAuth.findUnique\",\"APIKeysAuth.findUniqueOrThrow\",\"APIKeysAuth.findFirst\",\"APIKeysAuth.findFirstOrThrow\",\"APIKeysAuth.findMany\",\"APIKeysAuth.createOne\",\"APIKeysAuth.createMany\",\"APIKeysAuth.createManyAndReturn\",\"APIKeysAuth.updateOne\",\"APIKeysAuth.updateMany\",\"APIKeysAuth.updateManyAndReturn\",\"APIKeysAuth.upsertOne\",\"APIKeysAuth.deleteOne\",\"APIKeysAuth.deleteMany\",\"APIKeysAuth.groupBy\",\"APIKeysAuth.aggregate\",\"LeadDeskCustomData.findUnique\",\"LeadDeskCustomData.findUniqueOrThrow\",\"LeadDeskCustomData.findFirst\",\"LeadDeskCustomData.findFirstOrThrow\",\"LeadDeskCustomData.findMany\",\"LeadDeskCustomData.createOne\",\"LeadDeskCustomData.createMany\",\"LeadDeskCustomData.createManyAndReturn\",\"LeadDeskCustomData.updateOne\",\"LeadDeskCustomData.updateMany\",\"LeadDeskCustomData.updateManyAndReturn\",\"LeadDeskCustomData.upsertOne\",\"LeadDeskCustomData.deleteOne\",\"LeadDeskCustomData.deleteMany\",\"LeadDeskCustomData.groupBy\",\"LeadDeskCustomData.aggregate\",\"Manager.findUnique\",\"Manager.findUniqueOrThrow\",\"Manager.findFirst\",\"Manager.findFirstOrThrow\",\"Manager.findMany\",\"Manager.createOne\",\"Manager.createMany\",\"Manager.createManyAndReturn\",\"Manager.updateOne\",\"Manager.updateMany\",\"Manager.updateManyAndReturn\",\"Manager.upsertOne\",\"Manager.deleteOne\",\"Manager.deleteMany\",\"Manager.groupBy\",\"Manager.aggregate\",\"Agent.findUnique\",\"Agent.findUniqueOrThrow\",\"Agent.findFirst\",\"Agent.findFirstOrThrow\",\"Agent.findMany\",\"Agent.createOne\",\"Agent.createMany\",\"Agent.createManyAndReturn\",\"Agent.updateOne\",\"Agent.updateMany\",\"Agent.updateManyAndReturn\",\"Agent.upsertOne\",\"Agent.deleteOne\",\"Agent.deleteMany\",\"Agent.groupBy\",\"Agent.aggregate\",\"AgentToThird.findUnique\",\"AgentToThird.findUniqueOrThrow\",\"AgentToThird.findFirst\",\"AgentToThird.findFirstOrThrow\",\"AgentToThird.findMany\",\"AgentToThird.createOne\",\"AgentToThird.createMany\",\"AgentToThird.createManyAndReturn\",\"AgentToThird.updateOne\",\"AgentToThird.updateMany\",\"AgentToThird.updateManyAndReturn\",\"AgentToThird.upsertOne\",\"AgentToThird.deleteOne\",\"AgentToThird.deleteMany\",\"AgentToThird.groupBy\",\"AgentToThird.aggregate\",\"Callee.findUnique\",\"Callee.findUniqueOrThrow\",\"Callee.findFirst\",\"Callee.findFirstOrThrow\",\"Callee.findMany\",\"Callee.createOne\",\"Callee.createMany\",\"Callee.createManyAndReturn\",\"Callee.updateOne\",\"Callee.updateMany\",\"Callee.updateManyAndReturn\",\"Callee.upsertOne\",\"Callee.deleteOne\",\"Callee.deleteMany\",\"Callee.groupBy\",\"Callee.aggregate\",\"agentToCallee.findUnique\",\"agentToCallee.findUniqueOrThrow\",\"agentToCallee.findFirst\",\"agentToCallee.findFirstOrThrow\",\"agentToCallee.findMany\",\"agentToCallee.createOne\",\"agentToCallee.createMany\",\"agentToCallee.createManyAndReturn\",\"agentToCallee.updateOne\",\"agentToCallee.updateMany\",\"agentToCallee.updateManyAndReturn\",\"agentToCallee.upsertOne\",\"agentToCallee.deleteOne\",\"agentToCallee.deleteMany\",\"agentToCallee.groupBy\",\"agentToCallee.aggregate\",\"Schema.findUnique\",\"Schema.findUniqueOrThrow\",\"Schema.findFirst\",\"Schema.findFirstOrThrow\",\"Schema.findMany\",\"Schema.createOne\",\"Schema.createMany\",\"Schema.createManyAndReturn\",\"Schema.updateOne\",\"Schema.updateMany\",\"Schema.updateManyAndReturn\",\"Schema.upsertOne\",\"Schema.deleteOne\",\"Schema.deleteMany\",\"Schema.groupBy\",\"Schema.aggregate\",\"SchemaBlock.findUnique\",\"SchemaBlock.findUniqueOrThrow\",\"SchemaBlock.findFirst\",\"SchemaBlock.findFirstOrThrow\",\"SchemaBlock.findMany\",\"SchemaBlock.createOne\",\"SchemaBlock.createMany\",\"SchemaBlock.createManyAndReturn\",\"SchemaBlock.updateOne\",\"SchemaBlock.updateMany\",\"SchemaBlock.updateManyAndReturn\",\"SchemaBlock.upsertOne\",\"SchemaBlock.deleteOne\",\"SchemaBlock.deleteMany\",\"SchemaBlock.groupBy\",\"SchemaBlock.aggregate\",\"SchemaAssignation.findUnique\",\"SchemaAssignation.findUniqueOrThrow\",\"SchemaAssignation.findFirst\",\"SchemaAssignation.findFirstOrThrow\",\"SchemaAssignation.findMany\",\"SchemaAssignation.createOne\",\"SchemaAssignation.createMany\",\"SchemaAssignation.createManyAndReturn\",\"SchemaAssignation.updateOne\",\"SchemaAssignation.updateMany\",\"SchemaAssignation.updateManyAndReturn\",\"SchemaAssignation.upsertOne\",\"SchemaAssignation.deleteOne\",\"SchemaAssignation.deleteMany\",\"SchemaAssignation.groupBy\",\"SchemaAssignation.aggregate\",\"Call.findUnique\",\"Call.findUniqueOrThrow\",\"Call.findFirst\",\"Call.findFirstOrThrow\",\"Call.findMany\",\"Call.createOne\",\"Call.createMany\",\"Call.createManyAndReturn\",\"Call.updateOne\",\"Call.updateMany\",\"Call.updateManyAndReturn\",\"Call.upsertOne\",\"Call.deleteOne\",\"Call.deleteMany\",\"Call.groupBy\",\"Call.aggregate\",\"FunnelEvent.findUnique\",\"FunnelEvent.findUniqueOrThrow\",\"FunnelEvent.findFirst\",\"FunnelEvent.findFirstOrThrow\",\"FunnelEvent.findMany\",\"FunnelEvent.createOne\",\"FunnelEvent.createMany\",\"FunnelEvent.createManyAndReturn\",\"FunnelEvent.updateOne\",\"FunnelEvent.updateMany\",\"FunnelEvent.updateManyAndReturn\",\"FunnelEvent.upsertOne\",\"FunnelEvent.deleteOne\",\"FunnelEvent.deleteMany\",\"FunnelEvent.groupBy\",\"FunnelEvent.aggregate\",\"AgentState.findUnique\",\"AgentState.findUniqueOrThrow\",\"AgentState.findFirst\",\"AgentState.findFirstOrThrow\",\"AgentState.findMany\",\"AgentState.createOne\",\"AgentState.createMany\",\"AgentState.createManyAndReturn\",\"AgentState.updateOne\",\"AgentState.updateMany\",\"AgentState.updateManyAndReturn\",\"AgentState.upsertOne\",\"AgentState.deleteOne\",\"AgentState.deleteMany\",\"AgentState.groupBy\",\"AgentState.aggregate\",\"AgentLevel.findUnique\",\"AgentLevel.findUniqueOrThrow\",\"AgentLevel.findFirst\",\"AgentLevel.findFirstOrThrow\",\"AgentLevel.findMany\",\"AgentLevel.createOne\",\"AgentLevel.createMany\",\"AgentLevel.createManyAndReturn\",\"AgentLevel.updateOne\",\"AgentLevel.updateMany\",\"AgentLevel.updateManyAndReturn\",\"AgentLevel.upsertOne\",\"AgentLevel.deleteOne\",\"AgentLevel.deleteMany\",\"AgentLevel.groupBy\",\"AgentLevel.aggregate\",\"TemporalGoals.findUnique\",\"TemporalGoals.findUniqueOrThrow\",\"TemporalGoals.findFirst\",\"TemporalGoals.findFirstOrThrow\",\"TemporalGoals.findMany\",\"TemporalGoals.createOne\",\"TemporalGoals.createMany\",\"TemporalGoals.createManyAndReturn\",\"TemporalGoals.updateOne\",\"TemporalGoals.updateMany\",\"TemporalGoals.updateManyAndReturn\",\"TemporalGoals.upsertOne\",\"TemporalGoals.deleteOne\",\"TemporalGoals.deleteMany\",\"TemporalGoals.groupBy\",\"TemporalGoals.aggregate\",\"GoalsAssignation.findUnique\",\"GoalsAssignation.findUniqueOrThrow\",\"GoalsAssignation.findFirst\",\"GoalsAssignation.findFirstOrThrow\",\"GoalsAssignation.findMany\",\"GoalsAssignation.createOne\",\"GoalsAssignation.createMany\",\"GoalsAssignation.createManyAndReturn\",\"GoalsAssignation.updateOne\",\"GoalsAssignation.updateMany\",\"GoalsAssignation.updateManyAndReturn\",\"GoalsAssignation.upsertOne\",\"GoalsAssignation.deleteOne\",\"GoalsAssignation.deleteMany\",\"GoalsAssignation.groupBy\",\"GoalsAssignation.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"companyId\",\"goalId\",\"date\",\"equals\",\"in\",\"notIn\",\"lt\",\"lte\",\"gt\",\"gte\",\"not\",\"name\",\"talkTimeMinutes\",\"seeds\",\"callbacks\",\"leads\",\"sales\",\"numberOfCalls\",\"numberOfLongCalls\",\"creatorId\",\"createdAt\",\"updatedAt\",\"contains\",\"startsWith\",\"endsWith\",\"agentId\",\"since\",\"till\",\"durationInWeeks\",\"level\",\"timestamp\",\"energyScore\",\"focusScore\",\"motivationScore\",\"EventType\",\"type\",\"callId\",\"calleeId\",\"startAt\",\"endAt\",\"durationSeconds\",\"WEEK_DAYS\",\"dayOfTheWeek\",\"schemaId\",\"startMinutesFromMidnight\",\"endMinutesFromMidnight\",\"BlockType\",\"blockType\",\"totalAttemps\",\"phoneNumber\",\"totalAttempts\",\"every\",\"some\",\"none\",\"THIRD_PARTY_SERVICES\",\"serviceIdentifier\",\"agentServiceIdentifier\",\"profileImg\",\"email\",\"authString\",\"SeedEventIds\",\"SaleEventIds\",\"IANATimeZone\",\"has\",\"hasEvery\",\"hasSome\",\"publicKey\",\"secretKeyHash\",\"passwordHash\",\"Role\",\"role\",\"isActive\",\"managerId\",\"UserStatus\",\"status\",\"agentId_serviceIdentifier\",\"serviceIdentifier_agentServiceIdentifier\",\"agentId_calleeId\",\"companyId_date\",\"is\",\"isNot\",\"connectOrCreate\",\"upsert\",\"createMany\",\"set\",\"disconnect\",\"delete\",\"connect\",\"updateMany\",\"deleteMany\",\"push\",\"increment\",\"decrement\",\"multiply\",\"divide\"]"),
+	graph: "-gm8AaACEQMAAK0EACAhAADwBAAgIgAA8QQAIMsCAADrBAAwzAIAAAcAEM0CAADrBAAwzgICAAAAAc8CAgCfBAAh4wJAALAEACHkAkAAsAQAIegCAgAAAAGJAwEAAAABkwMBAKAEACGVAwAA7ASVAyKWAyAA7QQAIZcDAgAAAAGZAwAA7wSZAyIBAAAAAQAgCwMAAK0EACAEAADcBAAgCQAAtwQAIA4AALUEACDLAgAA8gQAMMwCAAADABDNAgAA8gQAMM4CAgCfBAAhzwICAJ8EACHaAgEAoAQAIYkDAQCgBAAhBAMAAM0HACAEAADdCAAgCQAAzQgAIA4AAMsIACALAwAArQQAIAQAANwEACAJAAC3BAAgDgAAtQQAIMsCAADyBAAwzAIAAAMAEM0CAADyBAAwzgICAAAAAc8CAgCfBAAh2gIBAKAEACGJAwEAAAABAwAAAAMAIAEAAAQAMAIAAAUAIBEDAACtBAAgIQAA8AQAICIAAPEEACDLAgAA6wQAMMwCAAAHABDNAgAA6wQAMM4CAgCfBAAhzwICAJ8EACHjAkAAsAQAIeQCQACwBAAh6AICAO4EACGJAwEAoAQAIZMDAQCgBAAhlQMAAOwElQMilgMgAO0EACGXAwIA7gQAIZkDAADvBJkDIgEAAAAHACATAwAArQQAIAUAAOUEACAHAAC4BAAgywIAAOoEADDMAgAACQAQzQIAAOoEADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACHbAgIAnwQAIdwCAgCfBAAh3QICAJ8EACHeAgIAnwQAId8CAgCfBAAh4AICAJ8EACHhAgIAnwQAIeICAgCfBAAh4wJAALAEACHkAkAAsAQAIQMDAADNBwAgBQAA1wgAIAcAAM4IACATAwAArQQAIAUAAOUEACAHAAC4BAAgywIAAOoEADDMAgAACQAQzQIAAOoEADDOAgIAAAABzwICAJ8EACHaAgEAoAQAIdsCAgCfBAAh3AICAJ8EACHdAgIAnwQAId4CAgCfBAAh3wICAJ8EACHgAgIAnwQAIeECAgCfBAAh4gICAJ8EACHjAkAAsAQAIeQCQACwBAAhAwAAAAkAIAEAAAoAMAIAAAsAIAkDAACtBAAgBgAA6QQAIMsCAADoBAAwzAIAAA0AEM0CAADoBAAwzgICAJ8EACHPAgIAnwQAIdACAgCfBAAh0QJAALAEACECAwAAzQcAIAYAAOIIACAKAwAArQQAIAYAAOkEACDLAgAA6AQAMMwCAAANABDNAgAA6AQAMM4CAgAAAAHPAgIAnwQAIdACAgCfBAAh0QJAALAEACGdAwAA5wQAIAMAAAANACABAAAOADACAAAPACABAAAADQAgCwMAAK0EACAFAADlBAAgCwAA5gQAIA0AALkEACDLAgAA5AQAMMwCAAASABDNAgAA5AQAMM4CAgCfBAAhzwICAJ8EACHaAgEAoAQAIeICAgCfBAAhBAMAAM0HACAFAADXCAAgCwAA4QgAIA0AAM8IACALAwAArQQAIAUAAOUEACALAADmBAAgDQAAuQQAIMsCAADkBAAwzAIAABIAEM0CAADkBAAwzgICAAAAAc8CAgCfBAAh2gIBAKAEACHiAgIAnwQAIQMAAAASACABAAATADACAAAUACAKCgAA4QQAIMsCAADiBAAwzAIAABYAEM0CAADiBAAwzgICAJ8EACHaAgEArAQAIfoCAgCfBAAh-wICAJ8EACH8AgIAnwQAIf4CAADjBP4CIgIKAADgCAAg2gIAAJYFACAKCgAA4QQAIMsCAADiBAAwzAIAABYAEM0CAADiBAAwzgICAAAAAdoCAQCsBAAh-gICAJ8EACH7AgIAnwQAIfwCAgCfBAAh_gIAAOME_gIiAwAAABYAIAEAABcAMAIAABgAIAkDAACtBAAgDAAA4QQAIMsCAADgBAAwzAIAABoAEM0CAADgBAAwzgICAJ8EACHPAgIAnwQAIdECQACwBAAh-gICAJ8EACECAwAAzQcAIAwAAOAIACAKAwAArQQAIAwAAOEEACDLAgAA4AQAMMwCAAAaABDNAgAA4AQAMM4CAgAAAAHPAgIAnwQAIdECQACwBAAh-gICAJ8EACGdAwAA3wQAIAMAAAAaACABAAAbADACAAAcACABAAAAFgAgAQAAABoAIAEAAAAJACABAAAAEgAgDwMAAK0EACAEAADcBAAgEQAAoQQAIBUAANkEACAWAADbBAAgFwAAogQAIBgAAN0EACAZAADeBAAgywIAANoEADDMAgAAIgAQzQIAANoEADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACGIAwEArAQAIQkDAADNBwAgBAAA3QgAIBEAAKsGACAVAADbCAAgFgAA3AgAIBcAAKwGACAYAADeCAAgGQAA3wgAIIgDAACWBQAgDwMAAK0EACAEAADcBAAgEQAAoQQAIBUAANkEACAWAADbBAAgFwAAogQAIBgAAN0EACAZAADeBAAgywIAANoEADDMAgAAIgAQzQIAANoEADDOAgIAAAABzwICAJ8EACHaAgEAoAQAIYgDAQCsBAAhAwAAACIAIAEAACMAMAIAACQAIA8DAACtBAAgEAAAywQAIBIAANYEACAVAADZBAAgywIAANcEADDMAgAAJgAQzQIAANcEADDOAgIAnwQAIc8CAgCfBAAh6AICAJ8EACH0AgIAnwQAIfUCQACwBAAh9gJAAMoEACH3AgIAnwQAIfkCAADYBPkCIgUDAADNBwAgEAAA2AgAIBIAANoIACAVAADbCAAg9gIAAJYFACAPAwAArQQAIBAAAMsEACASAADWBAAgFQAA2QQAIMsCAADXBAAwzAIAACYAEM0CAADXBAAwzgICAAAAAc8CAgCfBAAh6AICAJ8EACH0AgIAnwQAIfUCQACwBAAh9gJAAMoEACH3AgIAnwQAIfkCAADYBPkCIgMAAAAmACABAAAnADACAAAoACADAAAAJgAgAQAAJwAwAgAAKAAgCRAAAMsEACASAADWBAAgywIAANUEADDMAgAAKwAQzQIAANUEADDOAgIAnwQAIegCAgCfBAAh9AICAJ8EACH_AgIAnwQAIQIQAADYCAAgEgAA2ggAIAoQAADLBAAgEgAA1gQAIMsCAADVBAAwzAIAACsAEM0CAADVBAAwzgICAAAAAegCAgCfBAAh9AICAJ8EACH_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-QQAIc8CAgD5BAAh4wJAAPgEACHkAkAA-AQAIegCAgDtBgAhiQMBAIMFACGTAwEAgwUAIZUDAADoBpUDIpYDIADpBgAhlwMCAO0GACGZAwAA6gaZAyICAAAABwAgKAAAbQAgAgAAAAcAICgAAG0AIAEAAAADACABAAAAIgAgAwAAAAEAIC8AAGQAIDAAAGsAIAEAAAABACABAAAABwAgBwgAANIIACA1AADTCAAgNgAA1ggAIDcAANUIACA4AADUCAAg6AIAAJYFACCXAwAAlgUAIA7LAgAAvAQAMMwCAAB2ABDNAgAAvAQAMM4CAgD6AwAhzwICAPoDACHjAkAA-wMAIeQCQAD7AwAh6AICAL8EACGJAwEAggQAIZMDAQCCBAAhlQMAAL0ElQMilgMgAL4EACGXAwIAvwQAIZkDAADABJkDIgMAAAAHACABAAB1ADA0AAB2ACADAAAABwAgAQAATQAwAgAAAQAgEAkAALcEACAPAACzBAAgEQAAoQQAIBoAALQEACAbAAC1BAAgHAAAtgQAIB0AALgEACAeAAC5BAAgHwAAugQAICAAALsEACDLAgAAsgQAMMwCAAB8ABDNAgAAsgQAMM4CAgAAAAHaAgEAoAQAIeMCQACwBAAhAQAAAHkAIAEAAAB5ACAQCQAAtwQAIA8AALMEACARAAChBAAgGgAAtAQAIBsAALUEACAcAAC2BAAgHQAAuAQAIB4AALkEACAfAAC6BAAgIAAAuwQAIMsCAACyBAAwzAIAAHwAEM0CAACyBAAwzgICAJ8EACHaAgEAoAQAIeMCQACwBAAhCgkAAM0IACAPAADJCAAgEQAAqwYAIBoAAMoIACAbAADLCAAgHAAAzAgAIB0AAM4IACAeAADPCAAgHwAA0AgAICAAANEIACADAAAAfAAgAQAAfQAwAgAAeQAgAwAAAHwAIAEAAH0AMAIAAHkAIAMAAAB8ACABAAB9ADACAAB5ACANCQAAxAgAIA8AAL8IACARAADBCAAgGgAAwAgAIBsAAMIIACAcAADDCAAgHQAAxQgAIB4AAMYIACAfAADHCAAgIAAAyAgAIM4CAgAAAAHaAgEAAAAB4wJAAAAAAQEoAACBAQAgA84CAgAAAAHaAgEAAAAB4wJAAAAAAQEoAACDAQAwASgAAIMBADANCQAA3wcAIA8AANoHACARAADcBwAgGgAA2wcAIBsAAN0HACAcAADeBwAgHQAA4AcAIB4AAOEHACAfAADiBwAgIAAA4wcAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQIAAAB5ACAoAACGAQAgA84CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQIAAAB8ACAoAACIAQAgAgAAAHwAICgAAIgBACADAAAAeQAgLwAAgQEAIDAAAIYBACABAAAAeQAgAQAAAHwAIAUIAADVBwAgNQAA1gcAIDYAANkHACA3AADYBwAgOAAA1wcAIAbLAgAAsQQAMMwCAACPAQAQzQIAALEEADDOAgIA-gMAIdoCAQCCBAAh4wJAAPsDACEDAAAAfAAgAQAAjgEAMDQAAI8BACADAAAAfAAgAQAAfQAwAgAAeQAgCgMAAK0EACDLAgAArwQAMMwCAABSABDNAgAArwQAMM4CAgAAAAHPAgIAAAAB4wJAALAEACHkAkAAsAQAIZEDAQAAAAGSAwEAAAABAQAAAJIBACABAAAAkgEAIAEDAADNBwAgAwAAAFIAIAEAAJUBADACAACSAQAgAwAAAFIAIAEAAJUBADACAACSAQAgAwAAAFIAIAEAAJUBADACAACSAQAgBwMAANQHACDOAgIAAAABzwICAAAAAeMCQAAAAAHkAkAAAAABkQMBAAAAAZIDAQAAAAEBKAAAmQEAIAbOAgIAAAABzwICAAAAAeMCQAAAAAHkAkAAAAABkQMBAAAAAZIDAQAAAAEBKAAAmwEAMAEoAACbAQAwBwMAANMHACDOAgIA-QQAIc8CAgD5BAAh4wJAAPgEACHkAkAA-AQAIZEDAQCDBQAhkgMBAIMFACECAAAAkgEAICgAAJ4BACAGzgICAPkEACHPAgIA-QQAIeMCQAD4BAAh5AJAAPgEACGRAwEAgwUAIZIDAQCDBQAhAgAAAFIAICgAAKABACACAAAAUgAgKAAAoAEAIAMAAACSAQAgLwAAmQEAIDAAAJ4BACABAAAAkgEAIAEAAABSACAFCAAAzgcAIDUAAM8HACA2AADSBwAgNwAA0QcAIDgAANAHACAJywIAAK4EADDMAgAApwEAEM0CAACuBAAwzgICAPoDACHPAgIA-gMAIeMCQAD7AwAh5AJAAPsDACGRAwEAggQAIZIDAQCCBAAhAwAAAFIAIAEAAKYBADA0AACnAQAgAwAAAFIAIAEAAJUBADACAACSAQAgCgMAAK0EACDLAgAAqwQAMMwCAABUABDNAgAAqwQAMM4CAgAAAAHPAgIAAAABigMBAKwEACGLAwAAqgQAIIwDAACqBAAgjQMBAKAEACEBAAAAqgEAIAEAAACqAQAgAgMAAM0HACCKAwAAlgUAIAMAAABUACABAACtAQAwAgAAqgEAIAMAAABUACABAACtAQAwAgAAqgEAIAMAAABUACABAACtAQAwAgAAqgEAIAcDAADMBwAgzgICAAAAAc8CAgAAAAGKAwEAAAABiwMAAMoHACCMAwAAywcAII0DAQAAAAEBKAAAsQEAIAbOAgIAAAABzwICAAAAAYoDAQAAAAGLAwAAygcAIIwDAADLBwAgjQMBAAAAAQEoAACzAQAwASgAALMBADAHAwAAyQcAIM4CAgD5BAAhzwICAPkEACGKAwEA2QUAIYsDAADHBwAgjAMAAMgHACCNAwEAgwUAIQIAAACqAQAgKAAAtgEAIAbOAgIA-QQAIc8CAgD5BAAhigMBANkFACGLAwAAxwcAIIwDAADIBwAgjQMBAIMFACECAAAAVAAgKAAAuAEAIAIAAABUACAoAAC4AQAgAwAAAKoBACAvAACxAQAgMAAAtgEAIAEAAACqAQAgAQAAAFQAIAYIAADCBwAgNQAAwwcAIDYAAMYHACA3AADFBwAgOAAAxAcAIIoDAACWBQAgCcsCAACpBAAwzAIAAL8BABDNAgAAqQQAMM4CAgD6AwAhzwICAPoDACGKAwEAlgQAIYsDAACqBAAgjAMAAKoEACCNAwEAggQAIQMAAABUACABAAC-AQAwNAAAvwEAIAMAAABUACABAACtAQAwAgAAqgEAIAEAAAAFACABAAAABQAgAwAAAAMAIAEAAAQAMAIAAAUAIAMAAAADACABAAAEADACAAAFACADAAAAAwAgAQAABAAwAgAABQAgCAMAAL4HACAEAAC_BwAgCQAAwAcAIA4AAMEHACDOAgIAAAABzwICAAAAAdoCAQAAAAGJAwEAAAABASgAAMcBACAEzgICAAAAAc8CAgAAAAHaAgEAAAABiQMBAAAAAQEoAADJAQAwASgAAMkBADAIAwAAmwcAIAQAAJwHACAJAACdBwAgDgAAngcAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYkDAQCDBQAhAgAAAAUAICgAAMwBACAEzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiQMBAIMFACECAAAAAwAgKAAAzgEAIAIAAAADACAoAADOAQAgAwAAAAUAIC8AAMcBACAwAADMAQAgAQAAAAUAIAEAAAADACAFCAAAlgcAIDUAAJcHACA2AACaBwAgNwAAmQcAIDgAAJgHACAHywIAAKgEADDMAgAA1QEAEM0CAACoBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAhiQMBAIIEACEDAAAAAwAgAQAA1AEAMDQAANUBACADAAAAAwAgAQAABAAwAgAABQAgAQAAACQAIAEAAAAkACADAAAAIgAgAQAAIwAwAgAAJAAgAwAAACIAIAEAACMAMAIAACQAIAMAAAAiACABAAAjADACAAAkACAMAwAAjgcAIAQAAJIHACARAACPBwAgFQAAkQcAIBYAAJAHACAXAACTBwAgGAAAlAcAIBkAAJUHACDOAgIAAAABzwICAAAAAdoCAQAAAAGIAwEAAAABASgAAN0BACAEzgICAAAAAc8CAgAAAAHaAgEAAAABiAMBAAAAAQEoAADfAQAwASgAAN8BADAMAwAAugYAIAQAAL4GACARAAC7BgAgFQAAvQYAIBYAALwGACAXAAC_BgAgGAAAwAYAIBkAAMEGACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGIAwEA2QUAIQIAAAAkACAoAADiAQAgBM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhAgAAACIAICgAAOQBACACAAAAIgAgKAAA5AEAIAMAAAAkACAvAADdAQAgMAAA4gEAIAEAAAAkACABAAAAIgAgBggAALUGACA1AAC2BgAgNgAAuQYAIDcAALgGACA4AAC3BgAgiAMAAJYFACAHywIAAKcEADDMAgAA6wEAEM0CAACnBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAhiAMBAJYEACEDAAAAIgAgAQAA6gEAMDQAAOsBACADAAAAIgAgAQAAIwAwAgAAJAAgAQAAAD8AIAEAAAA_ACADAAAAPQAgAQAAPgAwAgAAPwAgAwAAAD0AIAEAAD4AMAIAAD8AIAMAAAA9ACABAAA-ADACAAA_ACAFEAAAtAYAIM4CAgAAAAHoAgIAAAABhgMAAACGAwKHAwEAAAABASgAAPMBACAEzgICAAAAAegCAgAAAAGGAwAAAIYDAocDAQAAAAEBKAAA9QEAMAEoAAD1AQAwBRAAALMGACDOAgIA-QQAIegCAgD5BAAhhgMAALIGhgMihwMBAIMFACECAAAAPwAgKAAA-AEAIATOAgIA-QQAIegCAgD5BAAhhgMAALIGhgMihwMBAIMFACECAAAAPQAgKAAA-gEAIAIAAAA9ACAoAAD6AQAgAwAAAD8AIC8AAPMBACAwAAD4AQAgAQAAAD8AIAEAAAA9ACAFCAAArQYAIDUAAK4GACA2AACxBgAgNwAAsAYAIDgAAK8GACAHywIAAKMEADDMAgAAgQIAEM0CAACjBAAwzgICAPoDACHoAgIA-gMAIYYDAACkBIYDIocDAQCCBAAhAwAAAD0AIAEAAIACADA0AACBAgAgAwAAAD0AIAEAAD4AMAIAAD8AIAgRAAChBAAgEwAAogQAIMsCAACeBAAwzAIAAIcCABDNAgAAngQAMM4CAgAAAAGAAwEAAAABgQMCAJ8EACEBAAAAhAIAIAEAAACEAgAgCBEAAKEEACATAACiBAAgywIAAJ4EADDMAgAAhwIAEM0CAACeBAAwzgICAJ8EACGAAwEAoAQAIYEDAgCfBAAhAhEAAKsGACATAACsBgAgAwAAAIcCACABAACIAgAwAgAAhAIAIAMAAACHAgAgAQAAiAIAMAIAAIQCACADAAAAhwIAIAEAAIgCADACAACEAgAgBREAAKkGACATAACqBgAgzgICAAAAAYADAQAAAAGBAwIAAAABASgAAIwCACADzgICAAAAAYADAQAAAAGBAwIAAAABASgAAI4CADABKAAAjgIAMAURAACPBgAgEwAAkAYAIM4CAgD5BAAhgAMBAIMFACGBAwIA-QQAIQIAAACEAgAgKAAAkQIAIAPOAgIA-QQAIYADAQCDBQAhgQMCAPkEACECAAAAhwIAICgAAJMCACACAAAAhwIAICgAAJMCACADAAAAhAIAIC8AAIwCACAwAACRAgAgAQAAAIQCACABAAAAhwIAIAUIAACKBgAgNQAAiwYAIDYAAI4GACA3AACNBgAgOAAAjAYAIAbLAgAAnQQAMMwCAACaAgAQzQIAAJ0EADDOAgIA-gMAIYADAQCCBAAhgQMCAPoDACEDAAAAhwIAIAEAAJkCADA0AACaAgAgAwAAAIcCACABAACIAgAwAgAAhAIAIAEAAAAtACABAAAALQAgAwAAACsAIAEAACwAMAIAAC0AIAMAAAArACABAAAsADACAAAtACADAAAAKwAgAQAALAAwAgAALQAgBhAAAIgGACASAACJBgAgzgICAAAAAegCAgAAAAH0AgIAAAAB_wICAAAAAQEoAACiAgAgBM4CAgAAAAHoAgIAAAAB9AICAAAAAf8CAgAAAAEBKAAApAIAMAEoAACkAgAwBhAAAIYGACASAACHBgAgzgICAPkEACHoAgIA-QQAIfQCAgD5BAAh_wICAPkEACECAAAALQAgKAAApwIAIATOAgIA-QQAIegCAgD5BAAh9AICAPkEACH_AgIA-QQAIQIAAAArACAoAACpAgAgAgAAACsAICgAAKkCACADAAAALQAgLwAAogIAIDAAAKcCACABAAAALQAgAQAAACsAIAUIAACBBgAgNQAAggYAIDYAAIUGACA3AACEBgAgOAAAgwYAIAfLAgAAnAQAMMwCAACwAgAQzQIAAJwEADDOAgIA-gMAIegCAgD6AwAh9AICAPoDACH_AgIA-gMAIQMAAAArACABAACvAgAwNAAAsAIAIAMAAAArACABAAAsADACAAAtACABAAAAFAAgAQAAABQAIAMAAAASACABAAATADACAAAUACADAAAAEgAgAQAAEwAwAgAAFAAgAwAAABIAIAEAABMAMAIAABQAIAgDAAD9BQAgBQAA_gUAIAsAAP8FACANAACABgAgzgICAAAAAc8CAgAAAAHaAgEAAAAB4gICAAAAAQEoAAC4AgAgBM4CAgAAAAHPAgIAAAAB2gIBAAAAAeICAgAAAAEBKAAAugIAMAEoAAC6AgAwCAMAAOEFACAFAADiBQAgCwAA4wUAIA0AAOQFACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACHiAgIA-QQAIQIAAAAUACAoAAC9AgAgBM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIeICAgD5BAAhAgAAABIAICgAAL8CACACAAAAEgAgKAAAvwIAIAMAAAAUACAvAAC4AgAgMAAAvQIAIAEAAAAUACABAAAAEgAgBQgAANwFACA1AADdBQAgNgAA4AUAIDcAAN8FACA4AADeBQAgB8sCAACbBAAwzAIAAMYCABDNAgAAmwQAMM4CAgD6AwAhzwICAPoDACHaAgEAggQAIeICAgD6AwAhAwAAABIAIAEAAMUCADA0AADGAgAgAwAAABIAIAEAABMAMAIAABQAIAEAAAAYACABAAAAGAAgAwAAABYAIAEAABcAMAIAABgAIAMAAAAWACABAAAXADACAAAYACADAAAAFgAgAQAAFwAwAgAAGAAgBwoAANsFACDOAgIAAAAB2gIBAAAAAfoCAgAAAAH7AgIAAAAB_AICAAAAAf4CAAAA_gICASgAAM4CACAGzgICAAAAAdoCAQAAAAH6AgIAAAAB-wICAAAAAfwCAgAAAAH-AgAAAP4CAgEoAADQAgAwASgAANACADAHCgAA2gUAIM4CAgD5BAAh2gIBANkFACH6AgIA-QQAIfsCAgD5BAAh_AICAPkEACH-AgAA2AX-AiICAAAAGAAgKAAA0wIAIAbOAgIA-QQAIdoCAQDZBQAh-gICAPkEACH7AgIA-QQAIfwCAgD5BAAh_gIAANgF_gIiAgAAABYAICgAANUCACACAAAAFgAgKAAA1QIAIAMAAAAYACAvAADOAgAgMAAA0wIAIAEAAAAYACABAAAAFgAgBggAANMFACA1AADUBQAgNgAA1wUAIDcAANYFACA4AADVBQAg2gIAAJYFACAJywIAAJQEADDMAgAA3AIAEM0CAACUBAAwzgICAPoDACHaAgEAlgQAIfoCAgD6AwAh-wICAPoDACH8AgIA-gMAIf4CAACVBP4CIgMAAAAWACABAADbAgAwNAAA3AIAIAMAAAAWACABAAAXADACAAAYACABAAAAHAAgAQAAABwAIAMAAAAaACABAAAbADACAAAcACADAAAAGgAgAQAAGwAwAgAAHAAgAwAAABoAIAEAABsAMAIAABwAIAYDAADRBQAgDAAA0gUAIM4CAgAAAAHPAgIAAAAB0QJAAAAAAfoCAgAAAAEBKAAA5AIAIATOAgIAAAABzwICAAAAAdECQAAAAAH6AgIAAAABASgAAOYCADABKAAA5gIAMAYDAADPBQAgDAAA0AUAIM4CAgD5BAAhzwICAPkEACHRAkAA-AQAIfoCAgD5BAAhAgAAABwAICgAAOkCACAEzgICAPkEACHPAgIA-QQAIdECQAD4BAAh-gICAPkEACECAAAAGgAgKAAA6wIAIAIAAAAaACAoAADrAgAgAwAAABwAIC8AAOQCACAwAADpAgAgAQAAABwAIAEAAAAaACAFCAAAygUAIDUAAMsFACA2AADOBQAgNwAAzQUAIDgAAMwFACAHywIAAJMEADDMAgAA8gIAEM0CAACTBAAwzgICAPoDACHPAgIA-gMAIdECQAD7AwAh-gICAPoDACEDAAAAGgAgAQAA8QIAMDQAAPICACADAAAAGgAgAQAAGwAwAgAAHAAgAQAAACgAIAEAAAAoACADAAAAJgAgAQAAJwAwAgAAKAAgAwAAACYAIAEAACcAMAIAACgAIAMAAAAmACABAAAnADACAAAoACAMAwAAyAUAIBAAAMYFACASAADHBQAgFQAAyQUAIM4CAgAAAAHPAgIAAAAB6AICAAAAAfQCAgAAAAH1AkAAAAAB9gJAAAAAAfcCAgAAAAH5AgAAAPkCAgEoAAD6AgAgCM4CAgAAAAHPAgIAAAAB6AICAAAAAfQCAgAAAAH1AkAAAAAB9gJAAAAAAfcCAgAAAAH5AgAAAPkCAgEoAAD8AgAwASgAAPwCADAMAwAAuAUAIBAAALYFACASAAC3BQAgFQAAuQUAIM4CAgD5BAAhzwICAPkEACHoAgIA-QQAIfQCAgD5BAAh9QJAAPgEACH2AkAAnAUAIfcCAgD5BAAh-QIAALUF-QIiAgAAACgAICgAAP8CACAIzgICAPkEACHPAgIA-QQAIegCAgD5BAAh9AICAPkEACH1AkAA-AQAIfYCQACcBQAh9wICAPkEACH5AgAAtQX5AiICAAAAJgAgKAAAgQMAIAIAAAAmACAoAACBAwAgAwAAACgAIC8AAPoCACAwAAD_AgAgAQAAACgAIAEAAAAmACAGCAAAsAUAIDUAALEFACA2AAC0BQAgNwAAswUAIDgAALIFACD2AgAAlgUAIAvLAgAAjwQAMMwCAACIAwAQzQIAAI8EADDOAgIA-gMAIc8CAgD6AwAh6AICAPoDACH0AgIA-gMAIfUCQAD7AwAh9gJAAIYEACH3AgIA-gMAIfkCAACQBPkCIgMAAAAmACABAACHAwAwNAAAiAMAIAMAAAAmACABAAAnADACAAAoACABAAAAMwAgAQAAADMAIAMAAAAxACABAAAyADACAAAzACADAAAAMQAgAQAAMgAwAgAAMwAgAwAAADEAIAEAADIAMAIAADMAIAcQAACvBQAgFAAArgUAIM4CAgAAAAHoAgIAAAAB7QJAAAAAAfICAAAA8gIC8wICAAAAAQEoAACQAwAgBc4CAgAAAAHoAgIAAAAB7QJAAAAAAfICAAAA8gIC8wICAAAAAQEoAACSAwAwASgAAJIDADAHEAAArQUAIBQAAKwFACDOAgIA-QQAIegCAgD5BAAh7QJAAPgEACHyAgAAqwXyAiLzAgIA-QQAIQIAAAAzACAoAACVAwAgBc4CAgD5BAAh6AICAPkEACHtAkAA-AQAIfICAACrBfICIvMCAgD5BAAhAgAAADEAICgAAJcDACACAAAAMQAgKAAAlwMAIAMAAAAzACAvAACQAwAgMAAAlQMAIAEAAAAzACABAAAAMQAgBQgAAKYFACA1AACnBQAgNgAAqgUAIDcAAKkFACA4AACoBQAgCMsCAACLBAAwzAIAAJ4DABDNAgAAiwQAMM4CAgD6AwAh6AICAPoDACHtAkAA-wMAIfICAACMBPICIvMCAgD6AwAhAwAAADEAIAEAAJ0DADA0AACeAwAgAwAAADEAIAEAADIAMAIAADMAIAEAAAA4ACABAAAAOAAgAwAAADYAIAEAADcAMAIAADgAIAMAAAA2ACABAAA3ADACAAA4ACADAAAANgAgAQAANwAwAgAAOAAgBxAAAKUFACDOAgIAAAAB6AICAAAAAe0CQAAAAAHuAgIAAAAB7wICAAAAAfACAgAAAAEBKAAApgMAIAbOAgIAAAAB6AICAAAAAe0CQAAAAAHuAgIAAAAB7wICAAAAAfACAgAAAAEBKAAAqAMAMAEoAACoAwAwBxAAAKQFACDOAgIA-QQAIegCAgD5BAAh7QJAAPgEACHuAgIA-QQAIe8CAgD5BAAh8AICAPkEACECAAAAOAAgKAAAqwMAIAbOAgIA-QQAIegCAgD5BAAh7QJAAPgEACHuAgIA-QQAIe8CAgD5BAAh8AICAPkEACECAAAANgAgKAAArQMAIAIAAAA2ACAoAACtAwAgAwAAADgAIC8AAKYDACAwAACrAwAgAQAAADgAIAEAAAA2ACAFCAAAnwUAIDUAAKAFACA2AACjBQAgNwAAogUAIDgAAKEFACAJywIAAIoEADDMAgAAtAMAEM0CAACKBAAwzgICAPoDACHoAgIA-gMAIe0CQAD7AwAh7gICAPoDACHvAgIA-gMAIfACAgD6AwAhAwAAADYAIAEAALMDADA0AAC0AwAgAwAAADYAIAEAADcAMAIAADgAIAEAAABDACABAAAAQwAgAwAAAEEAIAEAAEIAMAIAAEMAIAMAAABBACABAABCADACAABDACADAAAAQQAgAQAAQgAwAgAAQwAgBxAAAJ4FACDOAgIAAAAB6AICAAAAAekCQAAAAAHqAkAAAAAB6wICAAAAAewCAgAAAAEBKAAAvAMAIAbOAgIAAAAB6AICAAAAAekCQAAAAAHqAkAAAAAB6wICAAAAAewCAgAAAAEBKAAAvgMAMAEoAAC-AwAwBxAAAJ0FACDOAgIA-QQAIegCAgD5BAAh6QJAAPgEACHqAkAAnAUAIesCAgD5BAAh7AICAPkEACECAAAAQwAgKAAAwQMAIAbOAgIA-QQAIegCAgD5BAAh6QJAAPgEACHqAkAAnAUAIesCAgD5BAAh7AICAPkEACECAAAAQQAgKAAAwwMAIAIAAABBACAoAADDAwAgAwAAAEMAIC8AALwDACAwAADBAwAgAQAAAEMAIAEAAABBACAGCAAAlwUAIDUAAJgFACA2AACbBQAgNwAAmgUAIDgAAJkFACDqAgAAlgUAIAnLAgAAhQQAMMwCAADKAwAQzQIAAIUEADDOAgIA-gMAIegCAgD6AwAh6QJAAPsDACHqAkAAhgQAIesCAgD6AwAh7AICAPoDACEDAAAAQQAgAQAAyQMAMDQAAMoDACADAAAAQQAgAQAAQgAwAgAAQwAgAQAAAAsAIAEAAAALACADAAAACQAgAQAACgAwAgAACwAgAwAAAAkAIAEAAAoAMAIAAAsAIAMAAAAJACABAAAKADACAAALACAQAwAAkwUAIAUAAJQFACAHAACVBQAgzgICAAAAAc8CAgAAAAHaAgEAAAAB2wICAAAAAdwCAgAAAAHdAgIAAAAB3gICAAAAAd8CAgAAAAHgAgIAAAAB4QICAAAAAeICAgAAAAHjAkAAAAAB5AJAAAAAAQEoAADSAwAgDc4CAgAAAAHPAgIAAAAB2gIBAAAAAdsCAgAAAAHcAgIAAAAB3QICAAAAAd4CAgAAAAHfAgIAAAAB4AICAAAAAeECAgAAAAHiAgIAAAAB4wJAAAAAAeQCQAAAAAEBKAAA1AMAMAEoAADUAwAwEAMAAIQFACAFAACFBQAgBwAAhgUAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIdsCAgD5BAAh3AICAPkEACHdAgIA-QQAId4CAgD5BAAh3wICAPkEACHgAgIA-QQAIeECAgD5BAAh4gICAPkEACHjAkAA-AQAIeQCQAD4BAAhAgAAAAsAICgAANcDACANzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh2wICAPkEACHcAgIA-QQAId0CAgD5BAAh3gICAPkEACHfAgIA-QQAIeACAgD5BAAh4QICAPkEACHiAgIA-QQAIeMCQAD4BAAh5AJAAPgEACECAAAACQAgKAAA2QMAIAIAAAAJACAoAADZAwAgAwAAAAsAIC8AANIDACAwAADXAwAgAQAAAAsAIAEAAAAJACAFCAAA_gQAIDUAAP8EACA2AACCBQAgNwAAgQUAIDgAAIAFACAQywIAAIEEADDMAgAA4AMAEM0CAACBBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAh2wICAPoDACHcAgIA-gMAId0CAgD6AwAh3gICAPoDACHfAgIA-gMAIeACAgD6AwAh4QICAPoDACHiAgIA-gMAIeMCQAD7AwAh5AJAAPsDACEDAAAACQAgAQAA3wMAMDQAAOADACADAAAACQAgAQAACgAwAgAACwAgAQAAAA8AIAEAAAAPACADAAAADQAgAQAADgAwAgAADwAgAwAAAA0AIAEAAA4AMAIAAA8AIAMAAAANACABAAAOADACAAAPACAGAwAA_AQAIAYAAP0EACDOAgIAAAABzwICAAAAAdACAgAAAAHRAkAAAAABASgAAOgDACAEzgICAAAAAc8CAgAAAAHQAgIAAAAB0QJAAAAAAQEoAADqAwAwASgAAOoDADAGAwAA-gQAIAYAAPsEACDOAgIA-QQAIc8CAgD5BAAh0AICAPkEACHRAkAA-AQAIQIAAAAPACAoAADtAwAgBM4CAgD5BAAhzwICAPkEACHQAgIA-QQAIdECQAD4BAAhAgAAAA0AICgAAO8DACACAAAADQAgKAAA7wMAIAMAAAAPACAvAADoAwAgMAAA7QMAIAEAAAAPACABAAAADQAgBQgAAPMEACA1AAD0BAAgNgAA9wQAIDcAAPYEACA4AAD1BAAgB8sCAAD5AwAwzAIAAPYDABDNAgAA-QMAMM4CAgD6AwAhzwICAPoDACHQAgIA-gMAIdECQAD7AwAhAwAAAA0AIAEAAPUDADA0AAD2AwAgAwAAAA0AIAEAAA4AMAIAAA8AIAfLAgAA-QMAMMwCAAD2AwAQzQIAAPkDADDOAgIA-gMAIc8CAgD6AwAh0AICAPoDACHRAkAA-wMAIQ0IAAD9AwAgNQAAgAQAIDYAAP0DACA3AAD9AwAgOAAA_QMAINICAgAAAAHTAgIAAAAE1AICAAAABNUCAgAAAAHWAgIAAAAB1wICAAAAAdgCAgAAAAHZAgIA_wMAIQsIAAD9AwAgNwAA_gMAIDgAAP4DACDSAkAAAAAB0wJAAAAABNQCQAAAAATVAkAAAAAB1gJAAAAAAdcCQAAAAAHYAkAAAAAB2QJAAPwDACELCAAA_QMAIDcAAP4DACA4AAD-AwAg0gJAAAAAAdMCQAAAAATUAkAAAAAE1QJAAAAAAdYCQAAAAAHXAkAAAAAB2AJAAAAAAdkCQAD8AwAhCNICAgAAAAHTAgIAAAAE1AICAAAABNUCAgAAAAHWAgIAAAAB1wICAAAAAdgCAgAAAAHZAgIA_QMAIQjSAkAAAAAB0wJAAAAABNQCQAAAAATVAkAAAAAB1gJAAAAAAdcCQAAAAAHYAkAAAAAB2QJAAP4DACENCAAA_QMAIDUAAIAEACA2AAD9AwAgNwAA_QMAIDgAAP0DACDSAgIAAAAB0wICAAAABNQCAgAAAATVAgIAAAAB1gICAAAAAdcCAgAAAAHYAgIAAAAB2QICAP8DACEI0gIIAAAAAdMCCAAAAATUAggAAAAE1QIIAAAAAdYCCAAAAAHXAggAAAAB2AIIAAAAAdkCCACABAAhEMsCAACBBAAwzAIAAOADABDNAgAAgQQAMM4CAgD6AwAhzwICAPoDACHaAgEAggQAIdsCAgD6AwAh3AICAPoDACHdAgIA-gMAId4CAgD6AwAh3wICAPoDACHgAgIA-gMAIeECAgD6AwAh4gICAPoDACHjAkAA-wMAIeQCQAD7AwAhDggAAP0DACA3AACEBAAgOAAAhAQAINICAQAAAAHTAgEAAAAE1AIBAAAABNUCAQAAAAHWAgEAAAAB1wIBAAAAAdgCAQAAAAHZAgEAgwQAIeUCAQAAAAHmAgEAAAAB5wIBAAAAAQ4IAAD9AwAgNwAAhAQAIDgAAIQEACDSAgEAAAAB0wIBAAAABNQCAQAAAATVAgEAAAAB1gIBAAAAAdcCAQAAAAHYAgEAAAAB2QIBAIMEACHlAgEAAAAB5gIBAAAAAecCAQAAAAEL0gIBAAAAAdMCAQAAAATUAgEAAAAE1QIBAAAAAdYCAQAAAAHXAgEAAAAB2AIBAAAAAdkCAQCEBAAh5QIBAAAAAeYCAQAAAAHnAgEAAAABCcsCAACFBAAwzAIAAMoDABDNAgAAhQQAMM4CAgD6AwAh6AICAPoDACHpAkAA-wMAIeoCQACGBAAh6wICAPoDACHsAgIA-gMAIQsIAACIBAAgNwAAiQQAIDgAAIkEACDSAkAAAAAB0wJAAAAABdQCQAAAAAXVAkAAAAAB1gJAAAAAAdcCQAAAAAHYAkAAAAAB2QJAAIcEACELCAAAiAQAIDcAAIkEACA4AACJBAAg0gJAAAAAAdMCQAAAAAXUAkAAAAAF1QJAAAAAAdYCQAAAAAHXAkAAAAAB2AJAAAAAAdkCQACHBAAhCNICAgAAAAHTAgIAAAAF1AICAAAABdUCAgAAAAHWAgIAAAAB1wICAAAAAdgCAgAAAAHZAgIAiAQAIQjSAkAAAAAB0wJAAAAABdQCQAAAAAXVAkAAAAAB1gJAAAAAAdcCQAAAAAHYAkAAAAAB2QJAAIkEACEJywIAAIoEADDMAgAAtAMAEM0CAACKBAAwzgICAPoDACHoAgIA-gMAIe0CQAD7AwAh7gICAPoDACHvAgIA-gMAIfACAgD6AwAhCMsCAACLBAAwzAIAAJ4DABDNAgAAiwQAMM4CAgD6AwAh6AICAPoDACHtAkAA-wMAIfICAACMBPICIvMCAgD6AwAhBwgAAP0DACA3AACOBAAgOAAAjgQAINICAAAA8gIC0wIAAADyAgjUAgAAAPICCNkCAACNBPICIgcIAAD9AwAgNwAAjgQAIDgAAI4EACDSAgAAAPICAtMCAAAA8gII1AIAAADyAgjZAgAAjQTyAiIE0gIAAADyAgLTAgAAAPICCNQCAAAA8gII2QIAAI4E8gIiC8sCAACPBAAwzAIAAIgDABDNAgAAjwQAMM4CAgD6AwAhzwICAPoDACHoAgIA-gMAIfQCAgD6AwAh9QJAAPsDACH2AkAAhgQAIfcCAgD6AwAh-QIAAJAE-QIiBwgAAP0DACA3AACSBAAgOAAAkgQAINICAAAA-QIC0wIAAAD5AgjUAgAAAPkCCNkCAACRBPkCIgcIAAD9AwAgNwAAkgQAIDgAAJIEACDSAgAAAPkCAtMCAAAA-QII1AIAAAD5AgjZAgAAkQT5AiIE0gIAAAD5AgLTAgAAAPkCCNQCAAAA-QII2QIAAJIE-QIiB8sCAACTBAAwzAIAAPICABDNAgAAkwQAMM4CAgD6AwAhzwICAPoDACHRAkAA-wMAIfoCAgD6AwAhCcsCAACUBAAwzAIAANwCABDNAgAAlAQAMM4CAgD6AwAh2gIBAJYEACH6AgIA-gMAIfsCAgD6AwAh_AICAPoDACH-AgAAlQT-AiIHCAAA_QMAIDcAAJoEACA4AACaBAAg0gIAAAD-AgLTAgAAAP4CCNQCAAAA_gII2QIAAJkE_gIiDggAAIgEACA3AACYBAAgOAAAmAQAINICAQAAAAHTAgEAAAAF1AIBAAAABdUCAQAAAAHWAgEAAAAB1wIBAAAAAdgCAQAAAAHZAgEAlwQAIeUCAQAAAAHmAgEAAAAB5wIBAAAAAQ4IAACIBAAgNwAAmAQAIDgAAJgEACDSAgEAAAAB0wIBAAAABdQCAQAAAAXVAgEAAAAB1gIBAAAAAdcCAQAAAAHYAgEAAAAB2QIBAJcEACHlAgEAAAAB5gIBAAAAAecCAQAAAAEL0gIBAAAAAdMCAQAAAAXUAgEAAAAF1QIBAAAAAdYCAQAAAAHXAgEAAAAB2AIBAAAAAdkCAQCYBAAh5QIBAAAAAeYCAQAAAAHnAgEAAAABBwgAAP0DACA3AACaBAAgOAAAmgQAINICAAAA_gIC0wIAAAD-AgjUAgAAAP4CCNkCAACZBP4CIgTSAgAAAP4CAtMCAAAA_gII1AIAAAD-AgjZAgAAmgT-AiIHywIAAJsEADDMAgAAxgIAEM0CAACbBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAh4gICAPoDACEHywIAAJwEADDMAgAAsAIAEM0CAACcBAAwzgICAPoDACHoAgIA-gMAIfQCAgD6AwAh_wICAPoDACEGywIAAJ0EADDMAgAAmgIAEM0CAACdBAAwzgICAPoDACGAAwEAggQAIYEDAgD6AwAhCBEAAKEEACATAACiBAAgywIAAJ4EADDMAgAAhwIAEM0CAACeBAAwzgICAJ8EACGAAwEAoAQAIYEDAgCfBAAhCNICAgAAAAHTAgIAAAAE1AICAAAABNUCAgAAAAHWAgIAAAAB1wICAAAAAdgCAgAAAAHZAgIA_QMAIQvSAgEAAAAB0wIBAAAABNQCAQAAAATVAgEAAAAB1gIBAAAAAdcCAQAAAAHYAgEAAAAB2QIBAIQEACHlAgEAAAAB5gIBAAAAAecCAQAAAAEDggMAACYAIIMDAAAmACCEAwAAJgAgA4IDAAArACCDAwAAKwAghAMAACsAIAfLAgAAowQAMMwCAACBAgAQzQIAAKMEADDOAgIA-gMAIegCAgD6AwAhhgMAAKQEhgMihwMBAIIEACEHCAAA_QMAIDcAAKYEACA4AACmBAAg0gIAAACGAwLTAgAAAIYDCNQCAAAAhgMI2QIAAKUEhgMiBwgAAP0DACA3AACmBAAgOAAApgQAINICAAAAhgMC0wIAAACGAwjUAgAAAIYDCNkCAAClBIYDIgTSAgAAAIYDAtMCAAAAhgMI1AIAAACGAwjZAgAApgSGAyIHywIAAKcEADDMAgAA6wEAEM0CAACnBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAhiAMBAJYEACEHywIAAKgEADDMAgAA1QEAEM0CAACoBAAwzgICAPoDACHPAgIA-gMAIdoCAQCCBAAhiQMBAIIEACEJywIAAKkEADDMAgAAvwEAEM0CAACpBAAwzgICAPoDACHPAgIA-gMAIYoDAQCWBAAhiwMAAKoEACCMAwAAqgQAII0DAQCCBAAhBNICAQAAAAWOAwEAAAABjwMBAAAABJADAQAAAAQKAwAArQQAIMsCAACrBAAwzAIAAFQAEM0CAACrBAAwzgICAJ8EACHPAgIAnwQAIYoDAQCsBAAhiwMAAKoEACCMAwAAqgQAII0DAQCgBAAhC9ICAQAAAAHTAgEAAAAF1AIBAAAABdUCAQAAAAHWAgEAAAAB1wIBAAAAAdgCAQAAAAHZAgEAmAQAIeUCAQAAAAHmAgEAAAAB5wIBAAAAARIJAAC3BAAgDwAAswQAIBEAAKEEACAaAAC0BAAgGwAAtQQAIBwAALYEACAdAAC4BAAgHgAAuQQAIB8AALoEACAgAAC7BAAgywIAALIEADDMAgAAfAAQzQIAALIEADDOAgIAnwQAIdoCAQCgBAAh4wJAALAEACGeAwAAfAAgnwMAAHwAIAnLAgAArgQAMMwCAACnAQAQzQIAAK4EADDOAgIA-gMAIc8CAgD6AwAh4wJAAPsDACHkAkAA-wMAIZEDAQCCBAAhkgMBAIIEACEKAwAArQQAIMsCAACvBAAwzAIAAFIAEM0CAACvBAAwzgICAJ8EACHPAgIAnwQAIeMCQACwBAAh5AJAALAEACGRAwEAoAQAIZIDAQCgBAAhCNICQAAAAAHTAkAAAAAE1AJAAAAABNUCQAAAAAHWAkAAAAAB1wJAAAAAAdgCQAAAAAHZAkAA_gMAIQbLAgAAsQQAMMwCAACPAQAQzQIAALEEADDOAgIA-gMAIdoCAQCCBAAh4wJAAPsDACEQCQAAtwQAIA8AALMEACARAAChBAAgGgAAtAQAIBsAALUEACAcAAC2BAAgHQAAuAQAIB4AALkEACAfAAC6BAAgIAAAuwQAIMsCAACyBAAwzAIAAHwAEM0CAACyBAAwzgICAJ8EACHaAgEAoAQAIeMCQACwBAAhA4IDAAADACCDAwAAAwAghAMAAAMAIAOCAwAAIgAggwMAACIAIIQDAAAiACADggMAABIAIIMDAAASACCEAwAAEgAgA4IDAAAHACCDAwAABwAghAMAAAcAIAOCAwAACQAggwMAAAkAIIQDAAAJACADggMAAA0AIIMDAAANACCEAwAADQAgA4IDAAAaACCDAwAAGgAghAMAABoAIAwDAACtBAAgywIAAK8EADDMAgAAUgAQzQIAAK8EADDOAgIAnwQAIc8CAgCfBAAh4wJAALAEACHkAkAAsAQAIZEDAQCgBAAhkgMBAKAEACGeAwAAUgAgnwMAAFIAIAwDAACtBAAgywIAAKsEADDMAgAAVAAQzQIAAKsEADDOAgIAnwQAIc8CAgCfBAAhigMBAKwEACGLAwAAqgQAIIwDAACqBAAgjQMBAKAEACGeAwAAVAAgnwMAAFQAIA7LAgAAvAQAMMwCAAB2ABDNAgAAvAQAMM4CAgD6AwAhzwICAPoDACHjAkAA-wMAIeQCQAD7AwAh6AICAL8EACGJAwEAggQAIZMDAQCCBAAhlQMAAL0ElQMilgMgAL4EACGXAwIAvwQAIZkDAADABJkDIgcIAAD9AwAgNwAAyAQAIDgAAMgEACDSAgAAAJUDAtMCAAAAlQMI1AIAAACVAwjZAgAAxwSVAyIFCAAA_QMAIDcAAMYEACA4AADGBAAg0gIgAAAAAdkCIADFBAAhDQgAAIgEACA1AADEBAAgNgAAiAQAIDcAAIgEACA4AACIBAAg0gICAAAAAdMCAgAAAAXUAgIAAAAF1QICAAAAAdYCAgAAAAHXAgIAAAAB2AICAAAAAdkCAgDDBAAhBwgAAP0DACA3AADCBAAgOAAAwgQAINICAAAAmQMC0wIAAACZAwjUAgAAAJkDCNkCAADBBJkDIgcIAAD9AwAgNwAAwgQAIDgAAMIEACDSAgAAAJkDAtMCAAAAmQMI1AIAAACZAwjZAgAAwQSZAyIE0gIAAACZAwLTAgAAAJkDCNQCAAAAmQMI2QIAAMIEmQMiDQgAAIgEACA1AADEBAAgNgAAiAQAIDcAAIgEACA4AACIBAAg0gICAAAAAdMCAgAAAAXUAgIAAAAF1QICAAAAAdYCAgAAAAHXAgIAAAAB2AICAAAAAdkCAgDDBAAhCNICCAAAAAHTAggAAAAF1AIIAAAABdUCCAAAAAHWAggAAAAB1wIIAAAAAdgCCAAAAAHZAggAxAQAIQUIAAD9AwAgNwAAxgQAIDgAAMYEACDSAiAAAAAB2QIgAMUEACEC0gIgAAAAAdkCIADGBAAhBwgAAP0DACA3AADIBAAgOAAAyAQAINICAAAAlQMC0wIAAACVAwjUAgAAAJUDCNkCAADHBJUDIgTSAgAAAJUDAtMCAAAAlQMI1AIAAACVAwjZAgAAyASVAyIKEAAAywQAIMsCAADJBAAwzAIAAEEAEM0CAADJBAAwzgICAJ8EACHoAgIAnwQAIekCQACwBAAh6gJAAMoEACHrAgIAnwQAIewCAgCfBAAhCNICQAAAAAHTAkAAAAAF1AJAAAAABdUCQAAAAAHWAkAAAAAB1wJAAAAAAdgCQAAAAAHZAkAAiQQAIREDAACtBAAgBAAA3AQAIBEAAKEEACAVAADZBAAgFgAA2wQAIBcAAKIEACAYAADdBAAgGQAA3gQAIMsCAADaBAAwzAIAACIAEM0CAADaBAAwzgICAJ8EACHPAgIAnwQAIdoCAQCgBAAhiAMBAKwEACGeAwAAIgAgnwMAACIAIALoAgIAAAABhgMAAACGAwIChgMAAACGAwKHAwEAAAABCBAAAMsEACDLAgAAzgQAMMwCAAA9ABDNAgAAzgQAMM4CAgCfBAAh6AICAJ8EACGGAwAAzwSGAyKHAwEAoAQAIQTSAgAAAIYDAtMCAAAAhgMI1AIAAACGAwjZAgAApgSGAyIKEAAAywQAIMsCAADQBAAwzAIAADYAEM0CAADQBAAwzgICAJ8EACHoAgIAnwQAIe0CQACwBAAh7gICAJ8EACHvAgIAnwQAIfACAgCfBAAhChAAAMsEACAUAADTBAAgywIAANEEADDMAgAAMQAQzQIAANEEADDOAgIAnwQAIegCAgCfBAAh7QJAALAEACHyAgAA0gTyAiLzAgIAnwQAIQTSAgAAAPICAtMCAAAA8gII1AIAAADyAgjZAgAAjgTyAiIRAwAArQQAIBAAAMsEACASAADWBAAgFQAA2QQAIMsCAADXBAAwzAIAACYAEM0CAADXBAAwzgICAJ8EACHPAgIAnwQAIegCAgCfBAAh9AICAJ8EACH1AkAAsAQAIfYCQADKBAAh9wICAJ8EACH5AgAA2AT5AiKeAwAAJgAgnwMAACYAIALoAgIAAAAB9AICAAAAAQkQAADLBAAgEgAA1gQAIMsCAADVBAAwzAIAACsAEM0CAADVBAAwzgICAJ8EACHoAgIAnwQAIfQCAgCfBAAh_wICAJ8EACEKEQAAoQQAIBMAAKIEACDLAgAAngQAMMwCAACHAgAQzQIAAJ4EADDOAgIAnwQAIYADAQCgBAAhgQMCAJ8EACGeAwAAhwIAIJ8DAACHAgAgDwMAAK0EACAQAADLBAAgEgAA1gQAIBUAANkEACDLAgAA1wQAMMwCAAAmABDNAgAA1wQAMM4CAgCfBAAhzwICAJ8EACHoAgIAnwQAIfQCAgCfBAAh9QJAALAEACH2AkAAygQAIfcCAgCfBAAh-QIAANgE-QIiBNICAAAA-QIC0wIAAAD5AgjUAgAAAPkCCNkCAACSBPkCIgOCAwAAMQAggwMAADEAIIQDAAAxACAPAwAArQQAIAQAANwEACARAAChBAAgFQAA2QQAIBYAANsEACAXAACiBAAgGAAA3QQAIBkAAN4EACDLAgAA2gQAMMwCAAAiABDNAgAA2gQAMM4CAgCfBAAhzwICAJ8EACHaAgEAoAQAIYgDAQCsBAAhA4IDAAA2ACCDAwAANgAghAMAADYAIBMDAACtBAAgIQAA8AQAICIAAPEEACDLAgAA6wQAMMwCAAAHABDNAgAA6wQAMM4CAgCfBAAhzwICAJ8EACHjAkAAsAQAIeQCQACwBAAh6AICAO4EACGJAwEAoAQAIZMDAQCgBAAhlQMAAOwElQMilgMgAO0EACGXAwIA7gQAIZkDAADvBJkDIp4DAAAHACCfAwAABwAgA4IDAAA9ACCDAwAAPQAghAMAAD0AIAOCAwAAQQAggwMAAEEAIIQDAABBACACzwICAAAAAdECQAAAAAEJAwAArQQAIAwAAOEEACDLAgAA4AQAMMwCAAAaABDNAgAA4AQAMM4CAgCfBAAhzwICAJ8EACHRAkAAsAQAIfoCAgCfBAAhDQMAAK0EACAFAADlBAAgCwAA5gQAIA0AALkEACDLAgAA5AQAMMwCAAASABDNAgAA5AQAMM4CAgCfBAAhzwICAJ8EACHaAgEAoAQAIeICAgCfBAAhngMAABIAIJ8DAAASACAKCgAA4QQAIMsCAADiBAAwzAIAABYAEM0CAADiBAAwzgICAJ8EACHaAgEArAQAIfoCAgCfBAAh-wICAJ8EACH8AgIAnwQAIf4CAADjBP4CIgTSAgAAAP4CAtMCAAAA_gII1AIAAAD-AgjZAgAAmgT-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_AQAIM4CAgAAAAHPAgIAAAAB0QJAAAAAAQIAAAAPACAvAACSBQAgAwAAAA8AIC8AAJIFACAwAACRBQAgASgAAOoJADAKAwAArQQAIAYAAOkEACDLAgAA6AQAMMwCAAANABDNAgAA6AQAMM4CAgAAAAHPAgIAnwQAIdACAgCfBAAh0QJAALAEACGdAwAA5wQAIAIAAAAPACAoAACRBQAgAgAAAI8FACAoAACQBQAgB8sCAACOBQAwzAIAAI8FABDNAgAAjgUAMM4CAgCfBAAhzwICAJ8EACHQAgIAnwQAIdECQACwBAAhB8sCAACOBQAwzAIAAI8FABDNAgAAjgUAMM4CAgCfBAAhzwICAJ8EACHQAgIAnwQAIdECQACwBAAhA84CAgD5BAAhzwICAPkEACHRAkAA-AQAIQQDAAD6BAAgzgICAPkEACHPAgIA-QQAIdECQAD4BAAhBAMAAPwEACDOAgIAAAABzwICAAAAAdECQAAAAAEDLwAA6AkAIKADAADpCQAgpgMAAHkAIAMvAADmCQAgoAMAAOcJACCmAwAABQAgBC8AAIcFADCgAwAAiAUAMKIDAACKBQAgpgMAAIsFADAAAAAAAAABowNAAAAAAQUvAADhCQAgMAAA5AkAIKADAADiCQAgoQMAAOMJACCmAwAAJAAgAy8AAOEJACCgAwAA4gkAIKYDAAAkACAAAAAAAAUvAADcCQAgMAAA3wkAIKADAADdCQAgoQMAAN4JACCmAwAAJAAgAy8AANwJACCgAwAA3QkAIKYDAAAkACAAAAAAAAGjAwAAAPICAgUvAADUCQAgMAAA2gkAIKADAADVCQAgoQMAANkJACCmAwAAKAAgBS8AANIJACAwAADXCQAgoAMAANMJACChAwAA1gkAIKYDAAAkACADLwAA1AkAIKADAADVCQAgpgMAACgAIAMvAADSCQAgoAMAANMJACCmAwAAJAAgAAAAAAABowMAAAD5AgIFLwAAxgkAIDAAANAJACCgAwAAxwkAIKEDAADPCQAgpgMAACQAIAUvAADECQAgMAAAzQkAIKADAADFCQAgoQMAAMwJACCmAwAAhAIAIAUvAADCCQAgMAAAygkAIKADAADDCQAgoQMAAMkJACCmAwAAeQAgCy8AALoFADAwAAC_BQAwoAMAALsFADChAwAAvAUAMKIDAAC9BQAgowMAAL4FADCkAwAAvgUAMKUDAAC-BQAwpgMAAL4FADCnAwAAwAUAMKgDAADBBQAwBRAAAK8FACDOAgIAAAAB6AICAAAAAe0CQAAAAAHyAgAAAPICAgIAAAAzACAvAADFBQAgAwAAADMAIC8AAMUFACAwAADEBQAgASgAAMgJADAKEAAAywQAIBQAANMEACDLAgAA0QQAMMwCAAAxABDNAgAA0QQAMM4CAgAAAAHoAgIAnwQAIe0CQACwBAAh8gIAANIE8gIi8wICAJ8EACECAAAAMwAgKAAAxAUAIAIAAADCBQAgKAAAwwUAIAjLAgAAwQUAMMwCAADCBQAQzQIAAMEFADDOAgIAnwQAIegCAgCfBAAh7QJAALAEACHyAgAA0gTyAiLzAgIAnwQAIQjLAgAAwQUAMMwCAADCBQAQzQIAAMEFADDOAgIAnwQAIegCAgCfBAAh7QJAALAEACHyAgAA0gTyAiLzAgIAnwQAIQTOAgIA-QQAIegCAgD5BAAh7QJAAPgEACHyAgAAqwXyAiIFEAAArQUAIM4CAgD5BAAh6AICAPkEACHtAkAA-AQAIfICAACrBfICIgUQAACvBQAgzgICAAAAAegCAgAAAAHtAkAAAAAB8gIAAADyAgIDLwAAxgkAIKADAADHCQAgpgMAACQAIAMvAADECQAgoAMAAMUJACCmAwAAhAIAIAMvAADCCQAgoAMAAMMJACCmAwAAeQAgBC8AALoFADCgAwAAuwUAMKIDAAC9BQAgpgMAAL4FADAAAAAAAAUvAAC6CQAgMAAAwAkAIKADAAC7CQAgoQMAAL8JACCmAwAAeQAgBS8AALgJACAwAAC9CQAgoAMAALkJACChAwAAvAkAIKYDAAAUACADLwAAugkAIKADAAC7CQAgpgMAAHkAIAMvAAC4CQAgoAMAALkJACCmAwAAFAAgAAAAAAABowMAAAD-AgIBowMBAAAAAQUvAACzCQAgMAAAtgkAIKADAAC0CQAgoQMAALUJACCmAwAAFAAgAy8AALMJACCgAwAAtAkAIKYDAAAUACAAAAAAAAUvAACpCQAgMAAAsQkAIKADAACqCQAgoQMAALAJACCmAwAAeQAgBS8AAKcJACAwAACuCQAgoAMAAKgJACChAwAArQkAIKYDAAAFACALLwAA8QUAMDAAAPYFADCgAwAA8gUAMKEDAADzBQAwogMAAPQFACCjAwAA9QUAMKQDAAD1BQAwpQMAAPUFADCmAwAA9QUAMKcDAAD3BQAwqAMAAPgFADALLwAA5QUAMDAAAOoFADCgAwAA5gUAMKEDAADnBQAwogMAAOgFACCjAwAA6QUAMKQDAADpBQAwpQMAAOkFADCmAwAA6QUAMKcDAADrBQAwqAMAAOwFADAEAwAA0QUAIM4CAgAAAAHPAgIAAAAB0QJAAAAAAQIAAAAcACAvAADwBQAgAwAAABwAIC8AAPAFACAwAADvBQAgASgAAKwJADAKAwAArQQAIAwAAOEEACDLAgAA4AQAMMwCAAAaABDNAgAA4AQAMM4CAgAAAAHPAgIAnwQAIdECQACwBAAh-gICAJ8EACGdAwAA3wQAIAIAAAAcACAoAADvBQAgAgAAAO0FACAoAADuBQAgB8sCAADsBQAwzAIAAO0FABDNAgAA7AUAMM4CAgCfBAAhzwICAJ8EACHRAkAAsAQAIfoCAgCfBAAhB8sCAADsBQAwzAIAAO0FABDNAgAA7AUAMM4CAgCfBAAhzwICAJ8EACHRAkAAsAQAIfoCAgCfBAAhA84CAgD5BAAhzwICAPkEACHRAkAA-AQAIQQDAADPBQAgzgICAPkEACHPAgIA-QQAIdECQAD4BAAhBAMAANEFACDOAgIAAAABzwICAAAAAdECQAAAAAEFzgICAAAAAdoCAQAAAAH7AgIAAAAB_AICAAAAAf4CAAAA_gICAgAAABgAIC8AAPwFACADAAAAGAAgLwAA_AUAIDAAAPsFACABKAAAqwkAMAoKAADhBAAgywIAAOIEADDMAgAAFgAQzQIAAOIEADDOAgIAAAAB2gIBAKwEACH6AgIAnwQAIfsCAgCfBAAh_AICAJ8EACH-AgAA4wT-AiICAAAAGAAgKAAA-wUAIAIAAAD5BQAgKAAA-gUAIAnLAgAA-AUAMMwCAAD5BQAQzQIAAPgFADDOAgIAnwQAIdoCAQCsBAAh-gICAJ8EACH7AgIAnwQAIfwCAgCfBAAh_gIAAOME_gIiCcsCAAD4BQAwzAIAAPkFABDNAgAA-AUAMM4CAgCfBAAh2gIBAKwEACH6AgIAnwQAIfsCAgCfBAAh_AICAJ8EACH-AgAA4wT-AiIFzgICAPkEACHaAgEA2QUAIfsCAgD5BAAh_AICAPkEACH-AgAA2AX-AiIFzgICAPkEACHaAgEA2QUAIfsCAgD5BAAh_AICAPkEACH-AgAA2AX-AiIFzgICAAAAAdoCAQAAAAH7AgIAAAAB_AICAAAAAf4CAAAA_gICAy8AAKkJACCgAwAAqgkAIKYDAAB5ACADLwAApwkAIKADAACoCQAgpgMAAAUAIAQvAADxBQAwoAMAAPIFADCiAwAA9AUAIKYDAAD1BQAwBC8AAOUFADCgAwAA5gUAMKIDAADoBQAgpgMAAOkFADAAAAAAAAUvAACfCQAgMAAApQkAIKADAACgCQAgoQMAAKQJACCmAwAAJAAgBS8AAJ0JACAwAACiCQAgoAMAAJ4JACChAwAAoQkAIKYDAACEAgAgAy8AAJ8JACCgAwAAoAkAIKYDAAAkACADLwAAnQkAIKADAACeCQAgpgMAAIQCACAAAAAAAAsvAACdBgAwMAAAogYAMKADAACeBgAwoQMAAJ8GADCiAwAAoAYAIKMDAAChBgAwpAMAAKEGADClAwAAoQYAMKYDAAChBgAwpwMAAKMGADCoAwAApAYAMAsvAACRBgAwMAAAlgYAMKADAACSBgAwoQMAAJMGADCiAwAAlAYAIKMDAACVBgAwpAMAAJUGADClAwAAlQYAMKYDAACVBgAwpwMAAJcGADCoAwAAmAYAMAQQAACIBgAgzgICAAAAAegCAgAAAAH_AgIAAAABAgAAAC0AIC8AAJwGACADAAAALQAgLwAAnAYAIDAAAJsGACABKAAAnAkAMAoQAADLBAAgEgAA1gQAIMsCAADVBAAwzAIAACsAEM0CAADVBAAwzgICAAAAAegCAgCfBAAh9AICAJ8EACH_AgIAnwQAIZwDAADUBAAgAgAAAC0AICgAAJsGACACAAAAmQYAICgAAJoGACAHywIAAJgGADDMAgAAmQYAEM0CAACYBgAwzgICAJ8EACHoAgIAnwQAIfQCAgCfBAAh_wICAJ8EACEHywIAAJgGADDMAgAAmQYAEM0CAACYBgAwzgICAJ8EACHoAgIAnwQAIfQCAgCfBAAh_wICAJ8EACEDzgICAPkEACHoAgIA-QQAIf8CAgD5BAAhBBAAAIYGACDOAgIA-QQAIegCAgD5BAAh_wICAPkEACEEEAAAiAYAIM4CAgAAAAHoAgIAAAAB_wICAAAAAQoDAADIBQAgEAAAxgUAIBUAAMkFACDOAgIAAAABzwICAAAAAegCAgAAAAH1AkAAAAAB9gJAAAAAAfcCAgAAAAH5AgAAAPkCAgIAAAAoACAvAACoBgAgAwAAACgAIC8AAKgGACAwAACnBgAgASgAAJsJADAPAwAArQQAIBAAAMsEACASAADWBAAgFQAA2QQAIMsCAADXBAAwzAIAACYAEM0CAADXBAAwzgICAAAAAc8CAgCfBAAh6AICAJ8EACH0AgIAnwQAIfUCQACwBAAh9gJAAMoEACH3AgIAnwQAIfkCAADYBPkCIgIAAAAoACAoAACnBgAgAgAAAKUGACAoAACmBgAgC8sCAACkBgAwzAIAAKUGABDNAgAApAYAMM4CAgCfBAAhzwICAJ8EACHoAgIAnwQAIfQCAgCfBAAh9QJAALAEACH2AkAAygQAIfcCAgCfBAAh-QIAANgE-QIiC8sCAACkBgAwzAIAAKUGABDNAgAApAYAMM4CAgCfBAAhzwICAJ8EACHoAgIAnwQAIfQCAgCfBAAh9QJAALAEACH2AkAAygQAIfcCAgCfBAAh-QIAANgE-QIiB84CAgD5BAAhzwICAPkEACHoAgIA-QQAIfUCQAD4BAAh9gJAAJwFACH3AgIA-QQAIfkCAAC1BfkCIgoDAAC4BQAgEAAAtgUAIBUAALkFACDOAgIA-QQAIc8CAgD5BAAh6AICAPkEACH1AkAA-AQAIfYCQACcBQAh9wICAPkEACH5AgAAtQX5AiIKAwAAyAUAIBAAAMYFACAVAADJBQAgzgICAAAAAc8CAgAAAAHoAgIAAAAB9QJAAAAAAfYCQAAAAAH3AgIAAAAB-QIAAAD5AgIELwAAnQYAMKADAACeBgAwogMAAKAGACCmAwAAoQYAMAQvAACRBgAwoAMAAJIGADCiAwAAlAYAIKYDAACVBgAwAAAAAAAAAAGjAwAAAIYDAgUvAACWCQAgMAAAmQkAIKADAACXCQAgoQMAAJgJACCmAwAAJAAgAy8AAJYJACCgAwAAlwkAIKYDAAAkACAAAAAAAAUvAACBCQAgMAAAlAkAIKADAACCCQAgoQMAAJMJACCmAwAAeQAgCy8AAIUHADAwAACJBwAwoAMAAIYHADChAwAAhwcAMKIDAACIBwAgowMAAKEGADCkAwAAoQYAMKUDAAChBgAwpgMAAKEGADCnAwAAigcAMKgDAACkBgAwCy8AAPkGADAwAAD-BgAwoAMAAPoGADChAwAA-wYAMKIDAAD8BgAgowMAAP0GADCkAwAA_QYAMKUDAAD9BgAwpgMAAP0GADCnAwAA_wYAMKgDAACABwAwCy8AAPAGADAwAAD0BgAwoAMAAPEGADChAwAA8gYAMKIDAADzBgAgowMAAL4FADCkAwAAvgUAMKUDAAC-BQAwpgMAAL4FADCnAwAA9QYAMKgDAADBBQAwBy8AAOMGACAwAADmBgAgoAMAAOQGACChAwAA5QYAIKQDAAAHACClAwAABwAgpgMAAAEAIAsvAADaBgAwMAAA3gYAMKADAADbBgAwoQMAANwGADCiAwAA3QYAIKMDAACVBgAwpAMAAJUGADClAwAAlQYAMKYDAACVBgAwpwMAAN8GADCoAwAAmAYAMAsvAADOBgAwMAAA0wYAMKADAADPBgAwoQMAANAGADCiAwAA0QYAIKMDAADSBgAwpAMAANIGADClAwAA0gYAMKYDAADSBgAwpwMAANQGADCoAwAA1QYAMAsvAADCBgAwMAAAxwYAMKADAADDBgAwoQMAAMQGADCiAwAAxQYAIKMDAADGBgAwpAMAAMYGADClAwAAxgYAMKYDAADGBgAwpwMAAMgGADCoAwAAyQYAMAXOAgIAAAAB6QJAAAAAAeoCQAAAAAHrAgIAAAAB7AICAAAAAQIAAABDACAvAADNBgAgAwAAAEMAIC8AAM0GACAwAADMBgAgASgAAJIJADAKEAAAywQAIMsCAADJBAAwzAIAAEEAEM0CAADJBAAwzgICAAAAAegCAgCfBAAh6QJAALAEACHqAkAAygQAIesCAgCfBAAh7AICAJ8EACECAAAAQwAgKAAAzAYAIAIAAADKBgAgKAAAywYAIAnLAgAAyQYAMMwCAADKBgAQzQIAAMkGADDOAgIAnwQAIegCAgCfBAAh6QJAALAEACHqAkAAygQAIesCAgCfBAAh7AICAJ8EACEJywIAAMkGADDMAgAAygYAEM0CAADJBgAwzgICAJ8EACHoAgIAnwQAIekCQACwBAAh6gJAAMoEACHrAgIAnwQAIewCAgCfBAAhBc4CAgD5BAAh6QJAAPgEACHqAkAAnAUAIesCAgD5BAAh7AICAPkEACEFzgICAPkEACHpAkAA-AQAIeoCQACcBQAh6wICAPkEACHsAgIA-QQAIQXOAgIAAAAB6QJAAAAAAeoCQAAAAAHrAgIAAAAB7AICAAAAAQPOAgIAAAABhgMAAACGAwKHAwEAAAABAgAAAD8AIC8AANkGACADAAAAPwAgLwAA2QYAIDAAANgGACABKAAAkQkAMAoQAADLBAAgywIAAM4EADDMAgAAPQAQzQIAAM4EADDOAgIAAAAB6AICAJ8EACGGAwAAzwSGAyKHAwEAoAQAIZoDAADMBAAgmwMAAM0EACACAAAAPwAgKAAA2AYAIAIAAADWBgAgKAAA1wYAIAfLAgAA1QYAMMwCAADWBgAQzQIAANUGADDOAgIAnwQAIegCAgCfBAAhhgMAAM8EhgMihwMBAKAEACEHywIAANUGADDMAgAA1gYAEM0CAADVBgAwzgICAJ8EACHoAgIAnwQAIYYDAADPBIYDIocDAQCgBAAhA84CAgD5BAAhhgMAALIGhgMihwMBAIMFACEDzgICAPkEACGGAwAAsgaGAyKHAwEAgwUAIQPOAgIAAAABhgMAAACGAwKHAwEAAAABBBIAAIkGACDOAgIAAAAB9AICAAAAAf8CAgAAAAECAAAALQAgLwAA4gYAIAMAAAAtACAvAADiBgAgMAAA4QYAIAEoAACQCQAwAgAAAC0AICgAAOEGACACAAAAmQYAICgAAOAGACADzgICAPkEACH0AgIA-QQAIf8CAgD5BAAhBBIAAIcGACDOAgIA-QQAIfQCAgD5BAAh_wICAPkEACEEEgAAiQYAIM4CAgAAAAH0AgIAAAAB_wICAAAAAQwDAADuBgAgIQAA7wYAIM4CAgAAAAHPAgIAAAAB4wJAAAAAAeQCQAAAAAGJAwEAAAABkwMBAAAAAZUDAAAAlQMClgMgAAAAAZcDAgAAAAGZAwAAAJkDAgIAAAABACAvAADjBgAgAwAAAAcAIC8AAOMGACAwAADnBgAgDgAAAAcAIAMAAOsGACAhAADsBgAgKAAA5wYAIM4CAgD5BAAhzwICAPkEACHjAkAA-AQAIeQCQAD4BAAhiQMBAIMFACGTAwEAgwUAIZUDAADoBpUDIpYDIADpBgAhlwMCAO0GACGZAwAA6gaZAyIMAwAA6wYAICEAAOwGACDOAgIA-QQAIc8CAgD5BAAh4wJAAPgEACHkAkAA-AQAIYkDAQCDBQAhkwMBAIMFACGVAwAA6AaVAyKWAyAA6QYAIZcDAgDtBgAhmQMAAOoGmQMiAaMDAAAAlQMCAaMDIAAAAAEBowMAAACZAwIFLwAAiAkAIDAAAI4JACCgAwAAiQkAIKEDAACNCQAgpgMAAHkAIAcvAACGCQAgMAAAiwkAIKADAACHCQAgoQMAAIoJACCkAwAAAwAgpQMAAAMAIKYDAAAFACAFowMCAAAAAaoDAgAAAAGrAwIAAAABrAMCAAAAAa0DAgAAAAEDLwAAiAkAIKADAACJCQAgpgMAAHkAIAMvAACGCQAgoAMAAIcJACCmAwAABQAgBRQAAK4FACDOAgIAAAAB7QJAAAAAAfICAAAA8gIC8wICAAAAAQIAAAAzACAvAAD4BgAgAwAAADMAIC8AAPgGACAwAAD3BgAgASgAAIUJADACAAAAMwAgKAAA9wYAIAIAAADCBQAgKAAA9gYAIATOAgIA-QQAIe0CQAD4BAAh8gIAAKsF8gIi8wICAPkEACEFFAAArAUAIM4CAgD5BAAh7QJAAPgEACHyAgAAqwXyAiLzAgIA-QQAIQUUAACuBQAgzgICAAAAAe0CQAAAAAHyAgAAAPICAvMCAgAAAAEFzgICAAAAAe0CQAAAAAHuAgIAAAAB7wICAAAAAfACAgAAAAECAAAAOAAgLwAAhAcAIAMAAAA4ACAvAACEBwAgMAAAgwcAIAEoAACECQAwChAAAMsEACDLAgAA0AQAMMwCAAA2ABDNAgAA0AQAMM4CAgAAAAHoAgIAnwQAIe0CQACwBAAh7gICAJ8EACHvAgIAnwQAIfACAgCfBAAhAgAAADgAICgAAIMHACACAAAAgQcAICgAAIIHACAJywIAAIAHADDMAgAAgQcAEM0CAACABwAwzgICAJ8EACHoAgIAnwQAIe0CQACwBAAh7gICAJ8EACHvAgIAnwQAIfACAgCfBAAhCcsCAACABwAwzAIAAIEHABDNAgAAgAcAMM4CAgCfBAAh6AICAJ8EACHtAkAAsAQAIe4CAgCfBAAh7wICAJ8EACHwAgIAnwQAIQXOAgIA-QQAIe0CQAD4BAAh7gICAPkEACHvAgIA-QQAIfACAgD5BAAhBc4CAgD5BAAh7QJAAPgEACHuAgIA-QQAIe8CAgD5BAAh8AICAPkEACEFzgICAAAAAe0CQAAAAAHuAgIAAAAB7wICAAAAAfACAgAAAAEKAwAAyAUAIBIAAMcFACAVAADJBQAgzgICAAAAAc8CAgAAAAH0AgIAAAAB9QJAAAAAAfYCQAAAAAH3AgIAAAAB-QIAAAD5AgICAAAAKAAgLwAAjQcAIAMAAAAoACAvAACNBwAgMAAAjAcAIAEoAACDCQAwAgAAACgAICgAAIwHACACAAAApQYAICgAAIsHACAHzgICAPkEACHPAgIA-QQAIfQCAgD5BAAh9QJAAPgEACH2AkAAnAUAIfcCAgD5BAAh-QIAALUF-QIiCgMAALgFACASAAC3BQAgFQAAuQUAIM4CAgD5BAAhzwICAPkEACH0AgIA-QQAIfUCQAD4BAAh9gJAAJwFACH3AgIA-QQAIfkCAAC1BfkCIgoDAADIBQAgEgAAxwUAIBUAAMkFACDOAgIAAAABzwICAAAAAfQCAgAAAAH1AkAAAAAB9gJAAAAAAfcCAgAAAAH5AgAAAPkCAgMvAACBCQAgoAMAAIIJACCmAwAAeQAgBC8AAIUHADCgAwAAhgcAMKIDAACIBwAgpgMAAKEGADAELwAA-QYAMKADAAD6BgAwogMAAPwGACCmAwAA_QYAMAQvAADwBgAwoAMAAPEGADCiAwAA8wYAIKYDAAC-BQAwAy8AAOMGACCgAwAA5AYAIKYDAAABACAELwAA2gYAMKADAADbBgAwogMAAN0GACCmAwAAlQYAMAQvAADOBgAwoAMAAM8GADCiAwAA0QYAIKYDAADSBgAwBC8AAMIGADCgAwAAwwYAMKIDAADFBgAgpgMAAMYGADAAAAAAAAUvAAD1CAAgMAAA_wgAIKADAAD2CAAgoQMAAP4IACCmAwAAeQAgBy8AALcHACAwAAC6BwAgoAMAALgHACChAwAAuQcAIKQDAAAHACClAwAABwAgpgMAAAEAIAsvAACrBwAwMAAAsAcAMKADAACsBwAwoQMAAK0HADCiAwAArgcAIKMDAACvBwAwpAMAAK8HADClAwAArwcAMKYDAACvBwAwpwMAALEHADCoAwAAsgcAMAsvAACfBwAwMAAApAcAMKADAACgBwAwoQMAAKEHADCiAwAAogcAIKMDAACjBwAwpAMAAKMHADClAwAAowcAMKYDAACjBwAwpwMAAKUHADCoAwAApgcAMAYDAAD9BQAgCwAA_wUAIA0AAIAGACDOAgIAAAABzwICAAAAAdoCAQAAAAECAAAAFAAgLwAAqgcAIAMAAAAUACAvAACqBwAgMAAAqQcAIAEoAAD9CAAwCwMAAK0EACAFAADlBAAgCwAA5gQAIA0AALkEACDLAgAA5AQAMMwCAAASABDNAgAA5AQAMM4CAgAAAAHPAgIAnwQAIdoCAQCgBAAh4gICAJ8EACECAAAAFAAgKAAAqQcAIAIAAACnBwAgKAAAqAcAIAfLAgAApgcAMMwCAACnBwAQzQIAAKYHADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACHiAgIAnwQAIQfLAgAApgcAMMwCAACnBwAQzQIAAKYHADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACHiAgIAnwQAIQPOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACEGAwAA4QUAIAsAAOMFACANAADkBQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhBgMAAP0FACALAAD_BQAgDQAAgAYAIM4CAgAAAAHPAgIAAAAB2gIBAAAAAQ4DAACTBQAgBwAAlQUAIM4CAgAAAAHPAgIAAAAB2gIBAAAAAdsCAgAAAAHcAgIAAAAB3QICAAAAAd4CAgAAAAHfAgIAAAAB4AICAAAAAeECAgAAAAHjAkAAAAAB5AJAAAAAAQIAAAALACAvAAC2BwAgAwAAAAsAIC8AALYHACAwAAC1BwAgASgAAPwIADATAwAArQQAIAUAAOUEACAHAAC4BAAgywIAAOoEADDMAgAACQAQzQIAAOoEADDOAgIAAAABzwICAJ8EACHaAgEAoAQAIdsCAgCfBAAh3AICAJ8EACHdAgIAnwQAId4CAgCfBAAh3wICAJ8EACHgAgIAnwQAIeECAgCfBAAh4gICAJ8EACHjAkAAsAQAIeQCQACwBAAhAgAAAAsAICgAALUHACACAAAAswcAICgAALQHACAQywIAALIHADDMAgAAswcAEM0CAACyBwAwzgICAJ8EACHPAgIAnwQAIdoCAQCgBAAh2wICAJ8EACHcAgIAnwQAId0CAgCfBAAh3gICAJ8EACHfAgIAnwQAIeACAgCfBAAh4QICAJ8EACHiAgIAnwQAIeMCQACwBAAh5AJAALAEACEQywIAALIHADDMAgAAswcAEM0CAACyBwAwzgICAJ8EACHPAgIAnwQAIdoCAQCgBAAh2wICAJ8EACHcAgIAnwQAId0CAgCfBAAh3gICAJ8EACHfAgIAnwQAIeACAgCfBAAh4QICAJ8EACHiAgIAnwQAIeMCQACwBAAh5AJAALAEACEMzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh2wICAPkEACHcAgIA-QQAId0CAgD5BAAh3gICAPkEACHfAgIA-QQAIeACAgD5BAAh4QICAPkEACHjAkAA-AQAIeQCQAD4BAAhDgMAAIQFACAHAACGBQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh2wICAPkEACHcAgIA-QQAId0CAgD5BAAh3gICAPkEACHfAgIA-QQAIeACAgD5BAAh4QICAPkEACHjAkAA-AQAIeQCQAD4BAAhDgMAAJMFACAHAACVBQAgzgICAAAAAc8CAgAAAAHaAgEAAAAB2wICAAAAAdwCAgAAAAHdAgIAAAAB3gICAAAAAd8CAgAAAAHgAgIAAAAB4QICAAAAAeMCQAAAAAHkAkAAAAABDAMAAO4GACAiAAC9BwAgzgICAAAAAc8CAgAAAAHjAkAAAAAB5AJAAAAAAegCAgAAAAGJAwEAAAABkwMBAAAAAZUDAAAAlQMClgMgAAAAAZkDAAAAmQMCAgAAAAEAIC8AALcHACADAAAABwAgLwAAtwcAIDAAALsHACAOAAAABwAgAwAA6wYAICIAALwHACAoAAC7BwAgzgICAPkEACHPAgIA-QQAIeMCQAD4BAAh5AJAAPgEACHoAgIA7QYAIYkDAQCDBQAhkwMBAIMFACGVAwAA6AaVAyKWAyAA6QYAIZkDAADqBpkDIgwDAADrBgAgIgAAvAcAIM4CAgD5BAAhzwICAPkEACHjAkAA-AQAIeQCQAD4BAAh6AICAO0GACGJAwEAgwUAIZMDAQCDBQAhlQMAAOgGlQMilgMgAOkGACGZAwAA6gaZAyIHLwAA9wgAIDAAAPoIACCgAwAA-AgAIKEDAAD5CAAgpAMAACIAIKUDAAAiACCmAwAAJAAgAy8AAPcIACCgAwAA-AgAIKYDAAAkACADLwAA9QgAIKADAAD2CAAgpgMAAHkAIAMvAAC3BwAgoAMAALgHACCmAwAAAQAgBC8AAKsHADCgAwAArAcAMKIDAACuBwAgpgMAAK8HADAELwAAnwcAMKADAACgBwAwogMAAKIHACCmAwAAowcAMAAAAAAAAqMDAQAAAASpAwEAAAAFAqMDAQAAAASpAwEAAAAFBS8AAPAIACAwAADzCAAgoAMAAPEIACChAwAA8ggAIKYDAAB5ACABowMBAAAABAGjAwEAAAAEAy8AAPAIACCgAwAA8QgAIKYDAAB5ACAKCQAAzQgAIA8AAMkIACARAACrBgAgGgAAyggAIBsAAMsIACAcAADMCAAgHQAAzggAIB4AAM8IACAfAADQCAAgIAAA0QgAIAAAAAAABS8AAOsIACAwAADuCAAgoAMAAOwIACChAwAA7QgAIKYDAAB5ACADLwAA6wgAIKADAADsCAAgpgMAAHkAIAAAAAAACy8AALMIADAwAAC4CAAwoAMAALQIADChAwAAtQgAMKIDAAC2CAAgowMAALcIADCkAwAAtwgAMKUDAAC3CAAwpgMAALcIADCnAwAAuQgAMKgDAAC6CAAwCy8AAKcIADAwAACsCAAwoAMAAKgIADChAwAAqQgAMKIDAACqCAAgowMAAKsIADCkAwAAqwgAMKUDAACrCAAwpgMAAKsIADCnAwAArQgAMKgDAACuCAAwCy8AAJ4IADAwAACiCAAwoAMAAJ8IADChAwAAoAgAMKIDAAChCAAgowMAAKEGADCkAwAAoQYAMKUDAAChBgAwpgMAAKEGADCnAwAAowgAMKgDAACkBgAwCy8AAJUIADAwAACZCAAwoAMAAJYIADChAwAAlwgAMKIDAACYCAAgowMAAKMHADCkAwAAowcAMKUDAACjBwAwpgMAAKMHADCnAwAAmggAMKgDAACmBwAwCy8AAIkIADAwAACOCAAwoAMAAIoIADChAwAAiwgAMKIDAACMCAAgowMAAI0IADCkAwAAjQgAMKUDAACNCAAwpgMAAI0IADCnAwAAjwgAMKgDAACQCAAwCy8AAIAIADAwAACECAAwoAMAAIEIADChAwAAgggAMKIDAACDCAAgowMAAK8HADCkAwAArwcAMKUDAACvBwAwpgMAAK8HADCnAwAAhQgAMKgDAACyBwAwCy8AAPcHADAwAAD7BwAwoAMAAPgHADChAwAA-QcAMKIDAAD6BwAgowMAAIsFADCkAwAAiwUAMKUDAACLBQAwpgMAAIsFADCnAwAA_AcAMKgDAACOBQAwCy8AAO4HADAwAADyBwAwoAMAAO8HADChAwAA8AcAMKIDAADxBwAgowMAAOkFADCkAwAA6QUAMKUDAADpBQAwpgMAAOkFADCnAwAA8wcAMKgDAADsBQAwBy8AAOkHACAwAADsBwAgoAMAAOoHACChAwAA6wcAIKQDAABSACClAwAAUgAgpgMAAJIBACAHLwAA5AcAIDAAAOcHACCgAwAA5QcAIKEDAADmBwAgpAMAAFQAIKUDAABUACCmAwAAqgEAIAXOAgIAAAABigMBAAAAAYsDAADKBwAgjAMAAMsHACCNAwEAAAABAgAAAKoBACAvAADkBwAgAwAAAFQAIC8AAOQHACAwAADoBwAgBwAAAFQAICgAAOgHACDOAgIA-QQAIYoDAQDZBQAhiwMAAMcHACCMAwAAyAcAII0DAQCDBQAhBc4CAgD5BAAhigMBANkFACGLAwAAxwcAIIwDAADIBwAgjQMBAIMFACEFzgICAAAAAeMCQAAAAAHkAkAAAAABkQMBAAAAAZIDAQAAAAECAAAAkgEAIC8AAOkHACADAAAAUgAgLwAA6QcAIDAAAO0HACAHAAAAUgAgKAAA7QcAIM4CAgD5BAAh4wJAAPgEACHkAkAA-AQAIZEDAQCDBQAhkgMBAIMFACEFzgICAPkEACHjAkAA-AQAIeQCQAD4BAAhkQMBAIMFACGSAwEAgwUAIQQMAADSBQAgzgICAAAAAdECQAAAAAH6AgIAAAABAgAAABwAIC8AAPYHACADAAAAHAAgLwAA9gcAIDAAAPUHACABKAAA6ggAMAIAAAAcACAoAAD1BwAgAgAAAO0FACAoAAD0BwAgA84CAgD5BAAh0QJAAPgEACH6AgIA-QQAIQQMAADQBQAgzgICAPkEACHRAkAA-AQAIfoCAgD5BAAhBAwAANIFACDOAgIAAAAB0QJAAAAAAfoCAgAAAAEEBgAA_QQAIM4CAgAAAAHQAgIAAAAB0QJAAAAAAQIAAAAPACAvAAD_BwAgAwAAAA8AIC8AAP8HACAwAAD-BwAgASgAAOkIADACAAAADwAgKAAA_gcAIAIAAACPBQAgKAAA_QcAIAPOAgIA-QQAIdACAgD5BAAh0QJAAPgEACEEBgAA-wQAIM4CAgD5BAAh0AICAPkEACHRAkAA-AQAIQQGAAD9BAAgzgICAAAAAdACAgAAAAHRAkAAAAABDgUAAJQFACAHAACVBQAgzgICAAAAAdoCAQAAAAHbAgIAAAAB3AICAAAAAd0CAgAAAAHeAgIAAAAB3wICAAAAAeACAgAAAAHhAgIAAAAB4gICAAAAAeMCQAAAAAHkAkAAAAABAgAAAAsAIC8AAIgIACADAAAACwAgLwAAiAgAIDAAAIcIACABKAAA6AgAMAIAAAALACAoAACHCAAgAgAAALMHACAoAACGCAAgDM4CAgD5BAAh2gIBAIMFACHbAgIA-QQAIdwCAgD5BAAh3QICAPkEACHeAgIA-QQAId8CAgD5BAAh4AICAPkEACHhAgIA-QQAIeICAgD5BAAh4wJAAPgEACHkAkAA-AQAIQ4FAACFBQAgBwAAhgUAIM4CAgD5BAAh2gIBAIMFACHbAgIA-QQAIdwCAgD5BAAh3QICAPkEACHeAgIA-QQAId8CAgD5BAAh4AICAPkEACHhAgIA-QQAIeICAgD5BAAh4wJAAPgEACHkAkAA-AQAIQ4FAACUBQAgBwAAlQUAIM4CAgAAAAHaAgEAAAAB2wICAAAAAdwCAgAAAAHdAgIAAAAB3gICAAAAAd8CAgAAAAHgAgIAAAAB4QICAAAAAeICAgAAAAHjAkAAAAAB5AJAAAAAAQwhAADvBgAgIgAAvQcAIM4CAgAAAAHjAkAAAAAB5AJAAAAAAegCAgAAAAGJAwEAAAABkwMBAAAAAZUDAAAAlQMClgMgAAAAAZcDAgAAAAGZAwAAAJkDAgIAAAABACAvAACUCAAgAwAAAAEAIC8AAJQIACAwAACTCAAgASgAAOcIADARAwAArQQAICEAAPAEACAiAADxBAAgywIAAOsEADDMAgAABwAQzQIAAOsEADDOAgIAAAABzwICAJ8EACHjAkAAsAQAIeQCQACwBAAh6AICAAAAAYkDAQAAAAGTAwEAoAQAIZUDAADsBJUDIpYDIADtBAAhlwMCAAAAAZkDAADvBJkDIgIAAAABACAoAACTCAAgAgAAAJEIACAoAACSCAAgDssCAACQCAAwzAIAAJEIABDNAgAAkAgAMM4CAgCfBAAhzwICAJ8EACHjAkAAsAQAIeQCQACwBAAh6AICAO4EACGJAwEAoAQAIZMDAQCgBAAhlQMAAOwElQMilgMgAO0EACGXAwIA7gQAIZkDAADvBJkDIg7LAgAAkAgAMMwCAACRCAAQzQIAAJAIADDOAgIAnwQAIc8CAgCfBAAh4wJAALAEACHkAkAAsAQAIegCAgDuBAAhiQMBAKAEACGTAwEAoAQAIZUDAADsBJUDIpYDIADtBAAhlwMCAO4EACGZAwAA7wSZAyIKzgICAPkEACHjAkAA-AQAIeQCQAD4BAAh6AICAO0GACGJAwEAgwUAIZMDAQCDBQAhlQMAAOgGlQMilgMgAOkGACGXAwIA7QYAIZkDAADqBpkDIgwhAADsBgAgIgAAvAcAIM4CAgD5BAAh4wJAAPgEACHkAkAA-AQAIegCAgDtBgAhiQMBAIMFACGTAwEAgwUAIZUDAADoBpUDIpYDIADpBgAhlwMCAO0GACGZAwAA6gaZAyIMIQAA7wYAICIAAL0HACDOAgIAAAAB4wJAAAAAAeQCQAAAAAHoAgIAAAABiQMBAAAAAZMDAQAAAAGVAwAAAJUDApYDIAAAAAGXAwIAAAABmQMAAACZAwIGBQAA_gUAIAsAAP8FACANAACABgAgzgICAAAAAdoCAQAAAAHiAgIAAAABAgAAABQAIC8AAJ0IACADAAAAFAAgLwAAnQgAIDAAAJwIACABKAAA5ggAMAIAAAAUACAoAACcCAAgAgAAAKcHACAoAACbCAAgA84CAgD5BAAh2gIBAIMFACHiAgIA-QQAIQYFAADiBQAgCwAA4wUAIA0AAOQFACDOAgIA-QQAIdoCAQCDBQAh4gICAPkEACEGBQAA_gUAIAsAAP8FACANAACABgAgzgICAAAAAdoCAQAAAAHiAgIAAAABChAAAMYFACASAADHBQAgFQAAyQUAIM4CAgAAAAHoAgIAAAAB9AICAAAAAfUCQAAAAAH2AkAAAAAB9wICAAAAAfkCAAAA-QICAgAAACgAIC8AAKYIACADAAAAKAAgLwAApggAIDAAAKUIACABKAAA5QgAMAIAAAAoACAoAAClCAAgAgAAAKUGACAoAACkCAAgB84CAgD5BAAh6AICAPkEACH0AgIA-QQAIfUCQAD4BAAh9gJAAJwFACH3AgIA-QQAIfkCAAC1BfkCIgoQAAC2BQAgEgAAtwUAIBUAALkFACDOAgIA-QQAIegCAgD5BAAh9AICAPkEACH1AkAA-AQAIfYCQACcBQAh9wICAPkEACH5AgAAtQX5AiIKEAAAxgUAIBIAAMcFACAVAADJBQAgzgICAAAAAegCAgAAAAH0AgIAAAAB9QJAAAAAAfYCQAAAAAH3AgIAAAAB-QIAAAD5AgIKBAAAkgcAIBEAAI8HACAVAACRBwAgFgAAkAcAIBcAAJMHACAYAACUBwAgGQAAlQcAIM4CAgAAAAHaAgEAAAABiAMBAAAAAQIAAAAkACAvAACyCAAgAwAAACQAIC8AALIIACAwAACxCAAgASgAAOQIADAPAwAArQQAIAQAANwEACARAAChBAAgFQAA2QQAIBYAANsEACAXAACiBAAgGAAA3QQAIBkAAN4EACDLAgAA2gQAMMwCAAAiABDNAgAA2gQAMM4CAgAAAAHPAgIAnwQAIdoCAQCgBAAhiAMBAKwEACECAAAAJAAgKAAAsQgAIAIAAACvCAAgKAAAsAgAIAfLAgAArggAMMwCAACvCAAQzQIAAK4IADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACGIAwEArAQAIQfLAgAArggAMMwCAACvCAAQzQIAAK4IADDOAgIAnwQAIc8CAgCfBAAh2gIBAKAEACGIAwEArAQAIQPOAgIA-QQAIdoCAQCDBQAhiAMBANkFACEKBAAAvgYAIBEAALsGACAVAAC9BgAgFgAAvAYAIBcAAL8GACAYAADABgAgGQAAwQYAIM4CAgD5BAAh2gIBAIMFACGIAwEA2QUAIQoEAACSBwAgEQAAjwcAIBUAAJEHACAWAACQBwAgFwAAkwcAIBgAAJQHACAZAACVBwAgzgICAAAAAdoCAQAAAAGIAwEAAAABBgQAAL8HACAJAADABwAgDgAAwQcAIM4CAgAAAAHaAgEAAAABiQMBAAAAAQIAAAAFACAvAAC-CAAgAwAAAAUAIC8AAL4IACAwAAC9CAAgASgAAOMIADALAwAArQQAIAQAANwEACAJAAC3BAAgDgAAtQQAIMsCAADyBAAwzAIAAAMAEM0CAADyBAAwzgICAAAAAc8CAgCfBAAh2gIBAKAEACGJAwEAAAABAgAAAAUAICgAAL0IACACAAAAuwgAICgAALwIACAHywIAALoIADDMAgAAuwgAEM0CAAC6CAAwzgICAJ8EACHPAgIAnwQAIdoCAQCgBAAhiQMBAKAEACEHywIAALoIADDMAgAAuwgAEM0CAAC6CAAwzgICAJ8EACHPAgIAnwQAIdoCAQCgBAAhiQMBAKAEACEDzgICAPkEACHaAgEAgwUAIYkDAQCDBQAhBgQAAJwHACAJAACdBwAgDgAAngcAIM4CAgD5BAAh2gIBAIMFACGJAwEAgwUAIQYEAAC_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_BgAgGAAAwAYAIBkAAMEGACAoAAD7CAAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACELAwAAugYAIBEAALsGACAVAAC9BgAgFgAAvAYAIBcAAL8GACAYAADABgAgGQAAwQYAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhDM4CAgAAAAHPAgIAAAAB2gIBAAAAAdsCAgAAAAHcAgIAAAAB3QICAAAAAd4CAgAAAAHfAgIAAAAB4AICAAAAAeECAgAAAAHjAkAAAAAB5AJAAAAAAQPOAgIAAAABzwICAAAAAdoCAQAAAAEDAAAAfAAgLwAA9QgAIDAAAIAJACAOAAAAfAAgCQAA3wcAIBEAANwHACAaAADbBwAgGwAA3QcAIBwAAN4HACAdAADgBwAgHgAA4QcAIB8AAOIHACAgAADjBwAgKAAAgAkAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQwJAADfBwAgEQAA3AcAIBoAANsHACAbAADdBwAgHAAA3gcAIB0AAOAHACAeAADhBwAgHwAA4gcAICAAAOMHACDOAgIA-QQAIdoCAQCDBQAh4wJAAPgEACEMCQAAxAgAIA8AAL8IACARAADBCAAgGwAAwggAIBwAAMMIACAdAADFCAAgHgAAxggAIB8AAMcIACAgAADICAAgzgICAAAAAdoCAQAAAAHjAkAAAAABAgAAAHkAIC8AAIEJACAHzgICAAAAAc8CAgAAAAH0AgIAAAAB9QJAAAAAAfYCQAAAAAH3AgIAAAAB-QIAAAD5AgIFzgICAAAAAe0CQAAAAAHuAgIAAAAB7wICAAAAAfACAgAAAAEEzgICAAAAAe0CQAAAAAHyAgAAAPICAvMCAgAAAAEHAwAAvgcAIAkAAMAHACAOAADBBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiQMBAAAAAQIAAAAFACAvAACGCQAgDAkAAMQIACAPAAC_CAAgEQAAwQgAIBoAAMAIACAbAADCCAAgHQAAxQgAIB4AAMYIACAfAADHCAAgIAAAyAgAIM4CAgAAAAHaAgEAAAAB4wJAAAAAAQIAAAB5ACAvAACICQAgAwAAAAMAIC8AAIYJACAwAACMCQAgCQAAAAMAIAMAAJsHACAJAACdBwAgDgAAngcAICgAAIwJACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGJAwEAgwUAIQcDAACbBwAgCQAAnQcAIA4AAJ4HACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGJAwEAgwUAIQMAAAB8ACAvAACICQAgMAAAjwkAIA4AAAB8ACAJAADfBwAgDwAA2gcAIBEAANwHACAaAADbBwAgGwAA3QcAIB0AAOAHACAeAADhBwAgHwAA4gcAICAAAOMHACAoAACPCQAgzgICAPkEACHaAgEAgwUAIeMCQAD4BAAhDAkAAN8HACAPAADaBwAgEQAA3AcAIBoAANsHACAbAADdBwAgHQAA4AcAIB4AAOEHACAfAADiBwAgIAAA4wcAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQPOAgIAAAAB9AICAAAAAf8CAgAAAAEDzgICAAAAAYYDAAAAhgMChwMBAAAAAQXOAgIAAAAB6QJAAAAAAeoCQAAAAAHrAgIAAAAB7AICAAAAAQMAAAB8ACAvAACBCQAgMAAAlQkAIA4AAAB8ACAJAADfBwAgDwAA2gcAIBEAANwHACAbAADdBwAgHAAA3gcAIB0AAOAHACAeAADhBwAgHwAA4gcAICAAAOMHACAoAACVCQAgzgICAPkEACHaAgEAgwUAIeMCQAD4BAAhDAkAAN8HACAPAADaBwAgEQAA3AcAIBsAAN0HACAcAADeBwAgHQAA4AcAIB4AAOEHACAfAADiBwAgIAAA4wcAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQsDAACOBwAgBAAAkgcAIBEAAI8HACAVAACRBwAgFgAAkAcAIBcAAJMHACAZAACVBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiAMBAAAAAQIAAAAkACAvAACWCQAgAwAAACIAIC8AAJYJACAwAACaCQAgDQAAACIAIAMAALoGACAEAAC-BgAgEQAAuwYAIBUAAL0GACAWAAC8BgAgFwAAvwYAIBkAAMEGACAoAACaCQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACELAwAAugYAIAQAAL4GACARAAC7BgAgFQAAvQYAIBYAALwGACAXAAC_BgAgGQAAwQYAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhB84CAgAAAAHPAgIAAAAB6AICAAAAAfUCQAAAAAH2AkAAAAAB9wICAAAAAfkCAAAA-QICA84CAgAAAAHoAgIAAAAB_wICAAAAAQQRAACpBgAgzgICAAAAAYADAQAAAAGBAwIAAAABAgAAAIQCACAvAACdCQAgCwMAAI4HACAEAACSBwAgEQAAjwcAIBUAAJEHACAWAACQBwAgGAAAlAcAIBkAAJUHACDOAgIAAAABzwICAAAAAdoCAQAAAAGIAwEAAAABAgAAACQAIC8AAJ8JACADAAAAhwIAIC8AAJ0JACAwAACjCQAgBgAAAIcCACARAACPBgAgKAAAowkAIM4CAgD5BAAhgAMBAIMFACGBAwIA-QQAIQQRAACPBgAgzgICAPkEACGAAwEAgwUAIYEDAgD5BAAhAwAAACIAIC8AAJ8JACAwAACmCQAgDQAAACIAIAMAALoGACAEAAC-BgAgEQAAuwYAIBUAAL0GACAWAAC8BgAgGAAAwAYAIBkAAMEGACAoAACmCQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACELAwAAugYAIAQAAL4GACARAAC7BgAgFQAAvQYAIBYAALwGACAYAADABgAgGQAAwQYAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhBwMAAL4HACAEAAC_BwAgCQAAwAcAIM4CAgAAAAHPAgIAAAAB2gIBAAAAAYkDAQAAAAECAAAABQAgLwAApwkAIAwJAADECAAgDwAAvwgAIBEAAMEIACAaAADACAAgHAAAwwgAIB0AAMUIACAeAADGCAAgHwAAxwgAICAAAMgIACDOAgIAAAAB2gIBAAAAAeMCQAAAAAECAAAAeQAgLwAAqQkAIAXOAgIAAAAB2gIBAAAAAfsCAgAAAAH8AgIAAAAB_gIAAAD-AgIDzgICAAAAAc8CAgAAAAHRAkAAAAABAwAAAAMAIC8AAKcJACAwAACvCQAgCQAAAAMAIAMAAJsHACAEAACcBwAgCQAAnQcAICgAAK8JACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGJAwEAgwUAIQcDAACbBwAgBAAAnAcAIAkAAJ0HACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGJAwEAgwUAIQMAAAB8ACAvAACpCQAgMAAAsgkAIA4AAAB8ACAJAADfBwAgDwAA2gcAIBEAANwHACAaAADbBwAgHAAA3gcAIB0AAOAHACAeAADhBwAgHwAA4gcAICAAAOMHACAoAACyCQAgzgICAPkEACHaAgEAgwUAIeMCQAD4BAAhDAkAAN8HACAPAADaBwAgEQAA3AcAIBoAANsHACAcAADeBwAgHQAA4AcAIB4AAOEHACAfAADiBwAgIAAA4wcAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQcDAAD9BQAgBQAA_gUAIA0AAIAGACDOAgIAAAABzwICAAAAAdoCAQAAAAHiAgIAAAABAgAAABQAIC8AALMJACADAAAAEgAgLwAAswkAIDAAALcJACAJAAAAEgAgAwAA4QUAIAUAAOIFACANAADkBQAgKAAAtwkAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIeICAgD5BAAhBwMAAOEFACAFAADiBQAgDQAA5AUAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIeICAgD5BAAhBwMAAP0FACAFAAD-BQAgCwAA_wUAIM4CAgAAAAHPAgIAAAAB2gIBAAAAAeICAgAAAAECAAAAFAAgLwAAuAkAIAwJAADECAAgDwAAvwgAIBEAAMEIACAaAADACAAgGwAAwggAIBwAAMMIACAdAADFCAAgHwAAxwgAICAAAMgIACDOAgIAAAAB2gIBAAAAAeMCQAAAAAECAAAAeQAgLwAAugkAIAMAAAASACAvAAC4CQAgMAAAvgkAIAkAAAASACADAADhBQAgBQAA4gUAIAsAAOMFACAoAAC-CQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh4gICAPkEACEHAwAA4QUAIAUAAOIFACALAADjBQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh4gICAPkEACEDAAAAfAAgLwAAugkAIDAAAMEJACAOAAAAfAAgCQAA3wcAIA8AANoHACARAADcBwAgGgAA2wcAIBsAAN0HACAcAADeBwAgHQAA4AcAIB8AAOIHACAgAADjBwAgKAAAwQkAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQwJAADfBwAgDwAA2gcAIBEAANwHACAaAADbBwAgGwAA3QcAIBwAAN4HACAdAADgBwAgHwAA4gcAICAAAOMHACDOAgIA-QQAIdoCAQCDBQAh4wJAAPgEACEMCQAAxAgAIA8AAL8IACAaAADACAAgGwAAwggAIBwAAMMIACAdAADFCAAgHgAAxggAIB8AAMcIACAgAADICAAgzgICAAAAAdoCAQAAAAHjAkAAAAABAgAAAHkAIC8AAMIJACAEEwAAqgYAIM4CAgAAAAGAAwEAAAABgQMCAAAAAQIAAACEAgAgLwAAxAkAIAsDAACOBwAgBAAAkgcAIBUAAJEHACAWAACQBwAgFwAAkwcAIBgAAJQHACAZAACVBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiAMBAAAAAQIAAAAkACAvAADGCQAgBM4CAgAAAAHoAgIAAAAB7QJAAAAAAfICAAAA8gICAwAAAHwAIC8AAMIJACAwAADLCQAgDgAAAHwAIAkAAN8HACAPAADaBwAgGgAA2wcAIBsAAN0HACAcAADeBwAgHQAA4AcAIB4AAOEHACAfAADiBwAgIAAA4wcAICgAAMsJACDOAgIA-QQAIdoCAQCDBQAh4wJAAPgEACEMCQAA3wcAIA8AANoHACAaAADbBwAgGwAA3QcAIBwAAN4HACAdAADgBwAgHgAA4QcAIB8AAOIHACAgAADjBwAgzgICAPkEACHaAgEAgwUAIeMCQAD4BAAhAwAAAIcCACAvAADECQAgMAAAzgkAIAYAAACHAgAgEwAAkAYAICgAAM4JACDOAgIA-QQAIYADAQCDBQAhgQMCAPkEACEEEwAAkAYAIM4CAgD5BAAhgAMBAIMFACGBAwIA-QQAIQMAAAAiACAvAADGCQAgMAAA0QkAIA0AAAAiACADAAC6BgAgBAAAvgYAIBUAAL0GACAWAAC8BgAgFwAAvwYAIBgAAMAGACAZAADBBgAgKAAA0QkAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhCwMAALoGACAEAAC-BgAgFQAAvQYAIBYAALwGACAXAAC_BgAgGAAAwAYAIBkAAMEGACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGIAwEA2QUAIQsDAACOBwAgBAAAkgcAIBEAAI8HACAWAACQBwAgFwAAkwcAIBgAAJQHACAZAACVBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiAMBAAAAAQIAAAAkACAvAADSCQAgCwMAAMgFACAQAADGBQAgEgAAxwUAIM4CAgAAAAHPAgIAAAAB6AICAAAAAfQCAgAAAAH1AkAAAAAB9gJAAAAAAfcCAgAAAAH5AgAAAPkCAgIAAAAoACAvAADUCQAgAwAAACIAIC8AANIJACAwAADYCQAgDQAAACIAIAMAALoGACAEAAC-BgAgEQAAuwYAIBYAALwGACAXAAC_BgAgGAAAwAYAIBkAAMEGACAoAADYCQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACELAwAAugYAIAQAAL4GACARAAC7BgAgFgAAvAYAIBcAAL8GACAYAADABgAgGQAAwQYAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhAwAAACYAIC8AANQJACAwAADbCQAgDQAAACYAIAMAALgFACAQAAC2BQAgEgAAtwUAICgAANsJACDOAgIA-QQAIc8CAgD5BAAh6AICAPkEACH0AgIA-QQAIfUCQAD4BAAh9gJAAJwFACH3AgIA-QQAIfkCAAC1BfkCIgsDAAC4BQAgEAAAtgUAIBIAALcFACDOAgIA-QQAIc8CAgD5BAAh6AICAPkEACH0AgIA-QQAIfUCQAD4BAAh9gJAAJwFACH3AgIA-QQAIfkCAAC1BfkCIgsDAACOBwAgBAAAkgcAIBEAAI8HACAVAACRBwAgFwAAkwcAIBgAAJQHACAZAACVBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiAMBAAAAAQIAAAAkACAvAADcCQAgAwAAACIAIC8AANwJACAwAADgCQAgDQAAACIAIAMAALoGACAEAAC-BgAgEQAAuwYAIBUAAL0GACAXAAC_BgAgGAAAwAYAIBkAAMEGACAoAADgCQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACELAwAAugYAIAQAAL4GACARAAC7BgAgFQAAvQYAIBcAAL8GACAYAADABgAgGQAAwQYAIM4CAgD5BAAhzwICAPkEACHaAgEAgwUAIYgDAQDZBQAhCwMAAI4HACAEAACSBwAgEQAAjwcAIBUAAJEHACAWAACQBwAgFwAAkwcAIBgAAJQHACDOAgIAAAABzwICAAAAAdoCAQAAAAGIAwEAAAABAgAAACQAIC8AAOEJACADAAAAIgAgLwAA4QkAIDAAAOUJACANAAAAIgAgAwAAugYAIAQAAL4GACARAAC7BgAgFQAAvQYAIBYAALwGACAXAAC_BgAgGAAAwAYAICgAAOUJACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACGIAwEA2QUAIQsDAAC6BgAgBAAAvgYAIBEAALsGACAVAAC9BgAgFgAAvAYAIBcAAL8GACAYAADABgAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiAMBANkFACEHAwAAvgcAIAQAAL8HACAOAADBBwAgzgICAAAAAc8CAgAAAAHaAgEAAAABiQMBAAAAAQIAAAAFACAvAADmCQAgDA8AAL8IACARAADBCAAgGgAAwAgAIBsAAMIIACAcAADDCAAgHQAAxQgAIB4AAMYIACAfAADHCAAgIAAAyAgAIM4CAgAAAAHaAgEAAAAB4wJAAAAAAQIAAAB5ACAvAADoCQAgA84CAgAAAAHPAgIAAAAB0QJAAAAAAQMAAAADACAvAADmCQAgMAAA7QkAIAkAAAADACADAACbBwAgBAAAnAcAIA4AAJ4HACAoAADtCQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiQMBAIMFACEHAwAAmwcAIAQAAJwHACAOAACeBwAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAhiQMBAIMFACEDAAAAfAAgLwAA6AkAIDAAAPAJACAOAAAAfAAgDwAA2gcAIBEAANwHACAaAADbBwAgGwAA3QcAIBwAAN4HACAdAADgBwAgHgAA4QcAIB8AAOIHACAgAADjBwAgKAAA8AkAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQwPAADaBwAgEQAA3AcAIBoAANsHACAbAADdBwAgHAAA3gcAIB0AAOAHACAeAADhBwAgHwAA4gcAICAAAOMHACDOAgIA-QQAIdoCAQCDBQAh4wJAAPgEACEPAwAAkwUAIAUAAJQFACDOAgIAAAABzwICAAAAAdoCAQAAAAHbAgIAAAAB3AICAAAAAd0CAgAAAAHeAgIAAAAB3wICAAAAAeACAgAAAAHhAgIAAAAB4gICAAAAAeMCQAAAAAHkAkAAAAABAgAAAAsAIC8AAPEJACAMCQAAxAgAIA8AAL8IACARAADBCAAgGgAAwAgAIBsAAMIIACAcAADDCAAgHgAAxggAIB8AAMcIACAgAADICAAgzgICAAAAAdoCAQAAAAHjAkAAAAABAgAAAHkAIC8AAPMJACADAAAACQAgLwAA8QkAIDAAAPcJACARAAAACQAgAwAAhAUAIAUAAIUFACAoAAD3CQAgzgICAPkEACHPAgIA-QQAIdoCAQCDBQAh2wICAPkEACHcAgIA-QQAId0CAgD5BAAh3gICAPkEACHfAgIA-QQAIeACAgD5BAAh4QICAPkEACHiAgIA-QQAIeMCQAD4BAAh5AJAAPgEACEPAwAAhAUAIAUAAIUFACDOAgIA-QQAIc8CAgD5BAAh2gIBAIMFACHbAgIA-QQAIdwCAgD5BAAh3QICAPkEACHeAgIA-QQAId8CAgD5BAAh4AICAPkEACHhAgIA-QQAIeICAgD5BAAh4wJAAPgEACHkAkAA-AQAIQMAAAB8ACAvAADzCQAgMAAA-gkAIA4AAAB8ACAJAADfBwAgDwAA2gcAIBEAANwHACAaAADbBwAgGwAA3QcAIBwAAN4HACAeAADhBwAgHwAA4gcAICAAAOMHACAoAAD6CQAgzgICAPkEACHaAgEAgwUAIeMCQAD4BAAhDAkAAN8HACAPAADaBwAgEQAA3AcAIBoAANsHACAbAADdBwAgHAAA3gcAIB4AAOEHACAfAADiBwAgIAAA4wcAIM4CAgD5BAAh2gIBAIMFACHjAkAA-AQAIQMDAAIhXgMiXwwLCAAZCU8EDwYDEUsNGiUMG0wHHE4BHVAFHlEJH1MXIFUYBQMAAgQIAQgACwkMBA4VBwQDAAIFAAMHEAUIAAYCAwACBgAEAQcRAAUDAAIFAAMIAAoLGQgNHQkBCgAHAgMAAgwABwILHgANHwACCSAADiEACQMAAgQ7AQgAFhEpDRU6ERY5Exc8DxhAFBlEFQUDAAIIABIQAAwSAA4VNBEDCAAQESoNEy4PAhAADBIADgIRLwATMAACEAAMFAANARU1AAEQAAwBEAAMARAADAYRRQAVRwAWRgAXSAAYSQAZSgABAwACAQMAAggJWwAPVgARWAAaVwAbWQAcWgAdXAAeXQAAAwMAAiFpAyJqDAMDAAIhcAMicQwFCAAeNQAfNgAgNwAhOAAiAAAAAAAFCAAeNQAfNgAgNwAhOAAiAAAFCAAnNQAoNgApNwAqOAArAAAAAAAFCAAnNQAoNgApNwAqOAArAQMAAgEDAAIFCAAwNQAxNgAyNwAzOAA0AAAAAAAFCAAwNQAxNgAyNwAzOAA0AQMAAgEDAAIFCAA5NQA6NgA7NwA8OAA9AAAAAAAFCAA5NQA6NgA7NwA8OAA9AQMAAgEDAAIFCABCNQBDNgBENwBFOABGAAAAAAAFCABCNQBDNgBENwBFOABGAQMAAgEDAAIFCABLNQBMNgBNNwBOOABPAAAAAAAFCABLNQBMNgBNNwBOOABPARAADAEQAAwFCABUNQBVNgBWNwBXOABYAAAAAAAFCABUNQBVNgBWNwBXOABYAAAFCABdNQBeNgBfNwBgOABhAAAAAAAFCABdNQBeNgBfNwBgOABhAhAADBIADgIQAAwSAA4FCABmNQBnNgBoNwBpOABqAAAAAAAFCABmNQBnNgBoNwBpOABqAgMAAgUAAwIDAAIFAAMFCABvNQBwNgBxNwByOABzAAAAAAAFCABvNQBwNgBxNwByOABzAQoABwEKAAcFCAB4NQB5NgB6NwB7OAB8AAAAAAAFCAB4NQB5NgB6NwB7OAB8AgMAAgwABwIDAAIMAAcFCACBATUAggE2AIMBNwCEATgAhQEAAAAAAAUIAIEBNQCCATYAgwE3AIQBOACFAQMDAAIQAAwSAA4DAwACEAAMEgAOBQgAigE1AIsBNgCMATcAjQE4AI4BAAAAAAAFCACKATUAiwE2AIwBNwCNATgAjgECEAAMFAANAhAADBQADQUIAJMBNQCUATYAlQE3AJYBOACXAQAAAAAABQgAkwE1AJQBNgCVATcAlgE4AJcBARAADAEQAAwFCACcATUAnQE2AJ4BNwCfATgAoAEAAAAAAAUIAJwBNQCdATYAngE3AJ8BOACgAQEQAAwBEAAMBQgApQE1AKYBNgCnATcAqAE4AKkBAAAAAAAFCAClATUApgE2AKcBNwCoATgAqQECAwACBQADAgMAAgUAAwUIAK4BNQCvATYAsAE3ALEBOACyAQAAAAAABQgArgE1AK8BNgCwATcAsQE4ALIBAgMAAgYABAIDAAIGAAQFCAC3ATUAuAE2ALkBNwC6ATgAuwEAAAAAAAUIALcBNQC4ATYAuQE3ALoBOAC7ASMCASRgASVhASZiASdjASllASpnGitoGyxsAS1uGi5vHDFyATJzATN0Gjl3HTp4Izt6Ajx7Aj1-Aj5_Aj-AAQJAggECQYQBGkKFASRDhwECRIkBGkWKASVGiwECR4wBAkiNARpJkAEmSpEBLEuTARdMlAEXTZYBF06XARdPmAEXUJoBF1GcARpSnQEtU58BF1ShARpVogEuVqMBF1ekARdYpQEaWagBL1qpATVbqwEYXKwBGF2uARherwEYX7ABGGCyARhhtAEaYrUBNmO3ARhkuQEaZboBN2a7ARhnvAEYaL0BGmnAAThqwQE-a8IBA2zDAQNtxAEDbsUBA2_GAQNwyAEDccoBGnLLAT9zzQEDdM8BGnXQAUB20QEDd9IBA3jTARp51gFBetcBR3vYAQx82QEMfdoBDH7bAQx_3AEMgAHeAQyBAeABGoIB4QFIgwHjAQyEAeUBGoUB5gFJhgHnAQyHAegBDIgB6QEaiQHsAUqKAe0BUIsB7gEUjAHvARSNAfABFI4B8QEUjwHyARSQAfQBFJEB9gEakgH3AVGTAfkBFJQB-wEalQH8AVKWAf0BFJcB_gEUmAH_ARqZAYICU5oBgwJZmwGFAg6cAYYCDp0BiQIOngGKAg6fAYsCDqABjQIOoQGPAhqiAZACWqMBkgIOpAGUAhqlAZUCW6YBlgIOpwGXAg6oAZgCGqkBmwJcqgGcAmKrAZ0CD6wBngIPrQGfAg-uAaACD68BoQIPsAGjAg-xAaUCGrIBpgJjswGoAg-0AaoCGrUBqwJktgGsAg-3Aa0CD7gBrgIauQGxAmW6AbICa7sBswIHvAG0Age9AbUCB74BtgIHvwG3AgfAAbkCB8EBuwIawgG8AmzDAb4CB8QBwAIaxQHBAm3GAcICB8cBwwIHyAHEAhrJAccCbsoByAJ0ywHJAgjMAcoCCM0BywIIzgHMAgjPAc0CCNABzwII0QHRAhrSAdICddMB1AII1AHWAhrVAdcCdtYB2AII1wHZAgjYAdoCGtkB3QJ32gHeAn3bAd8CCdwB4AIJ3QHhAgneAeICCd8B4wIJ4AHlAgnhAecCGuIB6AJ-4wHqAgnkAewCGuUB7QJ_5gHuAgnnAe8CCegB8AIa6QHzAoAB6gH0AoYB6wH1Ag3sAfYCDe0B9wIN7gH4Ag3vAfkCDfAB-wIN8QH9AhryAf4ChwHzAYADDfQBggMa9QGDA4gB9gGEAw33AYUDDfgBhgMa-QGJA4kB-gGKA48B-wGLAxH8AYwDEf0BjQMR_gGOAxH_AY8DEYACkQMRgQKTAxqCApQDkAGDApYDEYQCmAMahQKZA5EBhgKaAxGHApsDEYgCnAMaiQKfA5IBigKgA5gBiwKhAxOMAqIDE40CowMTjgKkAxOPAqUDE5ACpwMTkQKpAxqSAqoDmQGTAqwDE5QCrgMalQKvA5oBlgKwAxOXArEDE5gCsgMamQK1A5sBmgK2A6EBmwK3AxWcArgDFZ0CuQMVngK6AxWfArsDFaACvQMVoQK_AxqiAsADogGjAsIDFaQCxAMapQLFA6MBpgLGAxWnAscDFagCyAMaqQLLA6QBqgLMA6oBqwLNAwSsAs4DBK0CzwMErgLQAwSvAtEDBLAC0wMEsQLVAxqyAtYDqwGzAtgDBLQC2gMatQLbA6wBtgLcAwS3At0DBLgC3gMauQLhA60BugLiA7MBuwLjAwW8AuQDBb0C5QMFvgLmAwW_AucDBcAC6QMFwQLrAxrCAuwDtAHDAu4DBcQC8AMaxQLxA7UBxgLyAwXHAvMDBcgC9AMayQL3A7YBygL4A7wB"
 };
 async function decodeBase64AsWasm(wasmBase64) {
 	const { Buffer } = await import("node:buffer");
@@ -125,22 +105,193 @@ const WEEK_DAYS = {
 };
 //#endregion
 //#region generated/prisma/client.ts
-globalThis["__dirname"] = path.dirname(fileURLToPath(import.meta.url));
+globalThis["__dirname"] = path$1.dirname(fileURLToPath(import.meta.url));
 //#endregion
 //#region lib/prisma.ts
 const prisma = new (getPrismaClientClass())({ adapter: new PrismaPg({ connectionString: `${process.env.DATABASE_URL}` }) });
 //#endregion
+//#region utils/date.ts
+/**
+* Converts a target wall-clock time (ISO string) in a specific IANA timezone 
+* into a precise UTC Date object.
+*/
+const getZonedUtcDate = (isoString, ianaTimezone) => {
+	const targetTime = new Date(isoString);
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone: ianaTimezone,
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		hour: "numeric",
+		minute: "numeric",
+		second: "numeric",
+		hour12: false
+	}).formatToParts(targetTime);
+	const v = {};
+	parts.forEach((p) => v[p.type] = p.value);
+	const diff = new Date(Date.UTC(Number(v.year), Number(v.month) - 1, Number(v.day), Number(v.hour), Number(v.minute), Number(v.second))).getTime() - targetTime.getTime();
+	return new Date(targetTime.getTime() - diff);
+};
+/**
+* Converts a precise UTC Date/string into a Date object representing 
+* the "Wall Clock" time in a specific IANA timezone.
+* * Example: If UTC is 12:00 PM and Bogota is UTC-5, 
+* this returns a Date object set to 07:00 AM.
+*/
+const getZonedLocalTime = (utcDate, ianaTimezone) => {
+	const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone: ianaTimezone,
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		hour: "numeric",
+		minute: "numeric",
+		second: "numeric",
+		hour12: false
+	}).formatToParts(date);
+	const v = {};
+	parts.forEach((p) => v[p.type] = p.value);
+	return new Date(Date.UTC(Number(v.year), Number(v.month) - 1, Number(v.day), Number(v.hour), Number(v.minute), Number(v.second)));
+};
+const getYYYYMMDD = (d) => {
+	const dateObj = new Date(d);
+	return `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, "0")}-${String(dateObj.getUTCDate()).padStart(2, "0")}`;
+};
+/**
+* We use Intl to find the offset for this specific timezone at this specific time.
+* This is safer than hardcoding -4 because of potential Daylight Saving changes
+* (though usually not an issue on Jan 1st, it's a good habit).
+*/
+const getUTC = (dateStr, timeZone) => {
+	const formatter = new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false
+	});
+	const date = new Date(dateStr);
+	const parts = formatter.formatToParts(date);
+	const partMap = {};
+	parts.forEach((p) => partMap[p.type] = p.value);
+	const utcDate = Date.UTC(parseInt(partMap.year), parseInt(partMap.month) - 1, parseInt(partMap.day), parseInt(partMap.hour), parseInt(partMap.minute), parseInt(partMap.second));
+	const offset = date.getTime() - utcDate;
+	return new Date(date.getTime() + offset);
+};
+const getYearBoundariesInUTC = (year, iana) => {
+	const localStartStr = `${year}-01-01T00:00:00`;
+	const localEndStr = `${year + 1}-01-01T00:00:00`;
+	const startDate = getUTC(localStartStr, iana);
+	const endDate = getUTC(localEndStr, iana);
+	return {
+		startDate,
+		endDate,
+		startDateISO: startDate.toISOString(),
+		endDateISO: endDate.toISOString()
+	};
+};
+const getDayBoundariesInUTC = (dateStr, iana) => {
+	const localStartIso = `${dateStr}T00:00:00.000Z`;
+	const localEndIso = `${dateStr}T23:59:59.999Z`;
+	const startDate = getUTC(localStartIso, iana);
+	const endDate = getUTC(localEndIso, iana);
+	return {
+		startDate,
+		endDate,
+		startDateISO: startDate.toISOString(),
+		endDateISO: endDate.toISOString()
+	};
+};
+/**
+* Converts a date string in a specific IANA timezone to a UTC ISO string.
+* @param {string} dateStr - Format "YYYY-MM-DD HH:mm:ss"
+* @param {string} ianaZone - e.g., "America/New_York", "Asia/Tokyo"
+*/
+const convertDBToUTC = (dateStr, ianaZone) => {
+	const normalizedStr = dateStr.replace(" ", "T");
+	const formatter = new Intl.DateTimeFormat("en-US", {
+		timeZone: ianaZone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false
+	});
+	const tempDate = /* @__PURE__ */ new Date(normalizedStr + "Z");
+	const p = formatter.formatToParts(tempDate).reduce((acc, part) => {
+		acc[part.type] = part.value;
+		return acc;
+	}, {});
+	const offsetMilliseconds = (/* @__PURE__ */ new Date(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`)).getTime() - tempDate.getTime();
+	return new Date((/* @__PURE__ */ new Date(normalizedStr + "Z")).getTime() - offsetMilliseconds);
+};
+/**
+* Calculates the UTC start and end dates for each day of the week 
+* based on a reference date and a target IANA timezone.
+*/
+function getDailyWeekBoundariesInUTC(yymmdd, ianaZone) {
+	const wallTime = new Date(`${yymmdd}T00:00:00.000Z`.replace(/Z$/i, ""));
+	const dayOfWeek = wallTime.getDay();
+	const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+	const monday = new Date(wallTime);
+	monday.setDate(wallTime.getDate() + diffToMonday);
+	monday.setHours(0, 0, 0, 0);
+	const weekDays = [];
+	for (let i = 0; i < 7; i++) {
+		const currentDay = new Date(monday);
+		currentDay.setDate(monday.getDate() + i);
+		const localStart = new Date(currentDay);
+		const localEnd = new Date(currentDay);
+		localEnd.setHours(23, 59, 59, 999);
+		weekDays.push({
+			startDate: convertWallTimeToUTC(localStart, ianaZone),
+			endDate: convertWallTimeToUTC(localEnd, ianaZone)
+		});
+	}
+	return weekDays;
+}
+/**
+* Helper: Adjusts a 'wall clock' date to a real UTC Date 
+* by subtracting the timezone offset.
+*/
+function convertWallTimeToUTC(date, timeZone) {
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		hour: "numeric",
+		minute: "numeric",
+		second: "numeric",
+		hour12: false
+	}).formatToParts(date);
+	const offset = (/* @__PURE__ */ new Date(`${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}-${parts.find((p) => p.type === "day")?.value} ${parts.find((p) => p.type === "hour")?.value}:${parts.find((p) => p.type === "minute")?.value}:${parts.find((p) => p.type === "second")?.value}`)).getTime() - date.getTime();
+	return new Date(date.getTime() - offset);
+}
+//#endregion
 //#region controllers/Webhook.controller.ts
-const AUTH = "";
 /**
 * handleCallWebhook
 * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
 */
 const handleCallWebhook = async (lastCallId, companyId) => {
-	const company = await prisma.company.findUnique({ where: { id: companyId } });
+	const company = await prisma.company.findUnique({
+		where: { id: companyId },
+		include: { leadDeskCustomData: true }
+	});
 	if (!company) throw new Error("Company not found");
+	if (!company.leadDeskCustomData) throw new Error("no custom data for this company");
+	if (company.leadDeskCustomData.SaleEventIds.length == 0) throw "Should set LeadDesk Sale Event Ids";
+	if (company.leadDeskCustomData.SeedEventIds.length == 0) throw "Should set LeadDesk Seed Event Ids";
+	if (!company.leadDeskCustomData.authString) throw new Error("Should set LeadDesk Auth String");
 	const ld = (await axios.get(`https://api.leaddesk.com`, { params: {
-		auth: AUTH,
+		auth: company.leadDeskCustomData.authString,
 		mod: "call",
 		cmd: "get",
 		call_ref_id: lastCallId
@@ -149,7 +300,7 @@ const handleCallWebhook = async (lastCallId, companyId) => {
 		serviceIdentifier: "LEADDESK",
 		agentServiceIdentifier: String(ld.agent_id)
 	} } });
-	if (!agentToThird) throw /* @__PURE__ */ new Error("Agent has no relation with this third party service");
+	if (!agentToThird) throw /* @__PURE__ */ new Error(`Agent ${ld.agent_id} has no relation with this third party service`);
 	const agent = await prisma.agent.findUnique({
 		where: {
 			companyId: company.id,
@@ -181,29 +332,28 @@ const handleCallWebhook = async (lastCallId, companyId) => {
 			}
 		});
 		const call = await tx.call.create({ data: {
-			leadDeskId: ld.id,
 			agentId: agent.id,
 			calleeId: callee.id,
-			startAt: new Date(ld.talk_start),
-			endAt: new Date(ld.talk_end),
+			startAt: convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone),
+			endAt: convertDBToUTC(ld.talk_end, company.leadDeskCustomData?.IANATimeZone),
 			durationSeconds: parseInt(ld.talk_time),
 			companyId: company.id,
-			dayOfTheWeek: mapDateToWeekDayEnum(ld.talk_start)
+			dayOfTheWeek: mapDateToWeekDayEnum(ld.talk_start, company.leadDeskCustomData?.IANATimeZone)
 		} });
-		if (agentToCallee.totalAttemps == 1) await tx.funnelEvent.create({ data: {
-			timestamp: new Date(ld.talk_start),
+		if (company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) await tx.funnelEvent.create({ data: {
+			timestamp: convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone),
 			agentId: agent.id,
 			callId: call.id,
 			type: "SEED"
 		} });
 		if (agentToCallee.totalAttemps > 1) await tx.funnelEvent.create({ data: {
-			timestamp: new Date(ld.talk_start),
+			timestamp: convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone),
 			agentId: agent.id,
 			callId: call.id,
 			type: "LEAD"
 		} });
-		if (ld.order_ids?.length > 0) await tx.funnelEvent.create({ data: {
-			timestamp: new Date(ld.talk_start),
+		if (company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) await tx.funnelEvent.create({ data: {
+			timestamp: convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone),
 			agentId: agent.id,
 			callId: call.id,
 			type: "SALE"
@@ -215,8 +365,8 @@ const handleCallWebhook = async (lastCallId, companyId) => {
 * Maps JS getDay() (0-6) to WEEK_DAYS enum strings.
 * JS getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 */
-const mapDateToWeekDayEnum = (dateString) => {
-	const dayIndex = new Date(dateString).getDay();
+const mapDateToWeekDayEnum = (dateString, iana) => {
+	const dayIndex = convertDBToUTC(dateString, iana).getUTCDay();
 	return {
 		0: WEEK_DAYS.SUNDAY,
 		1: WEEK_DAYS.MONDAY,
@@ -241,7 +391,7 @@ leadDeskWebhookRouter.get("/webhook", async (req, res) => {
 			callId: result.id
 		});
 	} catch (error) {
-		console.error("Webhook Error:", error);
+		console.log(error);
 		res.status(500).send("Internal Server Error");
 	}
 });
@@ -329,7 +479,7 @@ const allowedRoles = (roles) => {
 				const token = authHeader.split(" ")[1];
 				jwt.verify(token, JWT_SECRET$1, (err, payload) => {
 					if (err) return res.status(403).json({ error: "Token invalid or expired" });
-					if (!roles.includes(payload.role)) res.status(401).json({ error: "Path not granted for this role" });
+					if (!roles.includes(payload.role)) res.status(403).json({ error: "Path not granted for this role" });
 					next();
 				});
 			} else res.status(401).json({ error: "Authorization header missing" });
@@ -340,12 +490,16 @@ const allowedRoles = (roles) => {
 };
 //#endregion
 //#region routes/auth.route.ts
+const isValidEmail = (email) => {
+	return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+};
 const JWT_SECRET = process.env.JWT_SECRET;
 const authRouter = Router();
 authRouter.post("/register", async (req, res) => {
 	try {
 		const { companyName, admin_email, admin_name, password } = req.body;
 		if (!admin_email || !password) return res.status(400).json({ error: "Missing required fields" });
+		if (!isValidEmail(admin_email)) return res.status(422).json({ error: "Invalid Email format" });
 		if (await findUserByEmail(admin_email.toLowerCase().trim())) return res.status(409).json({ error: "User already exists" });
 		const { company, user } = await registerCompany(companyName, admin_email, await hash(password, 10), admin_name);
 		return res.status(201).json({
@@ -368,7 +522,7 @@ authRouter.post("/login", async (req, res) => {
 			sub: user.id,
 			companyId: user.companyId,
 			role: user.role
-		}, JWT_SECRET, { expiresIn: "8h" });
+		}, JWT_SECRET, { expiresIn: "168h" });
 		return res.status(200).json({
 			message: "Login successful",
 			token,
@@ -386,6 +540,7 @@ authRouter.post("/generate-key-pair", authenticateJWT, allowedRoles(["MAIN_ADMIN
 	try {
 		const companyId = req.user?.companyId;
 		if (!companyId) return res.status(400).json({ error: "Missing company" });
+		if ((await getPublicKey(companyId))?.publicKey) return res.status(409).json({ error: "Keys already generated. Delete it first to create a new one" });
 		const { publicKey, secretKey } = await generateKeyPair(companyId);
 		return res.status(201).json({
 			publicKey,
@@ -420,6 +575,49 @@ authRouter.get("/get-public-key", authenticateJWT, allowedRoles(["MAIN_ADMIN"]),
 });
 //#endregion
 //#region controllers/manager.controller.ts
+const upsertLeadDeskAPIAuthString = async (authString, companyId) => {
+	return { id: (await prisma.leadDeskCustomData.upsert({
+		where: { companyId },
+		create: {
+			authString,
+			companyId
+		},
+		update: { authString }
+	})).id };
+};
+const getLeadDeskAuthString = async (companyId) => {
+	return (await prisma.leadDeskCustomData.findUnique({
+		where: { companyId },
+		select: { authString: true }
+	}))?.authString || null;
+};
+const upsertLeadDeskEventIds = async (companyId, LeadDeskSeedEventIds, LeadDeskSaleEventIds) => {
+	return { id: (await prisma.leadDeskCustomData.upsert({
+		where: { companyId },
+		create: {
+			companyId,
+			SaleEventIds: LeadDeskSaleEventIds,
+			SeedEventIds: LeadDeskSeedEventIds
+		},
+		update: {
+			SaleEventIds: LeadDeskSaleEventIds,
+			SeedEventIds: LeadDeskSeedEventIds
+		}
+	})).id };
+};
+const getLeadDeskEventIds = async (companyId) => {
+	const result = await prisma.leadDeskCustomData.findUnique({
+		where: { companyId },
+		select: {
+			SaleEventIds: true,
+			SeedEventIds: true
+		}
+	});
+	return {
+		seedEventIds: result?.SeedEventIds || [],
+		saleEventIds: result?.SaleEventIds || []
+	};
+};
 const createManagerWithUser = async (data) => {
 	return await prisma.$transaction(async (tx) => {
 		const manager = await tx.manager.create({ data: {
@@ -441,12 +639,16 @@ const createManagerWithUser = async (data) => {
 	});
 };
 const updateManagerData = async (id, data) => {
+	const passwordHash = data.password ? await hash(data.password, 10) : void 0;
 	return await prisma.manager.update({
 		where: { id },
 		data: {
 			name: data.name,
 			email: data.email,
-			user: data.email ? { update: { email: data.email } } : void 0
+			user: data.email || passwordHash ? { update: {
+				email: data.email,
+				passwordHash
+			} } : void 0
 		}
 	});
 };
@@ -486,7 +688,8 @@ const createAgentWithUser = async (data) => {
 	return await prisma.$transaction(async (tx) => {
 		const agent = await tx.agent.create({ data: {
 			name: data.name,
-			companyId: data.companyId
+			companyId: data.companyId,
+			agentLevel: { create: { level: 3 } }
 		} });
 		const user = await tx.user.create({ data: {
 			email: data.email,
@@ -502,11 +705,15 @@ const createAgentWithUser = async (data) => {
 	});
 };
 const updateAgentData = async (id, data) => {
+	const passwordHash = data.password ? await hash(data.password, 10) : void 0;
 	return await prisma.agent.update({
 		where: { id },
 		data: {
 			name: data.name,
-			user: data.email ? { update: { email: data.email } } : void 0,
+			user: data.email || data.password ? { update: {
+				email: data.email || void 0,
+				passwordHash
+			} } : void 0,
 			agentToThird: data.thirdPartyService ? { upsert: {
 				where: { agentId_serviceIdentifier: {
 					agentId: id,
@@ -663,8 +870,7 @@ const deleteGoalAssignation = async (id) => {
 * Useful if the UI doesn't have the primary key ID handy
 */
 const deleteGoalAssignationByDate = async (companyId, date) => {
-	const targetDate = new Date(date);
-	targetDate.setUTCHours(0, 0, 0, 0);
+	const targetDate = /* @__PURE__ */ new Date(`${date}T00:00:00.000Z`);
 	return await prisma.goalsAssignation.delete({ where: { companyId_date: {
 		companyId,
 		date: targetDate
@@ -674,21 +880,62 @@ const deleteGoalAssignationByDate = async (companyId, date) => {
 * Normalizes a date to 00:00:00.000
 */
 const getStartOfDay$1 = (date) => {
-	const d = new Date(date);
-	d.setHours(0, 0, 0, 0);
-	return d;
+	return /* @__PURE__ */ new Date(`${date}T00:00:00.000Z`);
 };
 /**
 * Normalizes a date to 23:59:59.999
 */
 const getEndOfDay$1 = (date) => {
-	const d = new Date(date);
-	d.setHours(23, 59, 59, 999);
-	return d;
+	return /* @__PURE__ */ new Date(`${date}T23:59:59.999Z`);
 };
 //#endregion
 //#region routes/admin.route.ts
 const adminRouter = Router();
+adminRouter.post("/upsertLeadDeskEventIds", allowedRoles(["MAIN_ADMIN"]), async (req, res) => {
+	try {
+		const { seedEventIds, saleEventIds } = req.body;
+		const companyId = req.user?.companyId;
+		if (!companyId) return res.status(400).json({ error: "Missing required fields" });
+		const parsedSeedEventIds = parseStringArray(seedEventIds);
+		const parsedSaleEventIds = parseStringArray(saleEventIds);
+		if (parsedSeedEventIds.length == 0 && parsedSaleEventIds.length == 0) return res.status(400).json({ error: "No event ids sended" });
+		const result = await upsertLeadDeskEventIds(Number(companyId), parsedSeedEventIds, parsedSaleEventIds);
+		return res.status(201).json(result);
+	} catch (err) {
+		return res.status(500).json({ error: err.message });
+	}
+});
+adminRouter.get("/getLeadDeskEventIds", allowedRoles(["MAIN_ADMIN"]), async (req, res) => {
+	try {
+		const companyId = req.user?.companyId;
+		if (!companyId) return res.status(400).json({ error: "Missing required fields" });
+		const result = await getLeadDeskEventIds(companyId);
+		return res.status(201).json(result);
+	} catch (err) {
+		return res.status(500).json({ error: err.message });
+	}
+});
+adminRouter.post("/upsertLeadDeskAPIAuthString", allowedRoles(["MAIN_ADMIN"]), async (req, res) => {
+	try {
+		const { authString } = req.body;
+		const companyId = req.user?.companyId;
+		if (!authString || !companyId) return res.status(400).json({ error: "Missing required fields" });
+		const result = await upsertLeadDeskAPIAuthString(authString, Number(companyId));
+		return res.status(201).json(result);
+	} catch (err) {
+		return res.status(500).json({ error: err.message });
+	}
+});
+adminRouter.get("/getLeadDeskAPIAuthString", allowedRoles(["MAIN_ADMIN"]), async (req, res) => {
+	try {
+		const companyId = req.user?.companyId;
+		if (!companyId) return res.status(400).json({ error: "Missing required fields" });
+		const result = await getLeadDeskAuthString(companyId);
+		return res.status(201).json({ authString: result });
+	} catch (err) {
+		return res.status(500).json({ error: err.message });
+	}
+});
 adminRouter.post("/addManager", allowedRoles(["MAIN_ADMIN"]), async (req, res) => {
 	try {
 		const { email, name, password } = req.body;
@@ -709,11 +956,12 @@ adminRouter.post("/addManager", allowedRoles(["MAIN_ADMIN"]), async (req, res) =
 adminRouter.put("/editManager/:id", allowedRoles(["MAIN_ADMIN"]), checkManagerBelongsToCompany, async (req, res) => {
 	try {
 		const id = Number(req.params.id);
-		const { name, email } = req.body;
-		const updated = await updateManagerData(id, {
-			name,
-			email
-		});
+		const { name, email, password } = req.body;
+		const updateObject = {};
+		if (name) updateObject.name = name;
+		if (email) updateObject.email = email;
+		if (password) updateObject.password = password;
+		const updated = await updateManagerData(id, updateObject);
 		return res.status(200).json(updated);
 	} catch (err) {
 		return res.status(500).json({ error: "Update failed" });
@@ -769,16 +1017,18 @@ adminRouter.post("/addAgent", allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (re
 		});
 		return res.status(201).json(result);
 	} catch (err) {
+		console.log(err);
 		return res.status(500).json({ error: err.message });
 	}
 });
 adminRouter.put("/editAgent/:id", checkAgentBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req, res) => {
 	try {
 		const id = Number(req.params.id);
-		const { name, email, leadDeskId } = req.body;
+		const { name, email, leadDeskId, password } = req.body;
 		const updateObject = {};
-		updateObject.name = name;
-		updateObject.email = email;
+		if (name) updateObject.name = name;
+		if (email) updateObject.email = email;
+		if (password) updateObject.password = password;
 		if (leadDeskId) updateObject.thirdPartyService = {
 			agentServiceIdentifier: leadDeskId,
 			serviceIdentifier: "LEADDESK"
@@ -876,7 +1126,7 @@ adminRouter.get("/assignation", allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (
 		const { from, to } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
-		const assignations = await getAssignationsByRange$1(Number(companyId), new Date(from), new Date(to));
+		const assignations = await getAssignationsByRange$1(Number(companyId), from, to);
 		return res.status(200).json(assignations);
 	} catch (err) {
 		return res.status(500).json({ error: err.message });
@@ -910,7 +1160,7 @@ adminRouter.delete("/delete-assignation-by-date", checkGoalAssignationBelongsToC
 		const { date } = req.query;
 		const companyId = req.user?.companyId;
 		if (companyId && date) {
-			const deleted = await deleteGoalAssignationByDate(Number(companyId), new Date(date));
+			const deleted = await deleteGoalAssignationByDate(Number(companyId), date);
 			return res.status(200).json(deleted);
 		}
 		return res.status(400).json({ error: "Provide either an ID or companyId and date" });
@@ -949,11 +1199,19 @@ async function checkGoalAssignationBelongsToCompany(req, res, next) {
 		return next();
 	}
 	if (date) {
-		if ((await getAssignationsByRange$1(companyId, new Date(date), new Date(date)))[0]?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
+		if ((await getAssignationsByRange$1(companyId, date, date))[0]?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
 		return next();
 	}
 	return res.status(500).json({ error: "unexpected error in goal middleware" });
 }
+const parseStringArray = (val) => {
+	if (val === null || val === void 0) return [];
+	return (Array.isArray(val) ? val : [val]).map((item) => {
+		const str = String(item).trim();
+		if (!str) throw new Error("Invalid or empty string value provided in array");
+		return str;
+	});
+};
 //#endregion
 //#region controllers/schema.controller.ts
 const createSchema = async (data) => {
@@ -1054,17 +1312,13 @@ const deleteSchemaAssignation = async (id) => {
 * Normalizes a date to 00:00:00.000
 */
 const getStartOfDay = (date) => {
-	const d = new Date(date);
-	d.setHours(0, 0, 0, 0);
-	return d;
+	return /* @__PURE__ */ new Date(`${date}T00:00:00.000Z`);
 };
 /**
 * Normalizes a date to 23:59:59.999
 */
 const getEndOfDay = (date) => {
-	const d = new Date(date);
-	d.setHours(23, 59, 59, 999);
-	return d;
+	return /* @__PURE__ */ new Date(`${date}T23:59:59.999Z`);
 };
 //#endregion
 //#region routes/schema.route.ts
@@ -1131,19 +1385,19 @@ schemaRouter.put("/update/:id", checkSchemaBelongsToCompany, async (req, res) =>
 		return res.status(500).json({ error: "Update failed: " + err.message });
 	}
 });
-schemaRouter.get("/assignation", allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req, res) => {
+schemaRouter.get("/assignation", async (req, res) => {
 	try {
 		const { from, to } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
-		const assignations = await getAssignationsByRange(Number(companyId), new Date(from), new Date(to));
+		const assignations = await getAssignationsByRange(Number(companyId), from, to);
 		return res.status(200).json(assignations);
 	} catch (err) {
 		console.log(err);
 		return res.status(500).json({ error: err.message });
 	}
 });
-schemaRouter.post("/upsert-assignation", allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req, res) => {
+schemaRouter.post("/upsert-assignation", async (req, res) => {
 	try {
 		const { date, schemaId } = req.body;
 		const companyId = req.user?.companyId;
@@ -1154,7 +1408,7 @@ schemaRouter.post("/upsert-assignation", allowedRoles(["MAIN_ADMIN", "MANAGER"])
 		return res.status(500).json({ error: err.message });
 	}
 });
-schemaRouter.delete("/delete-assignation-by-id/:id", checkSchemaAssignationBelongsToCompany, allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req, res) => {
+schemaRouter.delete("/delete-assignation-by-id/:id", checkSchemaAssignationBelongsToCompany, async (req, res) => {
 	try {
 		const { id } = req.params;
 		if (id) {
@@ -1192,10 +1446,11 @@ const getLastRegister = async (companyId) => {
 		select: { startAt: true }
 	});
 	if (!lastCall) return { lastCallDate: null };
-	if (new Date(lastCall.startAt).getTime() > (/* @__PURE__ */ new Date()).getTime()) return { lastCallDate: /* @__PURE__ */ new Date() };
-	return { lastCallDate: lastCall.startAt };
+	return { lastCallDate: getZonedLocalTime(lastCall.startAt.toISOString(), "Europe/Amsterdam") };
 };
-const getGeneralInsights = async (companyId, startDate, endDate, filters) => {
+const getGeneralInsights = async (companyId, startDateStr, endDateStr, filters) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
 	const agentFilter = filters.agents?.length > 0 ? { in: filters.agents } : void 0;
 	const callMetrics = await prisma.call.aggregate({
 		where: {
@@ -1239,12 +1494,14 @@ const getGeneralInsights = async (companyId, startDate, endDate, filters) => {
 		avgCallDuration
 	};
 };
-const getDailyActivity = async (companyId, startDate, endDate, filters) => {
+const getDailyActivity = async (companyId, startDateStr, endDateStr, filters, config) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
 	const agentFilter = filters.agents && filters.agents.length > 0 ? sql`AND "agentId" IN (${join(filters.agents)})` : empty;
 	const seedAgentFilter = filters.agents && filters.agents.length > 0 ? sql`AND fe."agentId" IN (${join(filters.agents)})` : empty;
 	const dailyCalls = await prisma.$queryRaw`
     SELECT 
-      DATE("startAt") as "date",
+      DATE("startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       SUM("durationSeconds") as "talkTime",
       COUNT(id) as "calls"
     FROM "Call"
@@ -1252,12 +1509,12 @@ const getDailyActivity = async (companyId, startDate, endDate, filters) => {
       AND "startAt" >= ${startDate}
       AND "startAt" <= ${endDate}
       ${agentFilter}
-    GROUP BY DATE("startAt")
-    ORDER BY DATE("startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `;
 	const dailySeeds = await prisma.$queryRaw`
     SELECT 
-      DATE(fe."timestamp") as "date",
+      DATE(fe."timestamp" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       COUNT(fe.id) as "seeds"
     FROM "FunnelEvent" fe
     JOIN "Agent" a ON fe."agentId" = a.id
@@ -1266,10 +1523,10 @@ const getDailyActivity = async (companyId, startDate, endDate, filters) => {
       AND fe."timestamp" >= ${startDate}
       AND fe."timestamp" <= ${endDate}
       ${seedAgentFilter}
-    GROUP BY DATE(fe."timestamp")
+    GROUP BY "date"
   `;
 	return dailyCalls.map((callDay) => {
-		const dayString = new Date(callDay.date).toISOString().split("T")[0];
+		const dayString = getYYYYMMDD(callDay.date);
 		const seedData = dailySeeds.find((s) => {
 			return new Date(s.date).toISOString().split("T")[0] === dayString;
 		});
@@ -1281,9 +1538,9 @@ const getDailyActivity = async (companyId, startDate, endDate, filters) => {
 		};
 	});
 };
-const getBlockPerformance = async (companyId, from, to, schemaId, filters) => {
-	const startDate = /* @__PURE__ */ new Date(`${from}T00:00:00.000Z`);
-	const endDate = /* @__PURE__ */ new Date(`${to}T23:59:59.999Z`);
+const getBlockPerformance = async (companyId, from, to, schemaId, filters, config) => {
+	const startDate = new Date(from);
+	const endDate = new Date(to);
 	const activeBlockTypes = [];
 	if (filters.types[0]) activeBlockTypes.push(BlockType.WORKING);
 	if (filters.types[1]) activeBlockTypes.push(BlockType.REST);
@@ -1327,7 +1584,8 @@ const getBlockPerformance = async (companyId, from, to, schemaId, filters) => {
 	}));
 	if (activeBlockTypes.includes(BlockType.EXTRA_TIME)) blockStats = fillGapsWithExtraTime(blockStats);
 	calls.forEach((call, i) => {
-		const callMinutes = call.startAt.getUTCHours() * 60 + call.startAt.getUTCMinutes();
+		const startAtTimeZoned = getZonedUtcDate(call.startAt.toISOString(), config.IANA);
+		const callMinutes = startAtTimeZoned.getHours() * 60 + startAtTimeZoned.getMinutes();
 		const targetBlock = blockStats.find((b) => callMinutes >= b.startMinutes && callMinutes < b.endMinutes);
 		if (targetBlock) {
 			targetBlock.talkTime += call.durationSeconds / 60;
@@ -1346,7 +1604,9 @@ const getBlockPerformance = async (companyId, from, to, schemaId, filters) => {
 		type: b.type
 	}));
 };
-const getLongCallDistribution = async (companyId, startDate, endDate, filters) => {
+const getLongCallDistribution = async (companyId, startDateStr, endDateStr, filters) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
 	const agentFilter = filters.agents && filters.agents.length > 0 ? sql`AND "agentId" IN (${join(filters.agents)})` : empty;
 	return (await prisma.$queryRaw`
     SELECT 
@@ -1377,13 +1637,14 @@ const getLongCallDistribution = async (companyId, startDate, endDate, filters) =
 		count: Number(row.count)
 	}));
 };
-const getSeedTimelineHeatmap = async (companyId, year, filters) => {
-	const startDate = new Date(year, 0, 1);
-	const endDate = new Date(year, 11, 31, 23, 59, 59);
+const getSeedTimelineHeatmap = async (companyId, year, filters, config) => {
+	const yearBoundaries = getYearBoundariesInUTC(year, config.IANA);
+	const startDate = yearBoundaries.startDate;
+	const endDate = yearBoundaries.endDate;
 	const agentFilter = filters.agents && filters.agents.length > 0 ? sql`AND c."agentId" IN (${join(filters.agents)})` : empty;
 	const dailyData = await prisma.$queryRaw`
     SELECT 
-      DATE(c."startAt") as "date",
+      DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id AND fe."type" = ${EventType.SEED}
@@ -1391,8 +1652,8 @@ const getSeedTimelineHeatmap = async (companyId, year, filters) => {
       AND c."startAt" >= ${startDate}
       AND c."startAt" <= ${endDate}
       ${agentFilter}
-    GROUP BY DATE(c."startAt")
-    ORDER BY DATE(c."startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `;
 	const dataMap = new Map(dailyData.map((d) => [new Date(d.date).toISOString().split("T")[0], Number(d.seeds)]));
 	const seedValues = Array.from(dataMap.values());
@@ -1406,8 +1667,9 @@ const getSeedTimelineHeatmap = async (companyId, year, filters) => {
 		return Math.max(1, Math.min(level, 4));
 	};
 	const fullYearData = [];
-	const currentDate = new Date(startDate);
-	while (currentDate <= endDate) {
+	const currentDate = /* @__PURE__ */ new Date(`${year}-01-01T00:00:00.000Z`);
+	const loopEndDate = /* @__PURE__ */ new Date(`${year}-12-31T23:59:59.999Z`);
+	while (currentDate <= loopEndDate) {
 		const dateStr = currentDate.toISOString().split("T")[0];
 		const seeds = dataMap.get(dateStr) || 0;
 		fullYearData.push({
@@ -1419,13 +1681,14 @@ const getSeedTimelineHeatmap = async (companyId, year, filters) => {
 	}
 	return fullYearData;
 };
-const getSeedTimelineHeatmapPerDay = async (companyId, targetDate, filters) => {
-	const startOfDay = /* @__PURE__ */ new Date(`${targetDate}T00:00:00.000Z`);
-	const endOfDay = /* @__PURE__ */ new Date(`${targetDate}T23:59:59.999Z`);
+const getSeedTimelineHeatmapPerDay = async (companyId, targetDate, filters, config) => {
+	const dayBoundaries = getDayBoundariesInUTC(targetDate, config.IANA);
+	const startOfDay = dayBoundaries.startDate;
+	const endOfDay = dayBoundaries.endDate;
 	const agentFilter = filters.agents && filters.agents.length > 0 ? sql`AND c."agentId" IN (${join(filters.agents)})` : empty;
 	const hourlyData = await prisma.$queryRaw`
     SELECT 
-      EXTRACT(HOUR FROM (c."startAt"::timestamp)) as "hour",
+      EXTRACT(HOUR FROM (c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA})) as "hour",
       COUNT(fe.id) as "seeds"
     FROM "Call" c
     LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id 
@@ -1456,7 +1719,9 @@ const getSeedTimelineHeatmapPerDay = async (companyId, targetDate, filters) => {
 		};
 	});
 };
-const getConversionFunnel = async (companyId, startDate, endDate, filters) => {
+const getConversionFunnel = async (companyId, startDateStr, endDateStr, filters) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
 	const eventCounts = await prisma.funnelEvent.groupBy({
 		by: ["type"],
 		where: {
@@ -1487,7 +1752,9 @@ const getConversionFunnel = async (companyId, startDate, endDate, filters) => {
 		}
 	];
 };
-const getConsistencyHistory = async (goalId, companyId, startDate, endDate, filters) => {
+const getConsistencyHistory = async (goalId, companyId, startDateStr, endDateStr, filters, config) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
 	const goal = await prisma.temporalGoals.findUnique({ where: { id: goalId } });
 	if (!goal) throw new Error("Target goal not found");
 	const activeDays = [
@@ -1503,7 +1770,7 @@ const getConsistencyHistory = async (goalId, companyId, startDate, endDate, filt
 	const dayFilter = activeDays.length > 0 ? sql`AND c."dayOfTheWeek" IN (${join(activeDays)})` : empty;
 	return (await prisma.$queryRaw`
     SELECT 
-      DATE(c."startAt") as "date",
+      DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
       SUM(c."durationSeconds") / 60.0 as "talkTime",
       COUNT(c.id) as "calls",
       COUNT(fe_seed.id) as "seeds",
@@ -1518,8 +1785,8 @@ const getConsistencyHistory = async (goalId, companyId, startDate, endDate, filt
       AND c."startAt" <= ${endDate}
       ${agentFilter}
       ${dayFilter}
-    GROUP BY DATE(c."startAt")
-    ORDER BY DATE(c."startAt") ASC
+    GROUP BY "date"
+    ORDER BY "date" ASC
   `).map((day) => {
 		const scores = [];
 		const addScore = (current, target) => {
@@ -1540,41 +1807,105 @@ const getConsistencyHistory = async (goalId, companyId, startDate, endDate, filt
 		};
 	});
 };
-const getAgentsSorted = async (companyId, from, to, params) => {
+const getAgentsSorted = async (companyId, from, to, params, config) => {
 	const { sortKey, direction, page, pageSize, agentIds } = params;
 	const offset = (page - 1) * pageSize;
-	const startDate = /* @__PURE__ */ new Date(`${from}T00:00:00.000Z`);
-	const endDate = /* @__PURE__ */ new Date(`${to}T23:59:59.999Z`);
+	const startDate = new Date(from);
+	const endDate = new Date(to);
 	const agentFilter = agentIds && agentIds.length > 0 ? sql`AND a.id IN (${join(agentIds)})` : empty;
 	return (await prisma.$queryRaw`
+    WITH call_agg AS (
+      SELECT
+        c.id,
+        c."agentId",
+        DATE(c."startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as call_date,
+        c."durationSeconds",
+        COUNT(CASE WHEN fe.type = 'SEED' THEN 1 END) as seed_cnt,
+        COUNT(CASE WHEN fe.type = 'LEAD' THEN 1 END) as lead_cnt,
+        COUNT(CASE WHEN fe.type = 'SALE' THEN 1 END) as sale_cnt
+      FROM "Call" c
+      LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id
+      WHERE c."companyId" = ${companyId}
+        AND c."startAt" >= ${startDate} 
+        AND c."startAt" <= ${endDate}
+      GROUP BY c.id
+    ),
+    daily_stats AS (
+      SELECT
+        "agentId",
+        call_date,
+        SUM("durationSeconds") / 60.0 as daily_talk_time,
+        COUNT(id) as daily_calls,
+        SUM(seed_cnt) as daily_seeds,
+        SUM(lead_cnt) as daily_leads,
+        SUM(sale_cnt) as daily_sales
+      FROM call_agg
+      GROUP BY "agentId", call_date
+    ),
+    daily_scores AS (
+      SELECT
+        ds."agentId",
+        -- Sum up the scores (capped at 100) and divide by the number of active goals
+        (
+          COALESCE(LEAST((ds.daily_talk_time / NULLIF(tg."talkTimeMinutes", 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_seeds::NUMERIC / NULLIF(tg.seeds, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_leads::NUMERIC / NULLIF(tg.leads, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_sales::NUMERIC / NULLIF(tg.sales, 0)) * 100, 100), 0) +
+          COALESCE(LEAST((ds.daily_calls::NUMERIC / NULLIF(tg."numberOfCalls", 0)) * 100, 100), 0)
+        ) / NULLIF(
+          (CASE WHEN tg."talkTimeMinutes" > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.seeds > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.leads > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg.sales > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN tg."numberOfCalls" > 0 THEN 1 ELSE 0 END),
+          0
+        ) as daily_consistency
+      FROM daily_stats ds
+      -- Join on the specific Goal Assignation for that day
+      JOIN "GoalsAssignation" ga ON ga."companyId" = ${companyId} AND DATE(ga.date AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) = ds.call_date
+      JOIN "TemporalGoals" tg ON tg.id = ga."goalId"
+    ),
+    agent_consistency AS (
+      SELECT "agentId", ROUND(AVG(daily_consistency)) as consistency_score
+      FROM daily_scores
+      GROUP BY "agentId"
+    )
     SELECT 
       a.id,
       a.name,
       COALESCE(SUM(c."durationSeconds") / 60, 0)::INT as "talkTime",
       COUNT(DISTINCT fe_seed.id)::INT as "seeds",
+      
       -- Conversion Calculation
       CASE 
         WHEN COUNT(DISTINCT fe_seed.id) > 0 
         THEN ROUND((COUNT(DISTINCT fe_sale.id)::NUMERIC / COUNT(DISTINCT fe_seed.id)::NUMERIC) * 100, 1)
         ELSE 0 
       END as "conversion",
+      
       -- Long Call Ratio ( > 5 minutes / 300 seconds)
       CASE 
-        WHEN COUNT(c.id) > 0 
-        THEN ROUND((COUNT(CASE WHEN c."durationSeconds" >= 300 THEN 1 END)::NUMERIC / COUNT(c.id)::NUMERIC) * 100, 1)
+        WHEN COUNT(DISTINCT c.id) > 0 
+        THEN ROUND((COUNT(DISTINCT CASE WHEN c."durationSeconds" >= 300 THEN c.id END)::NUMERIC / COUNT(DISTINCT c.id)::NUMERIC) * 100, 1)
         ELSE 0 
       END as "longCallRatio",
-      -- Placeholder for consistency logic (requires Goal comparison)
-      85 as "consistency"
+
+      -- Dynamically attached Consistency Score
+      COALESCE(ac.consistency_score, 0)::INT as "consistency"
+      
     FROM "Agent" a
     LEFT JOIN "Call" c ON c."agentId" = a.id 
       AND c."startAt" >= ${startDate} 
       AND c."startAt" <= ${endDate}
     LEFT JOIN "FunnelEvent" fe_seed ON fe_seed."callId" = c.id AND fe_seed."type" = 'SEED'
     LEFT JOIN "FunnelEvent" fe_sale ON fe_sale."callId" = c.id AND fe_sale."type" = 'SALE'
+    
+    -- Connect our consistency CTE
+    LEFT JOIN agent_consistency ac ON ac."agentId" = a.id
+    
     WHERE a."companyId" = ${companyId}
     ${agentFilter}
-    GROUP BY a.id, a.name
+    GROUP BY a.id, a.name, ac.consistency_score
     ORDER BY "${raw(sortKey)}" ${raw(direction.toUpperCase())}
     LIMIT ${pageSize}
     OFFSET ${offset}
@@ -1628,7 +1959,7 @@ dataVisRouter.get("/get-agents-comparisson", async (req, res) => {
 			page: Number(page) || 1,
 			pageSize: Number(pageSize) || 10,
 			agentIds: agents ? parseNumberArray(agents) : []
-		});
+		}, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(report);
 	} catch (err) {
 		console.error("DataVis Error:", err);
@@ -1651,15 +1982,12 @@ dataVisRouter.get("/general-insights", async (req, res) => {
 		const { from, to, agents } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
-		const startDate = new Date(from);
-		const endDate = new Date(to);
+		const startDate = from;
+		const endDate = to;
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
-		endDate.setHours(23, 59, 59, 999);
-		if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
 		const report = await getGeneralInsights(Number(companyId), startDate, endDate, { agents: parsedAgents });
 		return res.status(200).json(report);
 	} catch (err) {
-		console.error("DataVis Error:", err);
 		return res.status(500).json({ error: "Internal server error processing visualization" });
 	}
 });
@@ -1668,12 +1996,10 @@ dataVisRouter.get("/daily-activity", async (req, res) => {
 		const { from, to, agents } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing companyId, from, or to parameters" });
-		const startDate = new Date(from);
-		const endDate = new Date(to);
+		const startDate = from;
+		const endDate = to;
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
-		endDate.setHours(23, 59, 59, 999);
-		if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
-		const report = await getDailyActivity(Number(companyId), startDate, endDate, { agents: parsedAgents });
+		const report = await getDailyActivity(Number(companyId), startDate, endDate, { agents: parsedAgents }, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(report);
 	} catch (err) {
 		console.error("DataVis Error:", err);
@@ -1685,8 +2011,8 @@ dataVisRouter.get("/block-performance", async (req, res) => {
 		const { schemaId, from, to, days, types, agents } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !schemaId || !from || !to || !days || !types) return res.status(400).json({ error: "Missing required parameters" });
-		const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-		if (typeof from !== "string" || !dateRegex.test(from) || typeof to !== "string" || !dateRegex.test(to)) return res.status(400).json({ error: "Invalid date format. Please use YYYY-MM-DD" });
+		const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?$/;
+		if (typeof from !== "string" || !iso8601Regex.test(from) || typeof to !== "string" || !iso8601Regex.test(to)) return res.status(400).json({ error: "Invalid date format. Please use YYYY-MM-DD" });
 		const sId = Number(schemaId);
 		const parsedDays = parseBoolArray(days);
 		const parsedTypes = parseBoolArray(types);
@@ -1695,9 +2021,10 @@ dataVisRouter.get("/block-performance", async (req, res) => {
 			days: parsedDays,
 			types: parsedTypes,
 			agents: parsedAgents
-		});
+		}, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(data);
 	} catch (err) {
+		console.log(err);
 		return res.status(500).json({ error: err.message });
 	}
 });
@@ -1706,10 +2033,8 @@ dataVisRouter.get("/long-call-distribution", async (req, res) => {
 		const { from, to, agents } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing required parameters: companyId, from, to" });
-		const startDate = new Date(from);
-		const endDate = new Date(to);
-		endDate.setHours(23, 59, 59, 999);
-		if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return res.status(400).json({ error: "Invalid date format" });
+		const startDate = from;
+		const endDate = to;
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
 		const data = await getLongCallDistribution(Number(companyId), startDate, endDate, { agents: parsedAgents });
 		return res.status(200).json(data);
@@ -1724,7 +2049,7 @@ dataVisRouter.get("/seed-timeline-heatmap", async (req, res) => {
 		if (!companyId || !year) return res.status(400).json({ error: "Missing companyId, from, or to" });
 		if (isNaN(Number(year))) return res.status(400).json({ error: "Invalid year parameter" });
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
-		const heatmapData = await getSeedTimelineHeatmap(Number(companyId), Number(year), { agents: parsedAgents });
+		const heatmapData = await getSeedTimelineHeatmap(Number(companyId), Number(year), { agents: parsedAgents }, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(heatmapData);
 	} catch (err) {
 		return res.status(500).json({ error: err.message });
@@ -1737,7 +2062,7 @@ dataVisRouter.get("/seed-timeline-heatmap-per-day", async (req, res) => {
 		if (!companyId || !day) return res.status(400).json({ error: "Missing companyId or day" });
 		if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return res.status(400).json({ error: "Invalid date format. Please use YYYY-MM-DD" });
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
-		const heatmapData = await getSeedTimelineHeatmapPerDay(Number(companyId), day, { agents: parsedAgents });
+		const heatmapData = await getSeedTimelineHeatmapPerDay(Number(companyId), day, { agents: parsedAgents }, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(heatmapData);
 	} catch (err) {
 		return res.status(500).json({ error: err.message });
@@ -1748,10 +2073,8 @@ dataVisRouter.get("/conversion-funnel", async (req, res) => {
 		const { from, to, agents } = req.query;
 		const companyId = req.user?.companyId;
 		if (!companyId || !from || !to) return res.status(400).json({ error: "Missing required parameters" });
-		const start = new Date(from);
-		const end = new Date(to);
-		end.setHours(23, 59, 59, 999);
-		if (isNaN(start.getTime()) || isNaN(end.getTime())) return res.status(400).json({ error: "Invalid date format" });
+		const start = from;
+		const end = to;
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
 		const funnelData = await getConversionFunnel(Number(companyId), start, end, { agents: parsedAgents });
 		return res.status(200).json(funnelData);
@@ -1764,15 +2087,14 @@ dataVisRouter.get("/consistency-streak", async (req, res) => {
 		const { goalId, from, to, agents, days } = req.query;
 		const companyId = req.user?.companyId;
 		if (!goalId || !companyId || !from || !to || !days) return res.status(400).json({ error: "Missing required parameters" });
-		const start = new Date(from);
-		const end = new Date(to);
-		end.setHours(23, 59, 59, 999);
+		const start = from;
+		const end = to;
 		const parsedAgents = agents ? parseNumberArray(agents) : [];
 		const parsedDays = days ? parseBoolArray(days) : [];
 		const history = await getConsistencyHistory(Number(goalId), Number(companyId), start, end, {
 			agents: parsedAgents,
 			days: parsedDays
-		});
+		}, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(history);
 	} catch (err) {
 		return res.status(500).json({ error: err.message });
@@ -1784,15 +2106,16 @@ const parseBoolArray = (val) => {
 const parseNumberArray = (val) => {
 	return (Array.isArray(val) ? val : [val]).map((item) => {
 		const number = Number(item);
-		if (isNaN(number)) throw "Not numerical value";
+		if (item === null && Number.isNaN(number)) throw "Not numerical value";
 		return number;
 	});
 };
 //#endregion
 //#region controllers/agentDashboard.controller.ts
-const getAgentDayInsights = async (userId, date) => {
-	const startOfDay = /* @__PURE__ */ new Date(`${date}T00:00:00.000Z`);
-	const endOfDay = /* @__PURE__ */ new Date(`${date}T23:59:59.999Z`);
+const getAgentDayInsights = async (userId, date, config) => {
+	const dayBoundaries = getDayBoundariesInUTC(date, config.IANA);
+	const startOfDay = dayBoundaries.startDate;
+	const endOfDay = dayBoundaries.endDate;
 	const agentId = (await prisma.user.findUnique({ where: { id: userId } }))?.agentId;
 	if (!agentId) throw "No agent";
 	const companyId = (await prisma.agent.findUnique({ where: { id: agentId } }))?.companyId;
@@ -1919,11 +2242,10 @@ const getAssignedSchema = async (userId, dateStr) => {
 		include: { blocks: { orderBy: { startMinutesFromMidnight: "asc" } } }
 	});
 };
-const getAgentWeeklyGrowth = async (agentId, dateStr) => {
-	const date = /* @__PURE__ */ new Date(`${dateStr}T00:00:00Z`);
-	const day = date.getUTCDay();
-	const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
-	const startOfWeek = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
+const getAgentWeeklyGrowth = async (userId, dateStr, config) => {
+	const agentId = (await prisma.user.findUnique({ where: { id: userId } }))?.agentId;
+	if (!agentId) throw "No agent";
+	const weekDays = getDailyWeekBoundariesInUTC(dateStr, config.IANA);
 	const days = [
 		"Mon",
 		"Tue",
@@ -1934,31 +2256,27 @@ const getAgentWeeklyGrowth = async (agentId, dateStr) => {
 		"Sun"
 	];
 	const weeklyData = [];
-	for (let i = 0; i < 7; i++) {
-		const startOfDay = new Date(startOfWeek);
-		startOfDay.setUTCDate(startOfWeek.getUTCDate() + i);
-		const endOfDay = new Date(startOfDay);
-		endOfDay.setUTCHours(23, 59, 59, 999);
+	for (let i = 0; i < weekDays.length; i++) {
 		const [calls, events, deepCalls] = await Promise.all([
 			prisma.call.count({ where: {
 				agentId,
 				startAt: {
-					gte: startOfDay,
-					lte: endOfDay
+					gte: weekDays[i].startDate,
+					lte: weekDays[i].endDate
 				}
 			} }),
 			prisma.funnelEvent.findMany({ where: {
 				agentId,
 				timestamp: {
-					gte: startOfDay,
-					lte: endOfDay
+					gte: weekDays[i].startDate,
+					lte: weekDays[i].endDate
 				}
 			} }),
 			prisma.call.count({ where: {
 				agentId,
 				startAt: {
-					gte: startOfDay,
-					lte: endOfDay
+					gte: weekDays[i].startDate,
+					lte: weekDays[i].endDate
 				},
 				durationSeconds: { gte: 300 }
 			} })
@@ -2007,10 +2325,10 @@ const agentDashboardRouter = Router();
 agentDashboardRouter.get("/get-agent-day-insights", async (req, res) => {
 	try {
 		const { date } = req.query;
-		const agentId = req.user?.id;
-		if (!agentId) return res.status(400).json({ error: "Missing agentId" });
+		const userId = req.user?.id;
+		if (!userId) return res.status(400).json({ error: "Missing userId" });
 		if (!date) return res.status(400).json({ error: "Missing date" });
-		const report = await getAgentDayInsights(agentId, date);
+		const report = await getAgentDayInsights(userId, date, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(report);
 	} catch (err) {
 		console.error("DataVis Error:", err);
@@ -2020,10 +2338,10 @@ agentDashboardRouter.get("/get-agent-day-insights", async (req, res) => {
 agentDashboardRouter.get("/get-agent-weekly-growth", async (req, res) => {
 	try {
 		const { date } = req.query;
-		const agentId = req.user?.id;
-		if (!agentId) return res.status(400).json({ error: "Missing agentId" });
+		const userId = req.user?.id;
+		if (!userId) return res.status(400).json({ error: "Missing agentId" });
 		if (!date) return res.status(400).json({ error: "Missing date" });
-		const report = await getAgentWeeklyGrowth(agentId, date);
+		const report = await getAgentWeeklyGrowth(userId, date, { IANA: "Europe/Amsterdam" });
 		return res.status(200).json(report);
 	} catch (err) {
 		console.error("DataVis Error:", err);
@@ -2033,10 +2351,10 @@ agentDashboardRouter.get("/get-agent-weekly-growth", async (req, res) => {
 agentDashboardRouter.get("/get-assigned-schema", async (req, res) => {
 	try {
 		const { date } = req.query;
-		const agentId = req.user?.id;
-		if (!agentId) return res.status(400).json({ error: "Missing agentId" });
+		const userId = req.user?.id;
+		if (!userId) return res.status(400).json({ error: "Missing agentId" });
 		if (!date) return res.status(400).json({ error: "Missing date" });
-		const result = await getAssignedSchema(agentId, date);
+		const result = await getAssignedSchema(userId, date);
 		return res.status(200).json(result);
 	} catch (err) {
 		console.error("DataVis Error:", err);
@@ -2046,13 +2364,247 @@ agentDashboardRouter.get("/get-assigned-schema", async (req, res) => {
 agentDashboardRouter.post("/register-agent-state", async (req, res) => {
 	try {
 		const { energy, focus, motivation } = req.body;
-		const agentId = req.user?.id;
-		if (!agentId) return res.status(400).json({ error: "Missing agentId" });
-		const result = await registerAgentState(agentId, Number(energy), Number(focus), Number(motivation));
+		const userId = req.user?.id;
+		if (!userId) return res.status(400).json({ error: "Missing agentId" });
+		const result = await registerAgentState(userId, Number(energy), Number(focus), Number(motivation));
 		return res.status(200).json(result);
 	} catch (err) {
 		console.error("DataVis Error:", err);
 		return res.status(500).json({ error: "Internal server error processing visualization" });
+	}
+});
+//#endregion
+//#region controllers/SharedScreen.controller.ts
+const getAgentPerformanceReport = async (companyId, startDateStr, endDateStr, page = 1, size = 10) => {
+	const startDate = new Date(startDateStr);
+	const endDate = new Date(endDateStr);
+	const offset = (page - 1) * size;
+	/**
+	* We use a Raw Query to:
+	* 1. Join Agents with their current Level (till is null).
+	* 2. Left join with Calls and FunnelEvents within the date range.
+	* 3. Group by Agent to get sums/counts.
+	* 4. Calculate a 'performance_score' for sorting.
+	*/
+	const report = await prisma.$queryRaw`
+    SELECT 
+      a.id,
+      a.name,
+      a."profileImg",
+      COALESCE(al.level, 3) as "currentLevel", -- Default to 3 (Bronze) if no level found
+      SUM(COALESCE(c."durationSeconds", 0)) as "totalCallingTime",
+      COUNT(DISTINCT CASE WHEN fe.type = ${EventType.SEED} THEN fe.id END) as "totalSeeds",
+      COUNT(DISTINCT CASE WHEN fe.type = ${EventType.SALE} THEN fe.id END) as "totalSales",
+      -- Formula: (CallingTime + Seeds + Sales) / 3
+      (
+        SUM(COALESCE(c."durationSeconds", 0)) + 
+        COUNT(DISTINCT CASE WHEN fe.type = ${EventType.SEED} THEN fe.id END) + 
+        COUNT(DISTINCT CASE WHEN fe.type = ${EventType.SALE} THEN fe.id END)
+      ) / 3.0 as "performanceScore"
+    FROM "Agent" a
+    -- Get current level
+    LEFT JOIN "AgentLevel" al ON al."agentId" = a.id AND al.till IS NULL
+    -- Join Calls in range
+    LEFT JOIN "Call" c ON c."agentId" = a.id 
+      AND c."companyId" = ${companyId}
+      AND c."startAt" >= ${startDate} 
+      AND c."startAt" <= ${endDate}
+    -- Join FunnelEvents in range
+    LEFT JOIN "FunnelEvent" fe ON fe."agentId" = a.id 
+      AND fe.timestamp >= ${startDate} 
+      AND fe.timestamp <= ${endDate}
+    WHERE a."companyId" = ${companyId}
+    GROUP BY a.id, a.name, al.level
+    ORDER BY "performanceScore" DESC
+    LIMIT ${size}
+    OFFSET ${offset}
+  `;
+	const totalAgents = await prisma.agent.count({ where: { companyId } });
+	return {
+		data: report.map((item) => ({
+			name: item.name,
+			callingTime: Number(item.totalCallingTime),
+			seeds: Number(item.totalSeeds),
+			sales: Number(item.totalSales),
+			currentLevel: item.currentLevel,
+			averageScore: parseFloat(Number(item.performanceScore).toFixed(2)),
+			profileImg: item.profileImg
+		})),
+		meta: {
+			totalAgents,
+			totalPages: Math.ceil(totalAgents / size),
+			currentPage: page
+		}
+	};
+};
+const getTeamHeatScore = async (companyId, dateStr, config) => {
+	const targetDate = /* @__PURE__ */ new Date(`${dateStr}T00:00:00.000Z`);
+	const dayBoundaries = getDayBoundariesInUTC(dateStr, config.IANA);
+	const startDate = dayBoundaries.startDate;
+	const endDate = dayBoundaries.endDate;
+	const goalAssignation = await prisma.goalsAssignation.findUnique({
+		where: { companyId_date: {
+			companyId,
+			date: targetDate
+		} },
+		include: { goal: true }
+	});
+	if (!goalAssignation) return {
+		heatScore: 0,
+		message: "No goals assigned for this date.",
+		metrics: null
+	};
+	const targets = goalAssignation.goal;
+	/**
+	* 2. Aggregate Actual Performance for the team on that day
+	* We count total calls, duration, seeds, sales, and leads.
+	*/
+	const actuals = await prisma.$queryRaw`
+    SELECT 
+      COUNT(c.id)::float as "totalCalls",
+      SUM(COALESCE(c."durationSeconds", 0))::float as "totalDuration",
+      COUNT(CASE WHEN fe.type = ${EventType.SEED} THEN 1 END)::float as "totalSeeds",
+      COUNT(CASE WHEN fe.type = ${EventType.SALE} THEN 1 END)::float as "totalSales",
+      COUNT(CASE WHEN fe.type = ${EventType.LEAD} THEN 1 END)::float as "totalLeads"
+    FROM "Call" c
+    LEFT JOIN "FunnelEvent" fe ON fe."callId" = c.id
+    WHERE c."companyId" = ${companyId}
+      AND c."startAt" >= ${startDate}
+      AND c."startAt" <= ${endDate}
+  `;
+	await prisma.call.findFirst({ where: { companyId } });
+	const stats = actuals[0];
+	/**
+	* 3. Calculate Heat Score
+	* We calculate the percentage of completion for each metric.
+	* We use weights to give "Sales" or "Seeds" more importance in the "Heat".
+	*/
+	const weights = {
+		calls: .1,
+		time: .2,
+		seeds: .25,
+		leads: .15,
+		sales: .3
+	};
+	const calcProgress = (actual, target) => {
+		if (target <= 0) return 1;
+		return Math.min(actual / target, 1.2);
+	};
+	const callProgress = calcProgress(Number(stats.totalCalls), targets.numberOfCalls);
+	const timeProgress = calcProgress(Number(stats.totalDuration) / 60, targets.talkTimeMinutes);
+	const seedProgress = calcProgress(Number(stats.totalSeeds), targets.seeds);
+	const leadProgress = calcProgress(Number(stats.totalLeads), targets.leads);
+	const saleProgress = calcProgress(Number(stats.totalSales), targets.sales);
+	const weightedScore = (callProgress * weights.calls + timeProgress * weights.time + seedProgress * weights.seeds + leadProgress * weights.leads + saleProgress * weights.sales) * 100;
+	return {
+		heatScore: Math.round(Math.min(weightedScore, 100)),
+		details: {
+			actual: {
+				calls: Number(stats.totalCalls),
+				minutes: Math.round(Number(stats.totalDuration) / 60),
+				seeds: Number(stats.totalSeeds),
+				leads: Number(stats.totalLeads),
+				sales: Number(stats.totalSales)
+			},
+			targets: {
+				calls: targets.numberOfCalls,
+				minutes: targets.talkTimeMinutes,
+				seeds: targets.seeds,
+				leads: targets.leads,
+				sales: targets.sales
+			}
+		}
+	};
+};
+//#endregion
+//#region routes/SharedScreen.route.ts
+const sharedScreenRoute = Router();
+sharedScreenRoute.get("/get_agents_positions", async (req, res) => {
+	try {
+		const { from, to, page, pageSize } = req.query;
+		const companyId = req.user?.companyId;
+		if (!companyId) return res.status(401).json({ error: "Unauthorized: Company ID not found" });
+		if (!from || !to) return res.status(400).json({ error: "Parameters 'from' and 'to' are required (YYYY-MM-DD)" });
+		const report = await getAgentPerformanceReport(Number(companyId), from, to, Number(page) || 1, Number(pageSize) || 10);
+		return res.status(200).json(report);
+	} catch (err) {
+		console.error("Agent Positions Error:", err);
+		return res.status(500).json({ error: "Internal server error calculating agent positions" });
+	}
+});
+sharedScreenRoute.get("/get_team_heat", async (req, res) => {
+	try {
+		const { date } = req.query;
+		const companyId = req.user?.companyId;
+		if (!companyId) return res.status(401).json({ error: "Unauthorized: Company ID not found" });
+		if (!date) return res.status(400).json({ error: "Parameter 'date' is required (YYYY-MM-DDTHH:MM:SS.MMMZ)" });
+		const report = await getTeamHeatScore(companyId, date, { IANA: "Europe/Amsterdam" });
+		return res.status(200).json(report);
+	} catch (err) {
+		console.error("team heat calculation Error:", err);
+		return res.status(500).json({ error: "Internal server error calculating team heat map" });
+	}
+});
+//#endregion
+//#region routes/upload.route.ts
+const s3Client = new S3Client({
+	region: process.env.AWS_REGION,
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+	}
+});
+const upload = multer({
+	storage: multer.memoryStorage(),
+	limits: { fileSize: 5 * 1024 * 1024 }
+});
+const uploadRoute = Router();
+uploadRoute.get("/agent-profile", upload.single("profile"), async (req, res) => {
+	try {
+		if (!req.user?.id || !req.user?.companyId) return res.status(400).json({ message: "No user id or company id" });
+		const result = await prisma.user.findUnique({
+			where: { id: req.user.id },
+			include: { agentProfile: true }
+		});
+		return res.status(200).json({ url: result?.agentProfile?.profileImg || null });
+	} catch (error) {
+		return res.status(500).json({ error });
+	}
+});
+uploadRoute.post("/agent-profile", upload.single("profile"), async (req, res) => {
+	try {
+		if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+		if (!req.user?.id || !req.user?.companyId) return res.status(400).json({ message: "No user id or company id" });
+		const user = await prisma.user.findUnique({
+			where: {
+				id: req.user.id,
+				companyId: req.user.companyId
+			},
+			select: { agentProfile: true }
+		});
+		if (!user || !user.agentProfile) return res.status(400).json({ message: "Not existant agent" });
+		const agent = user.agentProfile;
+		const file = req.file;
+		const fileName = `profiles/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+		const uploadParams = {
+			Bucket: process.env.AWS_S_BUCKET_NAME,
+			Key: fileName,
+			Body: file.buffer,
+			ContentType: file.mimetype
+		};
+		await s3Client.send(new PutObjectCommand(uploadParams));
+		const s3Url = `https://${process.env.AWS_S_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+		await prisma.agent.update({
+			where: { id: agent.id },
+			data: { profileImg: s3Url }
+		});
+		return res.status(200).json({
+			message: "Uploaded to AWS S3 successfully",
+			url: s3Url
+		});
+	} catch (error) {
+		console.error("S3 Upload Error:", error);
+		return res.status(500).json({ message: "Upload failed" });
 	}
 });
 //#endregion
@@ -2092,6 +2644,12 @@ router.use("/agent-dashboard", authenticateJWT, allowedRoles([
 	"MANAGER",
 	"AGENT"
 ]), agentDashboardRouter);
+router.use("/shared-screen", authenticateJWT, allowedRoles([
+	"MAIN_ADMIN",
+	"MANAGER",
+	"AGENT"
+]), sharedScreenRoute);
+router.use("/upload", authenticateJWT, allowedRoles(["AGENT"]), uploadRoute);
 router.use("/leaddesk", authenticateBasic, leadDeskWebhookRouter);
 //#endregion
 //#region app.ts
@@ -2101,108 +2659,9 @@ app.use(express.json());
 app.use("/api", router);
 //#endregion
 //#region index.ts
-var import_dist = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
-	Object.defineProperty(exports, "__esModule", { value: true });
-	const regExpToParseExpressPathRegExp = /^\/\^\\\/(?:(:?[\w\\.-]*(?:\\\/:?[\w\\.-]*)*)|(\(\?:\([^)]+\)\)))\\\/.*/;
-	const regExpToReplaceExpressPathRegExpParams = /\(\?:\([^)]+\)\)/;
-	const regexpExpressParamRegexp = /\(\?:\([^)]+\)\)/g;
-	const regexpExpressPathParamRegexp = /(:[^)]+)\([^)]+\)/g;
-	const EXPRESS_ROOT_PATH_REGEXP_VALUE = "/^\\/?(?=\\/|$)/i";
-	const STACK_ITEM_VALID_NAMES = [
-		"router",
-		"bound dispatch",
-		"mounted_app"
-	];
-	const getRouteMethods = function(route) {
-		let methods = Object.keys(route.methods);
-		methods = methods.filter((method) => method !== "_all");
-		methods = methods.map((method) => method.toUpperCase());
-		return methods;
-	};
-	const getRouteMiddlewares = function(route) {
-		return route.stack.map((item) => {
-			return item.handle.name || "anonymous";
-		});
-	};
-	const hasParams = function(expressPathRegExp) {
-		return regexpExpressParamRegexp.test(expressPathRegExp);
-	};
-	const parseExpressRoute = function(route, basePath) {
-		const paths = [];
-		if (Array.isArray(route.path)) paths.push(...route.path);
-		else paths.push(route.path);
-		return paths.map((path) => {
-			return {
-				path: (basePath && path === "/" ? basePath : `${basePath}${path}`).replace(regexpExpressPathParamRegexp, "$1"),
-				methods: getRouteMethods(route),
-				middlewares: getRouteMiddlewares(route)
-			};
-		});
-	};
-	const parseExpressPath = function(expressPathRegExp, params) {
-		let parsedRegExp = expressPathRegExp.toString();
-		let expressPathRegExpExec = regExpToParseExpressPathRegExp.exec(parsedRegExp);
-		let paramIndex = 0;
-		while (hasParams(parsedRegExp)) {
-			const paramId = `:${params[paramIndex].name}`;
-			parsedRegExp = parsedRegExp.replace(regExpToReplaceExpressPathRegExpParams, paramId);
-			paramIndex++;
-		}
-		if (parsedRegExp !== expressPathRegExp.toString()) expressPathRegExpExec = regExpToParseExpressPathRegExp.exec(parsedRegExp);
-		return expressPathRegExpExec[1].replace(/\\\//g, "/");
-	};
-	const parseEndpoints = function(app, basePath, endpoints) {
-		const stack = app.stack || app._router && app._router.stack;
-		endpoints = endpoints || [];
-		basePath = basePath || "";
-		if (!stack) {
-			if (endpoints.length) endpoints = addEndpoints(endpoints, [{
-				path: basePath,
-				methods: [],
-				middlewares: []
-			}]);
-		} else endpoints = parseStack(stack, basePath, endpoints);
-		return endpoints;
-	};
-	const addEndpoints = function(currentEndpoints, endpointsToAdd) {
-		endpointsToAdd.forEach((newEndpoint) => {
-			const existingEndpoint = currentEndpoints.find((endpoint) => endpoint.path === newEndpoint.path);
-			if (existingEndpoint !== void 0) {
-				const newMethods = newEndpoint.methods.filter((method) => !existingEndpoint.methods.includes(method));
-				existingEndpoint.methods = existingEndpoint.methods.concat(newMethods);
-			} else currentEndpoints.push(newEndpoint);
-		});
-		return currentEndpoints;
-	};
-	const parseStack = function(stack, basePath, endpoints) {
-		stack.forEach((stackItem) => {
-			if (stackItem.route) {
-				const newEndpoints = parseExpressRoute(stackItem.route, basePath);
-				endpoints = addEndpoints(endpoints, newEndpoints);
-			} else if (STACK_ITEM_VALID_NAMES.includes(stackItem.name)) {
-				const isExpressPathRegexp = regExpToParseExpressPathRegExp.test(stackItem.regexp);
-				let newBasePath = basePath;
-				if (isExpressPathRegexp) {
-					const parsedPath = parseExpressPath(stackItem.regexp, stackItem.keys);
-					newBasePath += `/${parsedPath}`;
-				} else if (!stackItem.path && stackItem.regexp && stackItem.regexp.toString() !== EXPRESS_ROOT_PATH_REGEXP_VALUE) {
-					const regExpPath = ` RegExp(${stackItem.regexp}) `;
-					newBasePath += `/${regExpPath}`;
-				}
-				endpoints = parseEndpoints(stackItem.handle, newBasePath, endpoints);
-			}
-		});
-		return endpoints;
-	};
-	const expressListEndpoints = function(app) {
-		return parseEndpoints(app);
-	};
-	module.exports = expressListEndpoints;
-})))(), 1);
 const PORT = process.env.PORT || 3e3;
 app.listen(PORT, () => {
 	console.log(`🚀 Server is running at http://localhost:${PORT}`);
-	console.log((0, import_dist.default)(app));
 });
 //#endregion
 export {};

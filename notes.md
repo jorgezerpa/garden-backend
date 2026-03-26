@@ -70,10 +70,10 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] add page on agent profile to upload profile image 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
 - [DONE] Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
-- Write team heat calc endpoint and connect to frontend
+- [DONE] Write team heat calc endpoint and connect to frontend
 - Dockerize project and deploy on AWS 
 - define formulas for "streak", "on fire", etc
-- Implement real time updates of shared-screen  
+- Implement real time updates of shared-screen -> by now it fetches every 10s to refresh data  
 - Implement weekly cron job logic to update agent's level.Make UI and routes for historical level fetching
 
 ## Ranking system 

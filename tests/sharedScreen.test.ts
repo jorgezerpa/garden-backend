@@ -6,6 +6,7 @@ import { getJWT } from '../utils/authJWT';
 import { prisma } from '../lib/prisma';
 import { updateLevels } from '../controllers/cron';
 import { getUTCIsoString } from '../utils/date';
+import { response } from 'express';
 
 vi.mock('axios');
 const mockedAxios = axios as Mocked<typeof axios>;
@@ -120,7 +121,7 @@ describe('Datavis', () => {
     
     // 8. SIMULATE WEBHOOK CALLS 
     const totalCalls = 100;
-    const startDate = new Date("2026-03-22T00:00:00Z");
+    const startDate = new Date("2026-01-01T00:00:00Z");
     const authHeader = `Basic ${Buffer.from(`${PUBLIC_KEY}:${SECRET_KEY}`).toString('base64')}`;
     const promises = [];
     const agentCallTimeCount:any = {}
@@ -268,6 +269,24 @@ describe('Datavis', () => {
           .query({ page: 1 }) // missing from/to
           .expect(400);
     });
+  });
+
+
+  describe('Team Heat', async () => {
+    it("Should return an integer representing the heat of the team", async () => {
+      const token = await getJWT(app, "admin@test.com", "123456");
+
+      const date = "2026-01-01";
+
+      const query = { date: date };
+
+      const response = await request(app)
+        .get("/api/shared-screen/get_team_heat")
+        .auth(token, { type: "bearer" })
+        .query(query)
+        .expect(200);
+    });
+
   });
 
 

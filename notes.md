@@ -70,11 +70,11 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] add page on agent profile to upload profile image 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
 - [DONE] Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
-- Modify the db to track the team "Heat score" -> daily and in a specific time window -> Create a daily team-heat score that updates every day with a pg-cron -> so -> write and test the stored-procedure (This is because the current heat can be calculated o the fly, but the avg of the day, should consider all day -> OR just update the correspondant day every webhook call  (more expendable, so simpler but less efficient))
+- Write team heat calc endpoint and connect to frontend
+- Dockerize project and deploy on AWS 
 - define formulas for "streak", "on fire", etc
-- define formulas for order the users on the shared dashboard -> posibbly a weigthed avg 
 - Implement real time updates of shared-screen  
-- Make UI and routes for historical level fetching
+- Implement weekly cron job logic to update agent's level.Make UI and routes for historical level fetching
 
 ## Ranking system 
 **Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data.**
@@ -158,7 +158,7 @@ NOTE:
 
 
 
--------temporal note
-use this DATE("startAt" AT TIME ZONE 'UTC' AT TIME ZONE ${config.IANA}) as "date",
-then modfy the group by
-query in utc, return in IANA
+-------------
+Final docs report on code:
+- Backend expect to always receive UTC dates, so frontend should make conversion from desired UTC to another when fetch datavis, agent dashboard and office display data. 
+- The endpoint that returns the last date of registered data, returns the timezoned hour

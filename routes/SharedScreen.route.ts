@@ -42,4 +42,37 @@ sharedScreenRoute.get('/get_agents_positions', async (req: JWTAuthRequest, res: 
   }
 });
 
+// GET /api/datavis/team_heat
+sharedScreenRoute.get('/get_team_heat', async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { 
+      date,
+    } = req.query;
+
+    const companyId = req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(401).json({ error: "Unauthorized: Company ID not found" });
+    }
+
+    // Basic validation for dates
+    if (!date) {
+      return res.status(400).json({ error: "Parameter 'date' is required (YYYY-MM-DDTHH:MM:SS.MMMZ)" });
+    }
+
+    const report = await SharedScreenController.getTeamHeatScore(
+      companyId, 
+      date as string,
+      { IANA: "Europe/Amsterdam" }
+    );
+
+    return res.status(200).json(report);
+  } catch (err: any) {
+    console.error("team heat calculation Error:", err);
+    return res.status(500).json({ 
+      error: "Internal server error calculating team heat map" 
+    });
+  }
+});
+
 export default sharedScreenRoute

@@ -225,7 +225,7 @@ interface WeekBoundaries {
   endDateISO: string;
 }
 
-
+// receives utc dates, calculates boundaries and convert to the 
 export const getDayBoundariesInUTC = (dateStr: string, iana: string) => {
   // 1. We expect dateStr in "YYYY-MM-DD" format.
   // We create the "Local" Start and End points for that day.

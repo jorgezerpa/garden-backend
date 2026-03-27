@@ -1,52 +1,72 @@
 
+-----
 
-# Project developer guide
+# Project Guide
 
 ## Index
-- overview
-- deployment guide
-- timezones management
-- Formulas and calculations
-- To do list
-- Already builded
 
-### Overview
-The project is divided in 4 main clusters:
-- Frontend application -> NextJS and Tailwind
-- Backend api -> NodeJS+express and PrismaORM
-- Database -> PostgreSQL
-- File Storage -> AWS S3 storage
+1.  [Overview](https://www.google.com/search?q=%23overview)
+2.  [Deployment Guide](https://www.google.com/search?q=%23deployment-guide)
+3.  [Timezone Management](https://www.google.com/search?q=%23timezone-management)
+4.  [Formulas and Calculations](https://www.google.com/search?q=%23formulas-and-calculations)
+5.  [To-Do List](https://www.google.com/search?q=%23to-do-list)
+6.  [Completed Features](https://www.google.com/search?q=%23completed-features)
 
-The frontend application and the backend API are deployed in Vercel. The PostgreSQL database is setted up with Supabase. 
-This tools where choosen to keep simplicity and speed-of-changes during the earlier developer phase of the project. 
-In near future, is very probable that the project will need to be migrated to a cloud service provider for better scalability and management. For example, using Amazon Web Services:
-- Use ECR and App Runner for the backend API
-- Amplify Hosting, Amazon ECS (Fargate) or App runner for the frontend
-- Aurora And RDS for Database 
-- S3 for file storage (already in use) 
+-----
 
-Also, all the authentication and authorization system is based on a classic user/password flow, stored in our own database. This is simple to setup and manage, so we choose it during this earlier development phase, **however**, is by far not the most secure option, so is almost an obligation to migrate the project's auth logic to a third-party auth provider as soon as possible (like auth0, Clerk, Firebase authentication or supabase auth).
+## Overview
 
+The project is architected into four primary clusters:
 
+  * **Frontend Application:** Next.js and Tailwind CSS.
+  * **Backend API:** Node.js, Express, and Prisma ORM.
+  * **Database:** PostgreSQL (via Supabase).
+  * **File Storage:** AWS S3.
 
-### Deployment guide
-Let's start with the Database setup.
+Currently, the frontend and backend are deployed on **Vercel**. These tools were selected to prioritize simplicity and development velocity during the MVP phase.
 
-First, configure the `DATABASE_URL` environment variable. 
-Your URL should follow this format `postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public`. To get such address, you must create a new Supabase project, and get the URL from the project's dashboard. 
- 
-Second, Deploy the Schema (Create Tables).
-On production, you should **NEVER** use `npx prisma migrate dev`. That command is designed for development and may attempt to reset the database and possibly erase existant data. Instead, use migrate deploy:
-`npx prisma migrate deploy`
-This command compares the migrations folder in your project to the database and applies any pending migrations or stops the operation if detects danger (like data loss due to tables modification, creation of required columns without default values, etc). 
+### Future Infrastructure Migration
 
-(Optional) Seed data generation
-Add the next field to your prisma.config under the `migrations` field:
-```typescript
-    seed: "tsx [seedsFolder]/[seedFile].ts"
+As the project scales, we anticipate a migration to a dedicated cloud provider (AWS). The proposed architecture includes:
+
+  * **Backend API:** Amazon ECR and App Runner.
+  * **Frontend:** AWS Amplify, Amazon ECS (Fargate), or App Runner.
+  * **Database:** Amazon Aurora or RDS.
+  * **Storage:** Existing S3 integration.
+
+> [\!WARNING]
+> **Authentication Security:** The current system uses a basic internal user/password flow. To enhance security, we must migrate to a third-party provider (e.g., Auth0, Clerk, Firebase, or Supabase Auth) as soon as possible.
+
+-----
+
+## Deployment Guide
+
+### 1\. Database Setup
+
+Configure the `DATABASE_URL` environment variable using the following format:
+`postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public`
+*Fetch these credentials from your Supabase project dashboard.*
+
+### 2\. Schema Deployment
+
+**Never** use `npx prisma migrate dev` in production. This command is for local development and may trigger database resets. Instead, use:
+
+```bash
+npx prisma migrate deploy
 ```
 
-An example of a seed file:
+This ensures pending migrations are applied safely without data loss.
+
+### 3\. Seed Data (Optional)
+
+To enable automated seeding, add the following to your `prisma.config` under the `migrations` field:
+
+```typescript
+seed: "tsx [seedsFolder]/[seedFile].ts"
+```
+
+**Example Seed Script:**
+
 ```typescript
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
@@ -64,9 +84,7 @@ async function main() {
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
+  .then(async () => { await prisma.$disconnect() })
   .catch(async (e) => {
     console.error(e)
     await prisma.$disconnect()
@@ -74,94 +92,89 @@ main()
   })
 ```
 
-Finally, run the command `npx prisma db seed` to execute the seed. 
+Run the seed using: `npx prisma db seed`.
 
+-----
 
-### Timezones management
-Every timestamp in the database is stored in UTC-0 time, following next rules:
-- By now, we work only with Europe/Amsterdam timezone to perform the convertions.
-- When the LeadDesk triggers the webhook, it sends a WallTime formated date string. This date/hour is shifted from Europe/Amsterdam timezone to UTC-0, and that result is the one stored on the database. 
-- Every endpoint that accepts a time range (almost any endpoint related with datavis, agent dashboard and office-display) is designed to receive these date parameters in UTC-0. This means that the frontend is the one in charge of perform the conversion from the user timezone to UTC-0. This gives flexibility to the system to adapt to different timezones, and, in future (if necessary) allow the user to select a timezone to work with (so the system can be used from any part of the world). 
-- The results of the endpoints mentioned in the previous point, return the date/hour adapted to the user's timezone, for better and simpler visualization. 
+## Timezone Management
 
-Here are a couple of example of all the aboves points for better understanding:
+All database timestamps are stored in **UTC-0**. We currently follow these synchronization rules:
 
-**When a new call is stored:**
-1. LeadDesk triggers the webhook for a call with date `2026-03-27 10:23:43.223`. This time is assumed to be in `Europe/Amsterdam` timezone
-2. The system converts this date to the correspondant UTC absolute point in time. Since `Europe/Amsterdam` is in `UTC+1` (variates depending on DST) the receive call date `2026-03-27 10:23:43.223` is converted to `2026-03-27T09:23:43.223Z` considering that when in UTC+1 the hour was is X, the equivalent hour in UTC-0 time is X-1. 
+  * **Standard Timezone:** The system currently defaults to `Europe/Amsterdam` for conversions.
+  * **Data Ingestion:** When LeadDesk triggers a webhook, it sends a "WallTime" date string. This value is shifted from `Europe/Amsterdam` to UTC-0 before database insertion.
+  * **API Strategy:** All endpoints accepting time ranges expect parameters in UTC-0.
+  * **Frontend Responsibility:** The frontend handles the conversion from the user's local timezone (or the hardcoded `Europe/Amsterdam`) to UTC-0 for queries.
+  * **Data Output:** API results are returned in UTC, allowing the frontend to format them based on the viewer's local context.
 
-**When we want to query date:**
-1. From the frontend, a manager wants to query the calls' data that happend between 2026-03-01 and 2026-03-31 (the whole march month)
-2. On the date pickers, the manager select such dates
-3. Under the hood, before this query is sended to the api, this dates are converted from `Europe/Amsterdam` to UTC time. So, instead of send the boundaries `2026-03-01T00:00:00.000` as from date, and `2026-03-31T23:59:59.999` as the to date, we perform the convertion to UTC, and send `2026-02-28T23:00:00.000` and `2026-03-01T22:59:59.999` correspondly, because this is the equivalent in UTC to the start and end of the month for the selected timezone.  
+### Example Scenarios
 
-NOTICE: By now, the used timezone in frontend and backend is hardcoded to `Europe/Amsterdam`. Also this is stored by default in the database entity `Company.LeadDeskCustomData.IANATimeZone`. So, if in the future is required to work with more timezones (i.e the product extends to more Europe countries) it will be relatively simple to allow the user to pick their desired timezones from the admin dashboard. 
+| Action | Input (Local) | Process | Result (Stored/Sent) |
+| :--- | :--- | :--- | :--- |
+| **Storing a Call** | `2026-03-27 10:23:43` | Shift UTC+1 to UTC-0 | `2026-03-27T09:23:43.223Z` |
+| **Querying March** | `03-01` to `03-31` | Shift boundaries to UTC | `02-28T23:00Z` to `03-31T22:59Z` |
 
+-----
 
+## Formulas and Calculations
 
-### Formulas and calculations
+### Agent Weekly Growth
 
-**Agent Weekly Growth**
-For each day of the weeek, a weighted average is calculated considering the seeds, leads, sales, calls and deep calls performed by the agent. The resulting `WeekGrowth` is a vector of length 7 where each item represents the `DayGrowth` result for each week day `Dn`.
-```
-DayGrowth = seeds + (leads * 2) + (sales * 3) + number_of_calls + (number_of_deep_calls * 2);
-```
-```
-WeekGrowth = [DayGrowth(D1), DayGrowth(D2), ... , DayGrowth(DN), ... , DayGrowth(D7)]
-```
+For each day of the week ($D_n$), a weighted average is calculated based on activity. $WeekGrowth$ is represented as a vector of length 7.
 
-**Current Agent Streak**
-Calculate the completion ratio of seeds, leads, sales and number of calls related with the current day's assigned goals. Then we take the normal average of the the ratios and scale it to a range between 0 and 100, to get the current streak for the day
-    
-```
-seedsRatio = (currentDaySeeds / goalSeeds),
-leadsRatio = (currentDayLeads / goalLeads),
-salesRatio = (currentDaySales / goalSales),
-callsRatio = (currentDayCalls / goalCalls),
-```
-```
-currentDayStreak = ( (seedsRatio + leadsRatio + salesRatio + callsRatio)/4 ) * 100
-```    
-NOTICE: On the code, the ratio values are capped to be less or equal than 100. 
-    
-**Team heat**
-A couple considerations:
-- Relative vs. Absolute: A team of 50 making 100 calls is "cold," but a team of 2 making 100 calls is "on fire." By using the `TemporalGoals` table, the score is always relative to what the Manager expected for that day and group of agents.
-- Weighting: I've assigned higher weights to Sales (30%) and Seeds (25%) because those are high-value events. Raw Call Count (10%) matters less than the quality of the outcomes.
-- The "Cap": I capped individual metrics at 1.2 (120%). This prevents a massive over-performance in just one area (like making 1,000 short calls) from artificially inflating the heat score to 100 if no sales were made.
+$$DayGrowth = seeds + (leads \times 2) + (sales \times 3) + calls + (deep\_calls \times 2)$$
+$$WeekGrowth = [DayGrowth(D_1), DayGrowth(D_2), \dots, DayGrowth(D_7)]$$
 
-The Heat Score is calculated as a weighted average of performance percentages across five key metrics. Each metric's progress is calculated by dividing the actual performance by the target, capped at 120% to ensure one metric doesn't overshadow the others.
+### Current Agent Streak
 
-The final score is expressed as a percentage:
+The streak represents the average completion ratio of daily goals, scaled to a 0–100 range.
+*Note: Individual ratios are capped at 1.0 (100%).*
+
+$$R_{seeds} = \frac{CurrentSeeds}{GoalSeeds}, \quad R_{leads} = \frac{CurrentLeads}{GoalLeads}, \quad \dots$$
+$$CurrentDayStreak = \left( \frac{R_{seeds} + R_{leads} + R_{sales} + R_{calls}}{4} \right) \times 100$$
+
+### Team Heat
+
+Team Heat is a relative metric that compares current performance against `TemporalGoals`. High-value events (Sales/Seeds) are weighted more heavily than raw call volume.
+
+**The Formula:**
 $$HeatScore = \min\left( \sum_{i=1}^{n} (Progress_i \times Weight_i) \times 100, 100 \right)$$
 
-Where the specific components are:
-Metric (i)Weight (Wi​)Progress Calculation (Pi​)Sales0.30$\min(\frac{ActualSales}{TargetSales}, 1.2)$Seeds0.25$\min(\frac{ActualSeeds}{TargetSeeds}, 1.2)$Talk Time0.20$\min(\frac{ActualMinutes}{TargetMinutes}, 1.2)$Leads0.15$\min(\frac{ActualLeads}{TargetLeads}, 1.2)$Calls0.10$\min(\frac{ActualCalls}{TargetCalls}, 1.2)$
+**Component Weights & Constraints:**
+| Metric ($i$) | Weight ($W_i$) | Progress Calculation ($P_i$) |
+| :--- | :--- | :--- |
+| **Sales** | $0.30$ | $\min(\frac{Actual}{Target}, 1.2)$ |
+| **Seeds** | $0.25$ | $\min(\frac{Actual}{Target}, 1.2)$ |
+| **Talk Time** | $0.20$ | $\min(\frac{Actual}{Target}, 1.2)$ |
+| **Leads** | $0.15$ | $\min(\frac{Actual}{Target}, 1.2)$ |
+| **Calls** | $0.10$ | $\min(\frac{Actual}{Target}, 1.2)$ |
 
-**Agents Ranking on office display screen**
-The index of each agent is calculated by ordering in descending order the `performanceScore` of each agent, calculated as follows:
-```
-performanceScore = (CallingTime + Seeds + Sales) / 3
-```
+### Office Display Ranking
 
+Agents are ranked by a performance score calculated via a simple average:
+$$PerformanceScore = \frac{CallingTime + Seeds + Sales}{3}$$
 
-## To Do list 
-- Choose a payment gateway provider (like Stripe) and implement it on the system
-- Implement a secure third-party auth provider
-- (only if migrate to cloud) Dockerize frontend and backend for better/secure deployments and updates flows
-- define formulas to show/detect events for office display screen -> for example, we must determine where to send a "streak" or "on fire" animation trigger
-- Implement real time updates for the office display screen, every time a new call is recorded -> by now it re-fetches the info every X seconds to refresh data  
-- Implement weekly automated cron job to update agent's level based on previous week performance. OR we can allow the the managers to trigger this updates whenever they want from the admin dashboard
-- Make UI and routes for visualization of historical level of agents from the admin dashboard.
-- Implement `download .CSV` button on the admin dashboard to allow managers to export their data
+-----
 
-## Already builded
-- Full company/managers/users registration flow
-- Full LeadDesk webhook integration flow
-- Agents and managers CRUD
-- Goals and goals assignation CRUD
-- Block schemas and block schemas assignation CRUD
-- Long term data visualization 
-- Agents comparisson table 
-- Agent dashboard that allows each agent to see their current day performance, current week growth, assigned block schema, goals completion and submit their subjetive feeling every time they want. 
-- Office display big screen, that renders ranking lists of agents based on the current day and current week performance. And an indicator of the current heat of the team for the current day.  
+## To-Do List
+
+  * [ ] **Payments:** Select and implement a gateway (e.g., Stripe).
+  * [ ] **Security:** Implement a third-party Auth provider (Clerk/Auth0).
+  * [ ] **DevOps:** Dockerize applications (pending cloud migration).
+  * [ ] **UX/UI:** Define logic for "On Fire" animation triggers on the office display.
+  * [ ] **Real-time:** Replace polling with WebSockets (Socket.io) for live office display updates.
+  * [ ] **Automation:** Implement weekly Cron jobs for agent level updates.
+  * [ ] **Reporting:** Build historical level visualization and CSV export functionality.
+
+-----
+
+## Completed Features
+
+  * **Onboarding:** Full company, manager, and user registration flows.
+  * **Integrations:** Complete LeadDesk webhook synchronization.
+  * **Management:** CRUD operations for Agents, Managers, Goals, and Block Schemas.
+  * **Analytics:** Long-term data visualization and agent comparison tables.
+  * **Dashboards:** Personal agent dashboard for performance tracking and subjective feeling submissions.
+  * **Office Display:** Large-screen ranking system and real-time "Team Heat" indicator.
+
+-----
+

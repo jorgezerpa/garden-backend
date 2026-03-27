@@ -469,13 +469,13 @@ async function checkGoalBelongsToCompany(req: JWTAuthRequest, res: Response, nex
 
 async function checkGoalAssignationBelongsToCompany(req: JWTAuthRequest, res: Response, next: NextFunction) {
   const companyId = req.user?.companyId
-  const goalId = Number(req.params.id);
+  const goalAssignationId = Number(req.params.id);
   const date = req.query.date
   
   if(!companyId) return res.status(400).json({ error: "Missing companyId" });
 
-  if(goalId) {
-    const goal = await GoalsController.findGoalById(goalId)
+  if(goalAssignationId) {
+    const goal = await GoalsController.findAssignationGoal(goalAssignationId)
     if(goal?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" })
     return next()
   }

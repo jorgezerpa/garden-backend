@@ -175,17 +175,16 @@ async function checkSchemaBelongsToCompany(req: JWTAuthRequest, res: Response, n
 
 async function checkSchemaAssignationBelongsToCompany(req: JWTAuthRequest, res: Response, next: NextFunction) {
   const companyId = req.user?.companyId
-  const schemaId = Number(req.params.id);
+  const schemaAssignationId = Number(req.params.id);
   
   if(!companyId) return res.status(400).json({ error: "Missing companyId" });
 
-  if(schemaId) {
-    const schema = await SchemaController.getSchemaById(schemaId)
+  if(schemaAssignationId) {
+    const schema = await SchemaController.getAssignationSchema(schemaAssignationId)
+
     if(schema?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" })
     return next()
   }
   
- 
-
   return res.status(500).json({ error: "unexpected error in goal middleware" })
 }

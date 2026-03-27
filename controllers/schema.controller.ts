@@ -34,6 +34,17 @@ export const getSchemaById = async (id: number) => {
   });
 };
 
+export const getAssignationSchema = async (id: number) => {
+  const schema = await prisma.schemaAssignation.findUnique({ where: { id } })
+  if(!schema) return null
+  return await prisma.schema.findUnique({
+    where: { id: schema.schemaId },
+    include: {
+      blocks: { orderBy: { startMinutesFromMidnight: 'asc' } } 
+    },
+  });
+};
+
 export const getSchemaByName = async (name: string, companyId: number) => {
   return await prisma.schema.findFirst({
     where: { name, companyId },

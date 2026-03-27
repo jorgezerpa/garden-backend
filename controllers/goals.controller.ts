@@ -38,6 +38,14 @@ export const findGoalById = async (goalId: number): Promise<TemporalGoals|null> 
   });
 };
 
+export const findAssignationGoal = async (goalId: number): Promise<TemporalGoals|null> => {
+  const assignation = await prisma.goalsAssignation.findUnique({ where: { id: goalId } })
+  if(!assignation) return null
+  return await prisma.temporalGoals.findUnique({
+    where: { id: assignation.goalId },
+  });
+};
+
 /**
  * Updates an existing goal
  * Uses Partial to allow updating only specific metrics

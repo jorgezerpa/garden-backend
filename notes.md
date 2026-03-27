@@ -38,8 +38,7 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [NO_NEEDED_BY_NOW] Create endpoint to fetch all specific user data to uncomment sections on agent handling page 
 - [DONE] Tests for datavis and agent dashboard
 - [DONE] get_agents_comparisson is not calculating goals scoring
-- create endpoint and frontend view to shared team performance for big screen
-- Record video to ask about funnel events setting -> lead desk doesnt send me such info -> i have only raw indexeses and do not now what they mean 
+- [DONE] create endpoint and frontend view to shared team performance for big screen
 
 ## REMEMBER
 - Now funnel is different, you can calculate all using the current webhook -> seeds, watering, harvest  

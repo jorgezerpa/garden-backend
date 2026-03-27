@@ -16,20 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - DATABASE_URL=postgresql://12345:12345@db:5432/gardenDB?schema=public
-      - JWT_SECRET=your_local_secret
-      - PORT=3001
-      - AWS_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=AKIA24OR4QIJPPM4HKGC
-      - AWS_SECRET_ACCESS_KEY=eWqGPJkrke88Gc/qcqBbtr3yGYeJpLWnqR3u4WSZ
-      - AWS_S_BUCKET_NAME=garden-bucket-test-0x2222
-    depends_on:
-      db:
-        condition: service_healthy
+### uncomment this to lift a dockerized api version too
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     - DATABASE_URL=postgresql://12345:12345@db:5432/gardenDB?schema=public
+  #     - JWT_SECRET=your_local_secret
+  #     - PORT=3001
+  #     - AWS_REGION=us-east-1
+  #     - AWS_ACCESS_KEY_ID=AKIA24OR4QIJPPM4HKGC
+  #     - AWS_SECRET_ACCESS_KEY=eWqGPJkrke88Gc/qcqBbtr3yGYeJpLWnqR3u4WSZ
+  #     - AWS_S_BUCKET_NAME=garden-bucket-test-0x2222
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy

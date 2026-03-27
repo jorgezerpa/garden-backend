@@ -51,9 +51,10 @@ export const getAgentDayInsights = async (userId: number, date: string, config: 
 
   // 3. Current Streak (Goal comparison)
   const goalAssignation = await prisma.goalsAssignation.findFirst({
-    where: { companyId: companyId, date: startOfDay },
+    where: { companyId: companyId, date: new Date(`${date}T00:00:00.000Z`) },
     include: { goal: true },
   });
+
 
   let currentStreak = 100;
   let goalSeeds = 0
@@ -71,6 +72,7 @@ export const getAgentDayInsights = async (userId: number, date: string, config: 
       g.sales ? (sales / g.sales) : 1,
       g.numberOfCalls ? (totalCalls / g.numberOfCalls) : 1,
     ];
+    // Calculate the completion ratio of seeds, leads, sales and number of calls related with the current day's assigned goals. Then we take the normal average of the the ratios and scale it x100 to get the current streak for the day
     currentStreak = Math.min(100, Math.round((percentages.reduce((a, b) => a + b, 0) / percentages.length) * 100));
     goalSeeds = g.seeds
     goalLeads = g.leads

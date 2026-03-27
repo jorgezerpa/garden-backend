@@ -8,6 +8,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "tsx seeds/mock-data-seed.ts"
   },
   // engine: "classic",
   datasource: {

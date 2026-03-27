@@ -803,6 +803,11 @@ const findGoalsByCompany = async (companyId) => {
 const findGoalById = async (goalId) => {
 	return await prisma.temporalGoals.findUnique({ where: { id: goalId } });
 };
+const findAssignationGoal = async (goalId) => {
+	const assignation = await prisma.goalsAssignation.findUnique({ where: { id: goalId } });
+	if (!assignation) return null;
+	return await prisma.temporalGoals.findUnique({ where: { id: assignation.goalId } });
+};
 /**
 * Updates an existing goal
 * Uses Partial to allow updating only specific metrics
@@ -1191,11 +1196,11 @@ async function checkGoalBelongsToCompany(req, res, next) {
 }
 async function checkGoalAssignationBelongsToCompany(req, res, next) {
 	const companyId = req.user?.companyId;
-	const goalId = Number(req.params.id);
+	const goalAssignationId = Number(req.params.id);
 	const date = req.query.date;
 	if (!companyId) return res.status(400).json({ error: "Missing companyId" });
-	if (goalId) {
-		if ((await findGoalById(goalId))?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
+	if (goalAssignationId) {
+		if ((await findAssignationGoal(goalAssignationId))?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
 		return next();
 	}
 	if (date) {
@@ -1228,6 +1233,14 @@ const createSchema = async (data) => {
 const getSchemaById = async (id) => {
 	return await prisma.schema.findUnique({
 		where: { id },
+		include: { blocks: { orderBy: { startMinutesFromMidnight: "asc" } } }
+	});
+};
+const getAssignationSchema = async (id) => {
+	const schema = await prisma.schemaAssignation.findUnique({ where: { id } });
+	if (!schema) return null;
+	return await prisma.schema.findUnique({
+		where: { id: schema.schemaId },
 		include: { blocks: { orderBy: { startMinutesFromMidnight: "asc" } } }
 	});
 };
@@ -1429,10 +1442,10 @@ async function checkSchemaBelongsToCompany(req, res, next) {
 }
 async function checkSchemaAssignationBelongsToCompany(req, res, next) {
 	const companyId = req.user?.companyId;
-	const schemaId = Number(req.params.id);
+	const schemaAssignationId = Number(req.params.id);
 	if (!companyId) return res.status(400).json({ error: "Missing companyId" });
-	if (schemaId) {
-		if ((await getSchemaById(schemaId))?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
+	if (schemaAssignationId) {
+		if ((await getAssignationSchema(schemaAssignationId))?.companyId != companyId) return res.status(401).json({ error: "Manager does not belogn to company" });
 		return next();
 	}
 	return res.status(500).json({ error: "unexpected error in goal middleware" });
@@ -2175,7 +2188,7 @@ const getAgentDayInsights = async (userId, date, config) => {
 	const goalAssignation = await prisma.goalsAssignation.findFirst({
 		where: {
 			companyId,
-			date: startOfDay
+			date: /* @__PURE__ */ new Date(`${date}T00:00:00.000Z`)
 		},
 		include: { goal: true }
 	});

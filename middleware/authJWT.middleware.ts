@@ -34,6 +34,32 @@ export const authenticateJWT = (req: JWTAuthRequest, res: Response, next: NextFu
   }
 };
 
+export const authenticateJWTInQuery = (req: JWTAuthRequest, res: Response, next: NextFunction) => {
+  try {
+     const token = req.query.token;
+
+    if (typeof token !== "string") {
+      res.status(401).json({ error: "Authorization header missing" });
+    }
+
+    jwt.verify(token as string, JWT_SECRET, (err, payload: any) => {
+      if (err) {
+        return res.status(403).json({ error: "Token invalid or expired" });
+      }
+      // Attach the user data to the request object
+      req.user = {
+        id: payload.sub, // id in User tab
+        companyId: payload.companyId,
+        role: payload.role
+      };
+      next();
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Unexpected Error" })  
+  }
+};
+
 
 export const allowedRoles = (roles: Role[] ) => {
   // return middleware function 

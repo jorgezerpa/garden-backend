@@ -163,6 +163,12 @@ async function main() {
         name: `Agent ${i}`,
         companyId: company.id,
         profileImg: profileImages[i % 4],
+        agentToThird: {
+          create: {
+            serviceIdentifier: "LEADDESK",
+            agentServiceIdentifier: i.toString()
+          }
+        },
         agentLevel: {
           create: {
             level: randomInt(1, 3), // Variate levels 1, 2, 3

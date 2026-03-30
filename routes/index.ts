@@ -8,6 +8,7 @@ import agentDashboardRouter from './agentDashboard.route';
 import sharedScreenRouter from './SharedScreen.route';
 import uploadRouter from './upload.route';
 import eventRouter from './event.route'
+import mockRouter from './mock.route';
 //
 import { authenticateJWT, allowedRoles, authenticateJWTInQuery } from '../middleware/authJWT.middleware';
 import { authenticateBasic } from '../middleware/authBasic.middleware';
@@ -28,8 +29,11 @@ router.use('/datavis', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER"]),
 router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), agentDashboardRouter); 
 router.use('/shared-screen', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), sharedScreenRouter); 
 router.use('/upload', authenticateJWT, allowedRoles(["AGENT"]), uploadRouter); 
-router.use('/events', authenticateJWTInQuery, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), eventRouter)
+router.use('/events', authenticateJWTInQuery, eventRouter)
 // @todo create routes for big screen dashboard
 router.use('/leaddesk', authenticateBasic, leadDeskWebhookRouter);
+// mock and dev helpers 
+router.use('/mock', mockRouter);
+
 
 export default router;

@@ -4,7 +4,7 @@ import { eventHub } from '../eventHub';
 
 const eventRouter = Router();
 
-eventRouter.get('/event', (req: JWTAuthRequest, res: Response) => {
+eventRouter.get('/', (req: JWTAuthRequest, res: Response) => {
     // 1. Extract and Validate
     const companyId = req.user?.companyId;
     const userId = req.user?.id;

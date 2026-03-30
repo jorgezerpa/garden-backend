@@ -22,7 +22,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     if(company.leadDeskCustomData.SeedEventIds.length==0) throw("Should set LeadDesk Seed Event Ids")
     if(!company.leadDeskCustomData.authString) throw new Error("Should set LeadDesk Auth String")
   
-  const response = await axios.get(`https://api.leaddesk.com`, {
+  const response = await axios.get(process.env.LEAD_DESK_API_BASE as string, {
     params: {
       auth: company.leadDeskCustomData.authString,
       mod: "call",

@@ -218,3 +218,6 @@ For **100 to 1,000 users**, your current `eventHub` singleton is perfect and arg
 
 
 **Would you like me to provide the "Redis Pub/Sub" version of your `eventHub.ts` now so you have it ready for when you decide to scale?**
+
+
+

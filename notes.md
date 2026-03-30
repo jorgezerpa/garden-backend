@@ -161,3 +161,60 @@ NOTE:
 Final docs report on code:
 - Backend expect to always receive UTC dates, so frontend should make conversion from desired UTC to another when fetch datavis, agent dashboard and office display data. 
 - The endpoint that returns the last date of registered data, returns the timezoned hour
+
+
+
+# NOTES ON SSE SCALABILITY
+In 2026, the performance of a single-instance Node.js server for SSE is remarkably high. Because Node.js is event-driven and non-blocking, it doesn't "spawn a thread" for every user like older servers (Apache) used to. Instead, it just keeps a list of open file descriptors.
+
+Here is the "Objective Data" you need to plan your infrastructure.
+
+---
+
+## 📊 The "Break-Even" Numbers
+Assuming a standard **2-Core CPU / 4GB RAM** VPS (like an entry-level AWS EC2 or DigitalOcean Droplet):
+
+| Metric | Estimated Limit (Single Instance) | Why? |
+| :--- | :--- | :--- |
+| **Concurrent Connections** | **~10,000 to 15,000** | Each SSE connection costs ~20KB to 50KB of RAM. 10k users ≈ 500MB RAM. |
+| **Events per Second** | **~2,000+** | The bottleneck isn't the number of users, but how many messages you broadcast per second. |
+| **Max Listeners Warning** | **10 (Default)** | Node warns you at 11 listeners to prevent leaks. **You must increase this** (see below). |
+
+---
+
+## 🧪 When should you actually migrate?
+You don't migrate because of "user count"; you migrate when you hit these three specific walls:
+
+### Wall 1: The "Max Listeners" Warning
+By default, an `EventEmitter` thinks having more than 10 listeners on one event is a memory leak. In your case, it’s not—it’s just 100 users. 
+**The Fix:** Increase the limit in your `eventHub.ts`.
+```typescript
+const eventHub = new EventEmitter();
+eventHub.setMaxListeners(0); // 0 means "unlimited"
+```
+
+### Wall 2: High Availability (The "Red-Phone" Rule)
+If your server crashes or you need to update your code, **everyone** disconnects. 
+* **Migration Trigger:** When "Zero Downtime" becomes a business requirement. You’ll need two servers behind a Load Balancer.
+* **The Catch:** Once you have two servers, your `eventHub` fails (Server A doesn't know what Server B is doing). This is the **exact moment** you need **Redis Pub/Sub**.
+
+### Wall 3: CPU Pressure from Serializing
+Every time you `res.write(JSON.stringify(data))`, Node uses a tiny bit of CPU. If you have 10,000 users and you send an update to **all** of them every second, your CPU will spike.
+* **Migration Trigger:** If your CPU usage stays above 70% consistently.
+
+---
+
+## 🛠️ Performance Checklist
+To ensure your single server lasts as long as possible (easily up to 5,000+ connections):
+
+1.  **Enable HTTP/2:** This is the most important. It allows the browser to handle many streams over one connection and is much more efficient for the server.
+2.  **OS Limits (ulimit):** Linux defaults to 1,024 "open files" per process. Since every SSE connection is a "file," your server will crash at 1,025 users. 
+    * **Fix:** Increase the `ulimit -n` on your server to `65535`.
+3.  **Heartbeats:** Send a `: keep-alive\n\n` comment every 30 seconds. This clears out "zombie" connections that dropped without telling the server.
+
+### Recommendation
+For **100 to 1,000 users**, your current `eventHub` singleton is perfect and arguably better/faster than Redis because there’s no network latency between the hub and the route. Stick with it until you need a second server instance for reliability.
+
+
+
+**Would you like me to provide the "Redis Pub/Sub" version of your `eventHub.ts` now so you have it ready for when you decide to scale?**

@@ -153,6 +153,34 @@ async function main() {
     "https://garden-bucket-test-0x2222.s3.us-east-1.amazonaws.com/profiles/Screenshot+2025-06-08+080841.png",
     "https://garden-bucket-test-0x2222.s3.us-east-1.amazonaws.com/profiles/Screenshot+2025-08-08+151622.png"
   ];
+
+  const agentNames = [
+    "Jeremy",
+    "Jeroen",
+    "Marcus",
+    "Cenk",
+    "Gijs",
+    "Carlos",
+    "Sandro",
+    "Jamal",
+    "Cavit",
+    "Michael",
+    "Falco",
+    "Mischa",
+    "Martijn",
+    "Lina",
+    "Mike",
+    "Bas",
+    "Terry",
+    "Ajay",
+    "Ritchy",
+    "Cheyenne",
+    "Priscilla",
+    "Ive",
+    "Arsen",
+    "Mery",
+    "Jhonny",
+  ]
   
   const agents = [];
   const passwordHashAgent = await hash("123456", saltRounds);
@@ -160,7 +188,7 @@ async function main() {
   for (let i = 1; i <= 25; i++) {
     const agent = await prisma.agent.create({
       data: {
-        name: `Agent ${i}`,
+        name: agentNames[i-1] || "Mario",
         companyId: company.id,
         profileImg: profileImages[i % 4],
         agentToThird: {

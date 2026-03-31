@@ -26,7 +26,7 @@ leadDeskWebhookRouter.get('/webhook', async (req: BasicAuthRequest, res: Respons
             // 5. Send event to connected frontends 
             eventHub.emit(
                 `update:company:${companyId}`, 
-                { type:'WEBHOOK_TRIGGERED', performanceNotifications: result.performanceNotifications, agentId: result.agentId, agentName: result.agentName }
+                { type:'WEBHOOK_TRIGGERED', performanceNotifications: result.performanceNotifications, agentId: result.agentId, agentName: result.agentName, agentImg: result.agentImg }
             ); // office display
             eventHub.emit(`update:user:${result.userId}`, { type: 'WEBHOOK_TRIGGERED' }); // specific user dashboard
 

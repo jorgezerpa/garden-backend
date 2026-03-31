@@ -9,7 +9,7 @@ const AUTH = ""; // Leaddesk Auth Token
  * handleCallWebhook
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
-export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<{call:Call, userId: number, agentId: number, agentName: string, performanceNotifications: PerformanceNotifications}> => {
+export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<{call:Call, userId: number, agentId: number, agentName: string, performanceNotifications: PerformanceNotifications, agentImg: string|null}> => {
     // 0. Check for company
     const company = await prisma.company.findUnique({
         where: { id: companyId },
@@ -115,7 +115,7 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     if(todaySeeds >=5 && todaySales >= 2) performanceNotifications.onFire = true
 
 
-    return {call, userId: agent.user?.id as number, performanceNotifications, agentId: agent.id, agentName: agent.name }
+    return {call, userId: agent.user?.id as number, performanceNotifications, agentId: agent.id, agentName: agent.name, agentImg: agent.profileImg }
   });
 };
 

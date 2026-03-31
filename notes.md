@@ -70,10 +70,10 @@ docker compose down -v: Removes everything, including the data. Use this if you 
 - [DONE] Implement page role permissions on frontend (and correspondant redirections)
 - [DONE] Make all frontend and backend and db work with UTC time, so I can apply masks if needed. 
 - [DONE] Write team heat calc endpoint and connect to frontend
+- [DONE] Implement real time updates of shared-screen and agent dashboard -> by now it fetches every 10s to refresh data  
+- Implement weekly cron job logic to update agent's level.Make UI and routes for historical level fetching -> BY NOW add a button on manager dashboard to manually trigger this
 - Dockerize project and deploy on AWS 
-- define formulas for "streak", "on fire", etc
-- Implement real time updates of shared-screen -> by now it fetches every 10s to refresh data  
-- Implement weekly cron job logic to update agent's level.Make UI and routes for historical level fetching
+- define formulas for "streak", "on fire", etc -> FOR THIS -> on the webhook, define a simple formula for "is on streak" (5 calls, 2 seeds 1 sales by now) and is on fire when achieve half of goals in X time ---> OR just show "make a seed" "make a sale" "longest call of the day" -> connect with front
 
 ## Ranking system 
 **Important note on seeds: these must be new callback appointments, not follow-ups with existing customers. If correct, this should be possible to implement using LeadDesk data.**

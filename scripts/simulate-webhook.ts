@@ -24,7 +24,7 @@ async function runSimulation() {
     } catch (error: any) {
       console.error("❌ Webhook failed:", error.response?.data || error.message);
     }
-  }, 10000);
+  }, 7000);
 }
 
 runSimulation();

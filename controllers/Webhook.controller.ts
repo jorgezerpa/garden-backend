@@ -1,7 +1,7 @@
 import axios from "axios";
 import { prisma } from "../lib/prisma";
 import { Call, WEEK_DAYS } from "../generated/prisma/client";
-import { convertDBToUTC } from "../utils/date";
+import { convertDBToUTC, getDayBoundariesInUTC, getYYYYMMDD } from "../utils/date";
 
 const AUTH = ""; // Leaddesk Auth Token
 
@@ -9,7 +9,7 @@ const AUTH = ""; // Leaddesk Auth Token
  * handleCallWebhook
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
-export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<{call:Call, userId: number}> => {
+export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<{call:Call, userId: number, agentId: number, agentName: string, performanceNotifications: PerformanceNotifications}> => {
     // 0. Check for company
     const company = await prisma.company.findUnique({
         where: { id: companyId },
@@ -91,17 +91,31 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
       },
     });
 
-    // 4. Update Events:
+    // 4. Create performance notif. object to trigger events  
+    const performanceNotifications: PerformanceNotifications = {  onFire: false, sale: false, seed: false }
+
+    // 5. Update Events:
     if(company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) {
       await tx.funnelEvent.create({data: { timestamp:convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone as string), agentId: agent.id, callId: call.id, type: "SEED"}})
+      performanceNotifications.seed = true
     }
-    if(agentToCallee.totalAttemps>1) await tx.funnelEvent.create({data: { timestamp:convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone as string), agentId: agent.id,callId: call.id, type: "LEAD"}})
+    if(agentToCallee.totalAttemps>1) {
+      await tx.funnelEvent.create({data: { timestamp:convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone as string), agentId: agent.id,callId: call.id, type: "LEAD"}})
+    }
     
-    if(company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SeedEventIds.includes(ld.call_ending_reason_name)) {
-      await tx.funnelEvent.create({data: { timestamp:convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone as string), agentId: agent.id,callId: call.id, type: "SALE"}}) 
+    if(company.leadDeskCustomData?.SaleEventIds.includes(ld.call_ending_reason) || company.leadDeskCustomData?.SaleEventIds.includes(ld.call_ending_reason_name)) {
+      await tx.funnelEvent.create({data: { timestamp:convertDBToUTC(ld.talk_start, company.leadDeskCustomData?.IANATimeZone as string), agentId: agent.id,callId: call.id, type: "SALE"}})
+      performanceNotifications.sale = true 
     }
 
-    return {call, userId: agent.user?.id as number}
+    const todayBoundaries = getDayBoundariesInUTC(getYYYYMMDD(ld.talk_start), "Europe/Amsterdam")
+    const todaySeeds = await prisma.funnelEvent.count({ where: { agentId: agent.id, timestamp: { gte: todayBoundaries.startDate, lte: todayBoundaries.endDate }, type: "SEED" } })
+    const todaySales = await prisma.funnelEvent.count({ where: { agentId: agent.id, timestamp: { gte: todayBoundaries.startDate, lte: todayBoundaries.endDate }, type: "SALE" } })
+
+    if(todaySeeds >=5 && todaySales >= 2) performanceNotifications.onFire = true
+
+
+    return {call, userId: agent.user?.id as number, performanceNotifications, agentId: agent.id, agentName: agent.name }
   });
 };
 

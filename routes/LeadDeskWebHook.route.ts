@@ -24,8 +24,11 @@ leadDeskWebhookRouter.get('/webhook', async (req: BasicAuthRequest, res: Respons
             const result = await handleCallWebhook(lastCallId, companyId);
 
             // 5. Send event to connected frontends 
-            eventHub.emit(`update:company:${companyId}`, { type:'WEBHOOK_TRIGGERED' });
-            eventHub.emit(`update:user:${result.userId}`, { type: 'WEBHOOK_TRIGGERED' });
+            eventHub.emit(
+                `update:company:${companyId}`, 
+                { type:'WEBHOOK_TRIGGERED', performanceNotifications: result.performanceNotifications, agentId: result.agentId, agentName: result.agentName }
+            ); // office display
+            eventHub.emit(`update:user:${result.userId}`, { type: 'WEBHOOK_TRIGGERED' }); // specific user dashboard
 
             // 6. Respond to LeadDesk (Documentation says they don't use the return value, but 200 is best)
             res.status(200).json({ status: 'success', callId: result.call.id });

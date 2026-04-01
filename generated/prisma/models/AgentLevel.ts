@@ -32,14 +32,14 @@ export type AggregateAgentLevel = {
 export type AgentLevelAvgAggregateOutputType = {
   id: number | null
   agentId: number | null
-  durationInWeeks: number | null
+  durationInWeeks: runtime.Decimal | null
   level: number | null
 }
 
 export type AgentLevelSumAggregateOutputType = {
   id: number | null
   agentId: number | null
-  durationInWeeks: number | null
+  durationInWeeks: runtime.Decimal | null
   level: number | null
 }
 
@@ -48,7 +48,7 @@ export type AgentLevelMinAggregateOutputType = {
   agentId: number | null
   since: Date | null
   till: Date | null
-  durationInWeeks: number | null
+  durationInWeeks: runtime.Decimal | null
   level: number | null
 }
 
@@ -57,7 +57,7 @@ export type AgentLevelMaxAggregateOutputType = {
   agentId: number | null
   since: Date | null
   till: Date | null
-  durationInWeeks: number | null
+  durationInWeeks: runtime.Decimal | null
   level: number | null
 }
 
@@ -205,7 +205,7 @@ export type AgentLevelGroupByOutputType = {
   agentId: number
   since: Date
   till: Date | null
-  durationInWeeks: number
+  durationInWeeks: runtime.Decimal
   level: number
   _count: AgentLevelCountAggregateOutputType | null
   _avg: AgentLevelAvgAggregateOutputType | null
@@ -237,7 +237,7 @@ export type AgentLevelWhereInput = {
   agentId?: Prisma.IntFilter<"AgentLevel"> | number
   since?: Prisma.DateTimeFilter<"AgentLevel"> | Date | string
   till?: Prisma.DateTimeNullableFilter<"AgentLevel"> | Date | string | null
-  durationInWeeks?: Prisma.IntFilter<"AgentLevel"> | number
+  durationInWeeks?: Prisma.DecimalFilter<"AgentLevel"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFilter<"AgentLevel"> | number
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
 }
@@ -260,7 +260,7 @@ export type AgentLevelWhereUniqueInput = Prisma.AtLeast<{
   agentId?: Prisma.IntFilter<"AgentLevel"> | number
   since?: Prisma.DateTimeFilter<"AgentLevel"> | Date | string
   till?: Prisma.DateTimeNullableFilter<"AgentLevel"> | Date | string | null
-  durationInWeeks?: Prisma.IntFilter<"AgentLevel"> | number
+  durationInWeeks?: Prisma.DecimalFilter<"AgentLevel"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFilter<"AgentLevel"> | number
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
 }, "id">
@@ -287,14 +287,14 @@ export type AgentLevelScalarWhereWithAggregatesInput = {
   agentId?: Prisma.IntWithAggregatesFilter<"AgentLevel"> | number
   since?: Prisma.DateTimeWithAggregatesFilter<"AgentLevel"> | Date | string
   till?: Prisma.DateTimeNullableWithAggregatesFilter<"AgentLevel"> | Date | string | null
-  durationInWeeks?: Prisma.IntWithAggregatesFilter<"AgentLevel"> | number
+  durationInWeeks?: Prisma.DecimalWithAggregatesFilter<"AgentLevel"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntWithAggregatesFilter<"AgentLevel"> | number
 }
 
 export type AgentLevelCreateInput = {
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
   agent: Prisma.AgentCreateNestedOneWithoutAgentLevelInput
 }
@@ -304,14 +304,14 @@ export type AgentLevelUncheckedCreateInput = {
   agentId: number
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
 }
 
 export type AgentLevelUpdateInput = {
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentLevelNestedInput
 }
@@ -321,7 +321,7 @@ export type AgentLevelUncheckedUpdateInput = {
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -330,14 +330,14 @@ export type AgentLevelCreateManyInput = {
   agentId: number
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
 }
 
 export type AgentLevelUpdateManyMutationInput = {
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -346,7 +346,7 @@ export type AgentLevelUncheckedUpdateManyInput = {
   agentId?: Prisma.IntFieldUpdateOperationsInput | number
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -443,10 +443,18 @@ export type AgentLevelUncheckedUpdateManyWithoutAgentNestedInput = {
   deleteMany?: Prisma.AgentLevelScalarWhereInput | Prisma.AgentLevelScalarWhereInput[]
 }
 
+export type DecimalFieldUpdateOperationsInput = {
+  set?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
 export type AgentLevelCreateWithoutAgentInput = {
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
 }
 
@@ -454,7 +462,7 @@ export type AgentLevelUncheckedCreateWithoutAgentInput = {
   id?: number
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
 }
 
@@ -492,7 +500,7 @@ export type AgentLevelScalarWhereInput = {
   agentId?: Prisma.IntFilter<"AgentLevel"> | number
   since?: Prisma.DateTimeFilter<"AgentLevel"> | Date | string
   till?: Prisma.DateTimeNullableFilter<"AgentLevel"> | Date | string | null
-  durationInWeeks?: Prisma.IntFilter<"AgentLevel"> | number
+  durationInWeeks?: Prisma.DecimalFilter<"AgentLevel"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFilter<"AgentLevel"> | number
 }
 
@@ -500,14 +508,14 @@ export type AgentLevelCreateManyAgentInput = {
   id?: number
   since?: Date | string
   till?: Date | string | null
-  durationInWeeks?: number
+  durationInWeeks?: runtime.Decimal | runtime.DecimalJsLike | number | string
   level: number
 }
 
 export type AgentLevelUpdateWithoutAgentInput = {
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -515,7 +523,7 @@ export type AgentLevelUncheckedUpdateWithoutAgentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -523,7 +531,7 @@ export type AgentLevelUncheckedUpdateManyWithoutAgentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   since?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   till?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  durationInWeeks?: Prisma.IntFieldUpdateOperationsInput | number
+  durationInWeeks?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   level?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -589,7 +597,7 @@ export type $AgentLevelPayload<ExtArgs extends runtime.Types.Extensions.Internal
     agentId: number
     since: Date
     till: Date | null
-    durationInWeeks: number
+    durationInWeeks: runtime.Decimal
     level: number
   }, ExtArgs["result"]["agentLevel"]>
   composites: {}
@@ -1019,7 +1027,7 @@ export interface AgentLevelFieldRefs {
   readonly agentId: Prisma.FieldRef<"AgentLevel", 'Int'>
   readonly since: Prisma.FieldRef<"AgentLevel", 'DateTime'>
   readonly till: Prisma.FieldRef<"AgentLevel", 'DateTime'>
-  readonly durationInWeeks: Prisma.FieldRef<"AgentLevel", 'Int'>
+  readonly durationInWeeks: Prisma.FieldRef<"AgentLevel", 'Decimal'>
   readonly level: Prisma.FieldRef<"AgentLevel", 'Int'>
 }
     

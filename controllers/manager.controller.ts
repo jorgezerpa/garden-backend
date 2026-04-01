@@ -1,6 +1,7 @@
 import { THIRD_PARTY_SERVICES } from "../generated/prisma/enums";
 import {prisma} from "../lib/prisma"
 import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
+import { getAgentHistoricalLevels, getHistoricalLevels } from "./cron";
 
 export const upsertLeadDeskAPIAuthString = async(authString: string, companyId: number) => {
   const result = await prisma.leadDeskCustomData.upsert({
@@ -248,6 +249,36 @@ export const getAgentsPaginated = async (skip: number, take: number, companyId: 
   ]);
 
   return { total, data };
+};
+
+export const getAgentsDetails = async (companyId: number, agentId: number, from: string, to: string) => {
+  const tenure = await getAgentHistoricalLevels(companyId, agentId, from, to)
+
+  const totalSeeds = await prisma.funnelEvent.count({ where: { agentId, type: "SEED" } })
+  const totalLeads = await prisma.funnelEvent.count({ where: { agentId, type: "LEAD" } })
+  const totalSales = await prisma.funnelEvent.count({ where: { agentId, type: "SALE" } })
+
+  const totalCalls = await prisma.call.count({ where: { agentId } })
+  const totalDeepCalls = await prisma.call.count({ where: { agentId, durationSeconds: { gte: 5*60 } } })
+
+  const levels = ["", "Gold", "Silver", "Bronze"]
+
+  return {
+    level: levels[tenure[0].currentLevel || 3], // gold, silver, bronze
+    stats: {
+      seeds: totalSeeds,
+      leads: totalLeads,
+      sales: totalSales,
+      calls: totalCalls,
+      deepCalls: totalDeepCalls,
+    },
+    tenure: {
+      goldWeeks: tenure[0].totalWeeksInLevel1,
+      silverWeeks: tenure[0].totalWeeksInLevel2,
+      bronzeWeeks: tenure[0].totalWeeksInLevel3,
+    }
+  }
+
 };
 
 

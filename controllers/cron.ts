@@ -9,15 +9,18 @@ import { EventType } from "../generated/prisma/client";
  * 2. Compares with current active levels.
  * 3. Closes old levels and inserts new ones if a change is detected.
  */
-export const updateLevels = async (thresholdGold: number, thresholdSilver: number) => {
+//  TODO this should -> find current "since", calculate level for each week, create the register for each one
+// so, even if manager forget updates by weeks, this will work. (NOT consider current week)
+export const updateLevels = async (companyId: number, thresholdGold: number, thresholdSilver: number) => {
   const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getDate() - 7);
 
   return await prisma.$transaction(async (tx) => {
     // 1. Get weekly stats for all agents who had calls
     const weeklyStats = await tx.call.groupBy({
       by: ['agentId'],
       where: {
+        companyId,
         startAt: { gte: sevenDaysAgo },
       },
       _sum: {
@@ -87,4 +90,150 @@ export const updateLevels = async (thresholdGold: number, thresholdSilver: numbe
       details: updates,
     };
   });
+};
+
+
+
+export const getHistoricalLevels = async (companyId: number, from: string, to: string) => {
+  const startDate = new Date(from);
+  const endDate = new Date(to);
+  const now = new Date();
+
+  const records = await prisma.agentLevel.findMany({
+    where: {
+      agent: { companyId },
+      since: { lt: endDate },
+      OR: [
+        { till: null },
+        { till: { gt: startDate } }
+      ]
+    },
+    select: {
+      agentId: true,
+      level: true,
+      since: true,
+      till: true,
+    }
+  });
+
+  // Aggregation object including currentLevel
+  const aggregation: Record<number, { 
+    agentId: number, 
+    level1: number, 
+    level2: number, 
+    level3: number, 
+    currentLevel: number | null 
+  }> = {};
+
+  for (const record of records) {
+    if (!aggregation[record.agentId]) {
+      aggregation[record.agentId] = { 
+        agentId: record.agentId, 
+        level1: 0, 
+        level2: 0, 
+        level3: 0, 
+        currentLevel: null 
+      };
+    }
+
+    // Identify current level (where till is null)
+    if (record.till === null) {
+      aggregation[record.agentId].currentLevel = record.level;
+    }
+
+    // Determine the effective boundaries for the requested range
+    const effectiveStart = record.since < startDate ? startDate : record.since;
+    const actualTill = record.till ?? now;
+    const effectiveEnd = actualTill > endDate ? endDate : actualTill;
+
+    const diffInMs = effectiveEnd.getTime() - effectiveStart.getTime();
+    
+    if (diffInMs > 0) {
+      const weeks = diffInMs / (1000 * 60 * 60 * 24 * 7);
+      const levelKey = `level${record.level}` as 'level1' | 'level2' | 'level3';
+      
+      aggregation[record.agentId][levelKey] += weeks;
+    }
+  }
+
+  return Object.values(aggregation).map(item => ({
+    agentId: item.agentId,
+    currentLevel: item.currentLevel,
+    totalWeeksInLevel1: Number(item.level1.toFixed(1)),
+    totalWeeksInLevel2: Number(item.level2.toFixed(1)),
+    totalWeeksInLevel3: Number(item.level3.toFixed(1)),
+  }));
+};
+
+export const getAgentHistoricalLevels = async (companyId: number, agentId: number, from: string, to: string) => {
+  const startDate = new Date(from);
+  const endDate = new Date(to);
+  const now = new Date();
+
+  const a = await prisma.agentLevel.findMany({ where: { agentId } })
+
+  const records = await prisma.agentLevel.findMany({
+    where: {
+      agent: { companyId, id: agentId },
+      since: { lt: endDate },
+      OR: [
+        { till: null },
+        { till: { gt: startDate } }
+      ]
+    },
+    select: {
+      agentId: true,
+      level: true,
+      since: true,
+      till: true,
+    }
+  });
+
+  // Aggregation object including currentLevel
+  const aggregation: Record<number, { 
+    agentId: number, 
+    level1: number, 
+    level2: number, 
+    level3: number, 
+    currentLevel: number | null 
+  }> = {};
+
+  for (const record of records) {
+    if (!aggregation[record.agentId]) {
+      aggregation[record.agentId] = { 
+        agentId: record.agentId, 
+        level1: 0, 
+        level2: 0, 
+        level3: 0, 
+        currentLevel: null 
+      };
+    }
+
+    // Identify current level (where till is null)
+    if (record.till === null) {
+      aggregation[record.agentId].currentLevel = record.level;
+    }
+
+    // Determine the effective boundaries for the requested range
+    const effectiveStart = record.since < startDate ? startDate : record.since;
+    const actualTill = record.till ?? now;
+    const effectiveEnd = actualTill > endDate ? endDate : actualTill;
+
+    const diffInMs = effectiveEnd.getTime() - effectiveStart.getTime();
+    
+    if (diffInMs > 0) {
+      const weeks = diffInMs / (1000 * 60 * 60 * 24 * 7);
+      const levelKey = `level${record.level}` as 'level1' | 'level2' | 'level3';
+      
+      aggregation[record.agentId][levelKey] += weeks;
+    }
+  }
+
+  return Object.values(aggregation).map(item => ({
+    agentId: item.agentId,
+    currentLevel: item.currentLevel,
+    totalWeeksInLevel1: Number(item.level1.toFixed(1)),
+    totalWeeksInLevel2: Number(item.level2.toFixed(1)),
+    totalWeeksInLevel3: Number(item.level3.toFixed(1)),
+  }));
 };

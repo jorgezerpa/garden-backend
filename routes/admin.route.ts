@@ -5,8 +5,40 @@ import * as GoalsController from '../controllers/goals.controller';
 import { JWTAuthRequest } from '../types/request';
 import { THIRD_PARTY_SERVICES, UserStatus } from '../generated/prisma/enums';
 import { allowedRoles } from '../middleware/authJWT.middleware';
+import { getHistoricalLevels, updateLevels } from '../controllers/cron';
 
 const adminRouter = Router();
+
+adminRouter.post("/updateAgentsLevel", allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    await updateLevels(companyId, 45000, 21600) // >=12:30 hours is gold, >=5 hours is silver, below is bronze
+    return res.status(204).json({});
+  } catch (error:any) {
+    return res.status(500).json({ error: error.message });
+  }
+})
+
+adminRouter.get("/getHistoricalLevels", allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { from, to } = req.query; 
+    const companyId = req.user?.companyId
+    
+    if (!companyId || !from || !to) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    await getHistoricalLevels(companyId, from as string, to as string) // >=12:30 hours is gold, >=5 hours is silver, below is bronze
+    return res.status(204).json({});
+  } catch (error:any) {
+    return res.status(500).json({ error: error.message });
+  }
+})
+
+
 
 adminRouter.post('/upsertLeadDeskEventIds', allowedRoles(["MAIN_ADMIN"]), async (req: JWTAuthRequest, res: Response) => {
   try {
@@ -244,6 +276,21 @@ adminRouter.get('/getAgent/:id', checkAgentBelongsToCompany, allowedRoles(["MAIN
     return res.status(500).json({ error: "Search failed" });
   }
 });
+
+adminRouter.get('/getAgentDetails', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const { agentId, from, to } = req.query
+    const companyId = req.user?.companyId
+    
+    if(!companyId || ! agentId || !from || !to) return res.status(400).json({ error: "Missing fields" });
+    
+    const result = await ManagerController.getAgentsDetails(companyId, Number(agentId), from as string, to as string)
+    
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ error: "Search failed" });
+  }
+})
 
 adminRouter.get('/getAgentsList', allowedRoles(["MAIN_ADMIN", "MANAGER"]), async (req: JWTAuthRequest, res: Response) => {
   try {

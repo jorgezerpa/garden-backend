@@ -38,7 +38,7 @@ async function main() {
   });
 
     const saltRounds = 10;
-    const passwordHash = await hash("adf343rfa%bj$", saltRounds);
+    const passwordHash = await hash("123456", saltRounds);
 
   const adminUser = await prisma.user.create({
     data: {

@@ -281,7 +281,7 @@ model AgentLevel {
   agentId           Int
   since             DateTime  @default(now())
   till              DateTime? 
-  durationInWeeks   Int       @default(0) // everytime a new row for a user is created, we calculate this ones, then just SUM the values and calculate on-the-fly for the latest row
+  durationInWeeks   Decimal   @db.Decimal(10, 1) @default(0)
   level             Int // 1 GOLD. 2 SILVER. 3 BRONZE 
 
   @@index([agentId, level]) 

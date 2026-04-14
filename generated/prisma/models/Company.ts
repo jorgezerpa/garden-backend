@@ -210,6 +210,7 @@ export type CompanyWhereInput = {
   schemaAssignation?: Prisma.SchemaAssignationListRelationFilter
   apiKey?: Prisma.XOR<Prisma.APIKeysAuthNullableScalarRelationFilter, Prisma.APIKeysAuthWhereInput> | null
   leadDeskCustomData?: Prisma.XOR<Prisma.LeadDeskCustomDataNullableScalarRelationFilter, Prisma.LeadDeskCustomDataWhereInput> | null
+  AgentsRank?: Prisma.XOR<Prisma.AgentsRankNullableScalarRelationFilter, Prisma.AgentsRankWhereInput> | null
 }
 
 export type CompanyOrderByWithRelationInput = {
@@ -226,6 +227,7 @@ export type CompanyOrderByWithRelationInput = {
   schemaAssignation?: Prisma.SchemaAssignationOrderByRelationAggregateInput
   apiKey?: Prisma.APIKeysAuthOrderByWithRelationInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataOrderByWithRelationInput
+  AgentsRank?: Prisma.AgentsRankOrderByWithRelationInput
 }
 
 export type CompanyWhereUniqueInput = Prisma.AtLeast<{
@@ -245,6 +247,7 @@ export type CompanyWhereUniqueInput = Prisma.AtLeast<{
   schemaAssignation?: Prisma.SchemaAssignationListRelationFilter
   apiKey?: Prisma.XOR<Prisma.APIKeysAuthNullableScalarRelationFilter, Prisma.APIKeysAuthWhereInput> | null
   leadDeskCustomData?: Prisma.XOR<Prisma.LeadDeskCustomDataNullableScalarRelationFilter, Prisma.LeadDeskCustomDataWhereInput> | null
+  AgentsRank?: Prisma.XOR<Prisma.AgentsRankNullableScalarRelationFilter, Prisma.AgentsRankWhereInput> | null
 }, "id">
 
 export type CompanyOrderByWithAggregationInput = {
@@ -280,6 +283,7 @@ export type CompanyCreateInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateInput = {
@@ -296,6 +300,7 @@ export type CompanyUncheckedCreateInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUpdateInput = {
@@ -311,6 +316,7 @@ export type CompanyUpdateInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateInput = {
@@ -327,6 +333,7 @@ export type CompanyUncheckedUpdateInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateManyInput = {
@@ -447,6 +454,20 @@ export type CompanyUpdateOneRequiredWithoutAgentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CompanyUpdateToOneWithWhereWithoutAgentsInput, Prisma.CompanyUpdateWithoutAgentsInput>, Prisma.CompanyUncheckedUpdateWithoutAgentsInput>
 }
 
+export type CompanyCreateNestedOneWithoutAgentsRankInput = {
+  create?: Prisma.XOR<Prisma.CompanyCreateWithoutAgentsRankInput, Prisma.CompanyUncheckedCreateWithoutAgentsRankInput>
+  connectOrCreate?: Prisma.CompanyCreateOrConnectWithoutAgentsRankInput
+  connect?: Prisma.CompanyWhereUniqueInput
+}
+
+export type CompanyUpdateOneRequiredWithoutAgentsRankNestedInput = {
+  create?: Prisma.XOR<Prisma.CompanyCreateWithoutAgentsRankInput, Prisma.CompanyUncheckedCreateWithoutAgentsRankInput>
+  connectOrCreate?: Prisma.CompanyCreateOrConnectWithoutAgentsRankInput
+  upsert?: Prisma.CompanyUpsertWithoutAgentsRankInput
+  connect?: Prisma.CompanyWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CompanyUpdateToOneWithWhereWithoutAgentsRankInput, Prisma.CompanyUpdateWithoutAgentsRankInput>, Prisma.CompanyUncheckedUpdateWithoutAgentsRankInput>
+}
+
 export type CompanyCreateNestedOneWithoutTimeSchemasInput = {
   create?: Prisma.XOR<Prisma.CompanyCreateWithoutTimeSchemasInput, Prisma.CompanyUncheckedCreateWithoutTimeSchemasInput>
   connectOrCreate?: Prisma.CompanyCreateOrConnectWithoutTimeSchemasInput
@@ -529,6 +550,7 @@ export type CompanyCreateWithoutUsersInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutUsersInput = {
@@ -544,6 +566,7 @@ export type CompanyUncheckedCreateWithoutUsersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutUsersInput = {
@@ -574,6 +597,7 @@ export type CompanyUpdateWithoutUsersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutUsersInput = {
@@ -589,6 +613,7 @@ export type CompanyUncheckedUpdateWithoutUsersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutApiKeyInput = {
@@ -603,6 +628,7 @@ export type CompanyCreateWithoutApiKeyInput = {
   GoalsAssignation?: Prisma.GoalsAssignationCreateNestedManyWithoutCompanyInput
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutApiKeyInput = {
@@ -618,6 +644,7 @@ export type CompanyUncheckedCreateWithoutApiKeyInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedCreateNestedManyWithoutCompanyInput
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutApiKeyInput = {
@@ -648,6 +675,7 @@ export type CompanyUpdateWithoutApiKeyInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUpdateManyWithoutCompanyNestedInput
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutApiKeyInput = {
@@ -663,6 +691,7 @@ export type CompanyUncheckedUpdateWithoutApiKeyInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutLeadDeskCustomDataInput = {
@@ -677,6 +706,7 @@ export type CompanyCreateWithoutLeadDeskCustomDataInput = {
   GoalsAssignation?: Prisma.GoalsAssignationCreateNestedManyWithoutCompanyInput
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutLeadDeskCustomDataInput = {
@@ -692,6 +722,7 @@ export type CompanyUncheckedCreateWithoutLeadDeskCustomDataInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedCreateNestedManyWithoutCompanyInput
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutLeadDeskCustomDataInput = {
@@ -722,6 +753,7 @@ export type CompanyUpdateWithoutLeadDeskCustomDataInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUpdateManyWithoutCompanyNestedInput
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutLeadDeskCustomDataInput = {
@@ -737,6 +769,7 @@ export type CompanyUncheckedUpdateWithoutLeadDeskCustomDataInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutManagersInput = {
@@ -751,6 +784,7 @@ export type CompanyCreateWithoutManagersInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutManagersInput = {
@@ -766,6 +800,7 @@ export type CompanyUncheckedCreateWithoutManagersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutManagersInput = {
@@ -796,6 +831,7 @@ export type CompanyUpdateWithoutManagersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutManagersInput = {
@@ -811,6 +847,7 @@ export type CompanyUncheckedUpdateWithoutManagersInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutAgentsInput = {
@@ -825,6 +862,7 @@ export type CompanyCreateWithoutAgentsInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutAgentsInput = {
@@ -840,6 +878,7 @@ export type CompanyUncheckedCreateWithoutAgentsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutAgentsInput = {
@@ -870,6 +909,7 @@ export type CompanyUpdateWithoutAgentsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutAgentsInput = {
@@ -877,6 +917,85 @@ export type CompanyUncheckedUpdateWithoutAgentsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   managers?: Prisma.ManagerUncheckedUpdateManyWithoutCompanyNestedInput
+  calls?: Prisma.CallUncheckedUpdateManyWithoutCompanyNestedInput
+  TimeSchemas?: Prisma.SchemaUncheckedUpdateManyWithoutCompanyNestedInput
+  users?: Prisma.UserUncheckedUpdateManyWithoutCompanyNestedInput
+  temporalGoals?: Prisma.TemporalGoalsUncheckedUpdateManyWithoutCompanyNestedInput
+  GoalsAssignation?: Prisma.GoalsAssignationUncheckedUpdateManyWithoutCompanyNestedInput
+  schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
+  apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
+  leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
+}
+
+export type CompanyCreateWithoutAgentsRankInput = {
+  name: string
+  createdAt?: Date | string
+  managers?: Prisma.ManagerCreateNestedManyWithoutCompanyInput
+  agents?: Prisma.AgentCreateNestedManyWithoutCompanyInput
+  calls?: Prisma.CallCreateNestedManyWithoutCompanyInput
+  TimeSchemas?: Prisma.SchemaCreateNestedManyWithoutCompanyInput
+  users?: Prisma.UserCreateNestedManyWithoutCompanyInput
+  temporalGoals?: Prisma.TemporalGoalsCreateNestedManyWithoutCompanyInput
+  GoalsAssignation?: Prisma.GoalsAssignationCreateNestedManyWithoutCompanyInput
+  schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
+  apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
+  leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+}
+
+export type CompanyUncheckedCreateWithoutAgentsRankInput = {
+  id?: number
+  name: string
+  createdAt?: Date | string
+  managers?: Prisma.ManagerUncheckedCreateNestedManyWithoutCompanyInput
+  agents?: Prisma.AgentUncheckedCreateNestedManyWithoutCompanyInput
+  calls?: Prisma.CallUncheckedCreateNestedManyWithoutCompanyInput
+  TimeSchemas?: Prisma.SchemaUncheckedCreateNestedManyWithoutCompanyInput
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutCompanyInput
+  temporalGoals?: Prisma.TemporalGoalsUncheckedCreateNestedManyWithoutCompanyInput
+  GoalsAssignation?: Prisma.GoalsAssignationUncheckedCreateNestedManyWithoutCompanyInput
+  schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
+  apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
+  leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+}
+
+export type CompanyCreateOrConnectWithoutAgentsRankInput = {
+  where: Prisma.CompanyWhereUniqueInput
+  create: Prisma.XOR<Prisma.CompanyCreateWithoutAgentsRankInput, Prisma.CompanyUncheckedCreateWithoutAgentsRankInput>
+}
+
+export type CompanyUpsertWithoutAgentsRankInput = {
+  update: Prisma.XOR<Prisma.CompanyUpdateWithoutAgentsRankInput, Prisma.CompanyUncheckedUpdateWithoutAgentsRankInput>
+  create: Prisma.XOR<Prisma.CompanyCreateWithoutAgentsRankInput, Prisma.CompanyUncheckedCreateWithoutAgentsRankInput>
+  where?: Prisma.CompanyWhereInput
+}
+
+export type CompanyUpdateToOneWithWhereWithoutAgentsRankInput = {
+  where?: Prisma.CompanyWhereInput
+  data: Prisma.XOR<Prisma.CompanyUpdateWithoutAgentsRankInput, Prisma.CompanyUncheckedUpdateWithoutAgentsRankInput>
+}
+
+export type CompanyUpdateWithoutAgentsRankInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  managers?: Prisma.ManagerUpdateManyWithoutCompanyNestedInput
+  agents?: Prisma.AgentUpdateManyWithoutCompanyNestedInput
+  calls?: Prisma.CallUpdateManyWithoutCompanyNestedInput
+  TimeSchemas?: Prisma.SchemaUpdateManyWithoutCompanyNestedInput
+  users?: Prisma.UserUpdateManyWithoutCompanyNestedInput
+  temporalGoals?: Prisma.TemporalGoalsUpdateManyWithoutCompanyNestedInput
+  GoalsAssignation?: Prisma.GoalsAssignationUpdateManyWithoutCompanyNestedInput
+  schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
+  apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
+  leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+}
+
+export type CompanyUncheckedUpdateWithoutAgentsRankInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  managers?: Prisma.ManagerUncheckedUpdateManyWithoutCompanyNestedInput
+  agents?: Prisma.AgentUncheckedUpdateManyWithoutCompanyNestedInput
   calls?: Prisma.CallUncheckedUpdateManyWithoutCompanyNestedInput
   TimeSchemas?: Prisma.SchemaUncheckedUpdateManyWithoutCompanyNestedInput
   users?: Prisma.UserUncheckedUpdateManyWithoutCompanyNestedInput
@@ -899,6 +1018,7 @@ export type CompanyCreateWithoutTimeSchemasInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutTimeSchemasInput = {
@@ -914,6 +1034,7 @@ export type CompanyUncheckedCreateWithoutTimeSchemasInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutTimeSchemasInput = {
@@ -944,6 +1065,7 @@ export type CompanyUpdateWithoutTimeSchemasInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutTimeSchemasInput = {
@@ -959,6 +1081,7 @@ export type CompanyUncheckedUpdateWithoutTimeSchemasInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutSchemaAssignationInput = {
@@ -973,6 +1096,7 @@ export type CompanyCreateWithoutSchemaAssignationInput = {
   GoalsAssignation?: Prisma.GoalsAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutSchemaAssignationInput = {
@@ -988,6 +1112,7 @@ export type CompanyUncheckedCreateWithoutSchemaAssignationInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutSchemaAssignationInput = {
@@ -1018,6 +1143,7 @@ export type CompanyUpdateWithoutSchemaAssignationInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutSchemaAssignationInput = {
@@ -1033,6 +1159,7 @@ export type CompanyUncheckedUpdateWithoutSchemaAssignationInput = {
   GoalsAssignation?: Prisma.GoalsAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutCallsInput = {
@@ -1047,6 +1174,7 @@ export type CompanyCreateWithoutCallsInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutCallsInput = {
@@ -1062,6 +1190,7 @@ export type CompanyUncheckedCreateWithoutCallsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutCallsInput = {
@@ -1092,6 +1221,7 @@ export type CompanyUpdateWithoutCallsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutCallsInput = {
@@ -1107,6 +1237,7 @@ export type CompanyUncheckedUpdateWithoutCallsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutTemporalGoalsInput = {
@@ -1121,6 +1252,7 @@ export type CompanyCreateWithoutTemporalGoalsInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutTemporalGoalsInput = {
@@ -1136,6 +1268,7 @@ export type CompanyUncheckedCreateWithoutTemporalGoalsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutTemporalGoalsInput = {
@@ -1166,6 +1299,7 @@ export type CompanyUpdateWithoutTemporalGoalsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutTemporalGoalsInput = {
@@ -1181,6 +1315,7 @@ export type CompanyUncheckedUpdateWithoutTemporalGoalsInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyCreateWithoutGoalsAssignationInput = {
@@ -1195,6 +1330,7 @@ export type CompanyCreateWithoutGoalsAssignationInput = {
   schemaAssignation?: Prisma.SchemaAssignationCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyUncheckedCreateWithoutGoalsAssignationInput = {
@@ -1210,6 +1346,7 @@ export type CompanyUncheckedCreateWithoutGoalsAssignationInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedCreateNestedManyWithoutCompanyInput
   apiKey?: Prisma.APIKeysAuthUncheckedCreateNestedOneWithoutCompanyInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedCreateNestedOneWithoutCompanyInput
+  AgentsRank?: Prisma.AgentsRankUncheckedCreateNestedOneWithoutCompanyInput
 }
 
 export type CompanyCreateOrConnectWithoutGoalsAssignationInput = {
@@ -1240,6 +1377,7 @@ export type CompanyUpdateWithoutGoalsAssignationInput = {
   schemaAssignation?: Prisma.SchemaAssignationUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUpdateOneWithoutCompanyNestedInput
 }
 
 export type CompanyUncheckedUpdateWithoutGoalsAssignationInput = {
@@ -1255,6 +1393,7 @@ export type CompanyUncheckedUpdateWithoutGoalsAssignationInput = {
   schemaAssignation?: Prisma.SchemaAssignationUncheckedUpdateManyWithoutCompanyNestedInput
   apiKey?: Prisma.APIKeysAuthUncheckedUpdateOneWithoutCompanyNestedInput
   leadDeskCustomData?: Prisma.LeadDeskCustomDataUncheckedUpdateOneWithoutCompanyNestedInput
+  AgentsRank?: Prisma.AgentsRankUncheckedUpdateOneWithoutCompanyNestedInput
 }
 
 
@@ -1365,6 +1504,7 @@ export type CompanySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   schemaAssignation?: boolean | Prisma.Company$schemaAssignationArgs<ExtArgs>
   apiKey?: boolean | Prisma.Company$apiKeyArgs<ExtArgs>
   leadDeskCustomData?: boolean | Prisma.Company$leadDeskCustomDataArgs<ExtArgs>
+  AgentsRank?: boolean | Prisma.Company$AgentsRankArgs<ExtArgs>
   _count?: boolean | Prisma.CompanyCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["company"]>
 
@@ -1398,6 +1538,7 @@ export type CompanyInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   schemaAssignation?: boolean | Prisma.Company$schemaAssignationArgs<ExtArgs>
   apiKey?: boolean | Prisma.Company$apiKeyArgs<ExtArgs>
   leadDeskCustomData?: boolean | Prisma.Company$leadDeskCustomDataArgs<ExtArgs>
+  AgentsRank?: boolean | Prisma.Company$AgentsRankArgs<ExtArgs>
   _count?: boolean | Prisma.CompanyCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CompanyIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1416,6 +1557,7 @@ export type $CompanyPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     schemaAssignation: Prisma.$SchemaAssignationPayload<ExtArgs>[]
     apiKey: Prisma.$APIKeysAuthPayload<ExtArgs> | null
     leadDeskCustomData: Prisma.$LeadDeskCustomDataPayload<ExtArgs> | null
+    AgentsRank: Prisma.$AgentsRankPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1825,6 +1967,7 @@ export interface Prisma__CompanyClient<T, Null = never, ExtArgs extends runtime.
   schemaAssignation<T extends Prisma.Company$schemaAssignationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Company$schemaAssignationArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SchemaAssignationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   apiKey<T extends Prisma.Company$apiKeyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Company$apiKeyArgs<ExtArgs>>): Prisma.Prisma__APIKeysAuthClient<runtime.Types.Result.GetResult<Prisma.$APIKeysAuthPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   leadDeskCustomData<T extends Prisma.Company$leadDeskCustomDataArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Company$leadDeskCustomDataArgs<ExtArgs>>): Prisma.Prisma__LeadDeskCustomDataClient<runtime.Types.Result.GetResult<Prisma.$LeadDeskCustomDataPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  AgentsRank<T extends Prisma.Company$AgentsRankArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Company$AgentsRankArgs<ExtArgs>>): Prisma.Prisma__AgentsRankClient<runtime.Types.Result.GetResult<Prisma.$AgentsRankPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2472,6 +2615,25 @@ export type Company$leadDeskCustomDataArgs<ExtArgs extends runtime.Types.Extensi
    */
   include?: Prisma.LeadDeskCustomDataInclude<ExtArgs> | null
   where?: Prisma.LeadDeskCustomDataWhereInput
+}
+
+/**
+ * Company.AgentsRank
+ */
+export type Company$AgentsRankArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentsRank
+   */
+  select?: Prisma.AgentsRankSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentsRank
+   */
+  omit?: Prisma.AgentsRankOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentsRankInclude<ExtArgs> | null
+  where?: Prisma.AgentsRankWhereInput
 }
 
 /**

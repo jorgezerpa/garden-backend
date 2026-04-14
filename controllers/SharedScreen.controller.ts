@@ -57,16 +57,57 @@ export const getAgentPerformanceReport = async (
   // Get total count for pagination metadata
   const totalAgents = await prisma.agent.count({ where: { companyId } });
 
+  const data: {
+    id: number,
+    name: string,
+    callingTime: number,
+    seeds: number,
+    sales: number,
+    currentLevel: any, // @todo use level type gold, silver or bronze
+    averageScore: number,
+    profileImg: any, // @todo use real type
+    direction: "static"|"asc"|"desc" // static|ascending|descending
+  }[] = report.map(item => ({
+    id: item.id,
+    name: item.name,
+    callingTime: Number(item.totalCallingTime),
+    seeds: Number(item.totalSeeds),
+    sales: Number(item.totalSales),
+    currentLevel: item.currentLevel,
+    averageScore: parseFloat(Number(item.performanceScore).toFixed(2)),
+    profileImg: item.profileImg,
+    direction: "static" 
+  }))
+
+  // CALCULATE AGENTS RANK MOVEMENTS
+  const agentsRank = await prisma.agentsRank.findUnique({ where: { companyId } })
+  const newPositions = [...data.map(a => a.id as number)] // index is the new position, value is the related agent
+
+  if(agentsRank) {
+    const previousPositions = agentsRank?.indexes as { [key:number]: number } // { agentId: position }
+
+    // For each position, compare with the previous agent position, to now if increases, decreases or stays the same
+    for(let i = 0; i<newPositions.length; i++) {
+      const agentId = newPositions[i]
+      const previousAgentPosition = previousPositions[agentId]
+      if(previousAgentPosition == i) data[i].direction = "static"
+      if(previousAgentPosition > i) data[i].direction = "desc"
+      if(previousAgentPosition < i) data[i].direction = "asc"
+    }
+  }
+
+  try {
+    await prisma.agentsRank.upsert({
+      where: { companyId },
+      create: { indexes: { ...newPositions }, companyId },
+      update: { indexes: { ...newPositions } }
+    })
+  } catch (error) {
+    // still returns even if creation fails 
+  }
+
   return {
-    data: report.map(item => ({
-      name: item.name,
-      callingTime: Number(item.totalCallingTime),
-      seeds: Number(item.totalSeeds),
-      sales: Number(item.totalSales),
-      currentLevel: item.currentLevel,
-      averageScore: parseFloat(Number(item.performanceScore).toFixed(2)),
-      profileImg: item.profileImg
-    })),
+    data,
     meta: {
       totalAgents,
       totalPages: Math.ceil(totalAgents / size),

@@ -107,6 +107,16 @@ async function main() {
       }
     });
   }
+  for (let i = 0; i < 30; i++) {
+    // Assign to the first 4 days of March 2026
+    await prisma.schemaAssignation.create({
+      data: {
+        companyId: company.id,
+        schemaId: schemaIds[i%4],
+        date: new Date(`2026-04-${(i + 1).toString().padStart(2,"0")}T00:00:00Z`)
+      }
+    });
+  }
   console.log('✅ 4 Block schemas created and assigned to each day of the month evenly.');
 
   // ---------------------------------------------------------
@@ -115,8 +125,10 @@ async function main() {
   const goalsData = [
     { name: 'Daily Goals - Aggressive', sales: 15, talkTimeMinutes: 120, seeds: 20, callbacks: 10, leads: 5, numberOfCalls: 50, numberOfLongCalls: 10 },
     { name: 'Daily Goals - Standard', sales: 5, talkTimeMinutes: 60, seeds: 10, callbacks: 5, leads: 2, numberOfCalls: 30, numberOfLongCalls: 5 },
-    { name: 'Weekly Goals - Team', sales: 100, talkTimeMinutes: 600, seeds: 200, callbacks: 50, leads: 30, numberOfCalls: 500, numberOfLongCalls: 80 },
-    { name: 'Weekend Goals', sales: 2, talkTimeMinutes: 30, seeds: 5, callbacks: 2, leads: 1, numberOfCalls: 15, numberOfLongCalls: 2 }
+    { name: 'Daily Goals - Aggressive', sales: 15, talkTimeMinutes: 120, seeds: 20, callbacks: 10, leads: 5, numberOfCalls: 50, numberOfLongCalls: 10 },
+    { name: 'Daily Goals - Standard', sales: 5, talkTimeMinutes: 60, seeds: 10, callbacks: 5, leads: 2, numberOfCalls: 30, numberOfLongCalls: 5 },
+    // { name: 'Weekly Goals - Team', sales: 10, talkTimeMinutes: 60, seeds: 20, callbacks: 40, leads: 30, numberOfCalls: 100, numberOfLongCalls: 80 },
+    // { name: 'Weekend Goals', sales: 2, talkTimeMinutes: 30, seeds: 5, callbacks: 2, leads: 1, numberOfCalls: 15, numberOfLongCalls: 2 }
   ];
   const goalIds = []
 
@@ -139,6 +151,16 @@ async function main() {
         companyId: company.id,
         goalId: goalIds[i%4],
         date: new Date(`2026-03-${(i + 1).toString().padStart(2,"0")}T00:00:00Z`)
+      }
+    });
+  }
+  for (let i = 0; i < 30; i++) {
+    // Assign to the first 4 days of March 2026
+    await prisma.goalsAssignation.create({
+      data: {
+        companyId: company.id,
+        goalId: goalIds[i%4],
+        date: new Date(`2026-04-${(i + 1).toString().padStart(2,"0")}T00:00:00Z`)
       }
     });
   }
@@ -205,7 +227,7 @@ async function main() {
         },
         user: {
           create: {
-            email: `agent${i}@salesgarden.com`,
+            email: `${agentNames[i-1].toLowerCase()}@salesgarden.com`,
             passwordHash: passwordHashAgent,
             role: Role.AGENT,
             companyId: company.id
@@ -217,84 +239,86 @@ async function main() {
   }
   console.log('✅ 25 Agents registered with images and levels.');
 
-  // ---------------------------------------------------------
-  // 6. Simulate 200 Calls (March 2026) & Callees Logic
-  // ---------------------------------------------------------
-  // Target: 200 total calls. 
-  // Rule: ~40% calls (80) repeat to the same numbers, 60% (120) do not repeat.
-  const callNumbers: string[] = [];
   
-  // Create 120 unique numbers (called exactly once)
-  for (let i = 0; i < 120; i++) callNumbers.push(`+3580000${1000 + i}`);
+// ---------------------------------------------------------
+  // 6. Realistic Daily Call Simulation
+  // ---------------------------------------------------------
+  console.log('⏳ Simulating daily call volume...');
+
+  const start = new Date('2026-03-01T00:00:00Z');
+  const end = new Date('2026-04-30T23:59:59Z');
   
-  // Create ~30 numbers that repeat to fill the remaining 80 calls
-  const repeatingNumbers = Array.from({ length: 30 }, (_, i) => `+3589999${1000 + i}`);
-  let repeatsLeft = 80;
-  while (repeatsLeft > 0) {
-    // Pick a random number from the repeating pool
-    callNumbers.push(repeatingNumbers[randomInt(0, repeatingNumbers.length - 1)]);
-    repeatsLeft--;
-  }
+  // Reusable pool for repeating numbers
+  const repeatingNumbers = Array.from({ length: 50 }, (_, i) => `+3589999${1000 + i}`);
 
-  // Shuffle the distribution to randomize the chronological order
-  callNumbers.sort(() => Math.random() - 0.5);
-
-  const startDate = new Date('2026-03-01T00:00:00Z');
-  const endDate = new Date('2026-03-31T23:59:59Z');
-
-  for (const phoneNumber of callNumbers) {
-    const callDate = randomDate(startDate, endDate);
-    const duration = randomInt(10, 900); // Between 10s and 15m
-    const agent = agents[randomInt(0, agents.length - 1)];
-
-    // Find or create Callee
-    const callee = await prisma.callee.upsert({
-      where: { phoneNumber },
-      update: { totalAttempts: { increment: 1 } },
-      create: { phoneNumber, totalAttempts: 1 }
-    });
-
-    // Create the Call
-    const call = await prisma.call.create({
-      data: {
-        agentId: agent.id,
-        calleeId: callee.id,
-        companyId: company.id,
-        startAt: callDate,
-        endAt: new Date(callDate.getTime() + duration * 1000),
-        durationSeconds: duration,
-        dayOfTheWeek: getWeekDay(callDate)
-      }
-    });
-
-    // Upsert AgentToCallee tracking
-    const agentToCalleeId = { agentId: agent.id, calleeId: callee.id };
-    await prisma.agentToCallee.upsert({
-      where: { agentId_calleeId: agentToCalleeId },
-      update: { totalAttemps: { increment: 1 } },
-      create: { agentId: agent.id, calleeId: callee.id, totalAttemps: 1 }
-    });
-
-    // 50/50 Chance to generate an event
-    if (Math.random() > 0.5) {
-      const eventTypes = [EventType.SEED, EventType.LEAD, EventType.SALE];
-      const selectedType = eventTypes[randomInt(0, eventTypes.length - 1)];
+  // Iterate through every single day in the range
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    // Determine number of calls for THIS specific day
+    const callsToday = randomInt(20, 35); 
+    
+    for (let i = 0; i < callsToday; i++) {
+      const agent = agents[randomInt(0, agents.length - 1)];
       
-      await prisma.funnelEvent.create({
+      // Generate a realistic time between 08:00 and 18:00
+      const callDate = new Date(d);
+      callDate.setHours(randomInt(8, 17), randomInt(0, 59), randomInt(0, 59));
+
+      // 30% chance to be a repeat caller, 70% chance to be a new unique number
+      const isRepeat = Math.random() < 0.3;
+      const phoneNumber = isRepeat 
+        ? repeatingNumbers[randomInt(0, repeatingNumbers.length - 1)]
+        : `+358${randomInt(100, 999)}${randomInt(1000, 9999)}`;
+
+      const duration = randomInt(15, 600); // 15s to 10m
+
+      const callee = await prisma.callee.upsert({
+        where: { phoneNumber },
+        update: { totalAttempts: { increment: 1 } },
+        create: { phoneNumber, totalAttempts: 1 }
+      });
+
+      const call = await prisma.call.create({
         data: {
-          type: selectedType,
-          timestamp: call.endAt || callDate,
-          callId: call.id,
-          agentId: agent.id
+          agentId: agent.id,
+          calleeId: callee.id,
+          companyId: company.id,
+          startAt: callDate,
+          endAt: new Date(callDate.getTime() + duration * 1000),
+          durationSeconds: duration,
+          dayOfTheWeek: getWeekDay(callDate)
         }
       });
+
+      await prisma.agentToCallee.upsert({
+        where: { agentId_calleeId: { agentId: agent.id, calleeId: callee.id } },
+        update: { totalAttemps: { increment: 1 } },
+        create: { agentId: agent.id, calleeId: callee.id, totalAttemps: 1 }
+      });
+
+      // Events: 60% chance to have a funnel event
+      if (Math.random() < 0.9) {
+        const eventTypes = [EventType.SEED, EventType.LEAD, EventType.SALE];
+        const selectedType = eventTypes[randomInt(0, eventTypes.length - 1)];
+        
+        await prisma.funnelEvent.create({
+          data: {
+            type: selectedType,
+            timestamp: new Date(callDate.getTime() + (duration / 2) * 1000),
+            callId: call.id,
+            agentId: agent.id
+          }
+        });
+      }
     }
   }
-  console.log('✅ 200 Calls simulated with callee-repetition and 50/50 event chance.');
+  console.log('✅ Calls simulated');
 
   // ---------------------------------------------------------
   // 7. Register Agent States (Feelings)
   // ---------------------------------------------------------
+  const startDate = new Date('2026-03-01T00:00:00Z');
+  const endDate = new Date('2026-04-30T23:59:59Z');
+  
   for (let i = 0; i < 200; i++) {
     const agent = agents[randomInt(0, agents.length - 1)];
     

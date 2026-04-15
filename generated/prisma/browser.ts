@@ -48,11 +48,6 @@ export type Manager = Prisma.ManagerModel
  */
 export type Agent = Prisma.AgentModel
 /**
- * Model AgentsRank
- * 
- */
-export type AgentsRank = Prisma.AgentsRankModel
-/**
  * Model AgentToThird
  * 
  */

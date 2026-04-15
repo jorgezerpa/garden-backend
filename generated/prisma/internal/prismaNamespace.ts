@@ -390,7 +390,6 @@ export const ModelName = {
   LeadDeskCustomData: 'LeadDeskCustomData',
   Manager: 'Manager',
   Agent: 'Agent',
-  AgentsRank: 'AgentsRank',
   AgentToThird: 'AgentToThird',
   Callee: 'Callee',
   agentToCallee: 'agentToCallee',
@@ -418,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "company" | "aPIKeysAuth" | "leadDeskCustomData" | "manager" | "agent" | "agentsRank" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "agentLevel" | "temporalGoals" | "goalsAssignation"
+    modelProps: "user" | "company" | "aPIKeysAuth" | "leadDeskCustomData" | "manager" | "agent" | "agentToThird" | "callee" | "agentToCallee" | "schema" | "schemaBlock" | "schemaAssignation" | "call" | "funnelEvent" | "agentState" | "agentLevel" | "temporalGoals" | "goalsAssignation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -863,80 +862,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AgentCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AgentCountAggregateOutputType> | number
-        }
-      }
-    }
-    AgentsRank: {
-      payload: Prisma.$AgentsRankPayload<ExtArgs>
-      fields: Prisma.AgentsRankFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.AgentsRankFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.AgentsRankFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        findFirst: {
-          args: Prisma.AgentsRankFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.AgentsRankFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        findMany: {
-          args: Prisma.AgentsRankFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>[]
-        }
-        create: {
-          args: Prisma.AgentsRankCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        createMany: {
-          args: Prisma.AgentsRankCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.AgentsRankCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>[]
-        }
-        delete: {
-          args: Prisma.AgentsRankDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        update: {
-          args: Prisma.AgentsRankUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        deleteMany: {
-          args: Prisma.AgentsRankDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.AgentsRankUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.AgentsRankUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>[]
-        }
-        upsert: {
-          args: Prisma.AgentsRankUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentsRankPayload>
-        }
-        aggregate: {
-          args: Prisma.AgentsRankAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentsRank>
-        }
-        groupBy: {
-          args: Prisma.AgentsRankGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AgentsRankGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.AgentsRankCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AgentsRankCountAggregateOutputType> | number
         }
       }
     }
@@ -1937,15 +1862,6 @@ export const AgentScalarFieldEnum = {
 export type AgentScalarFieldEnum = (typeof AgentScalarFieldEnum)[keyof typeof AgentScalarFieldEnum]
 
 
-export const AgentsRankScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  indexes: 'indexes'
-} as const
-
-export type AgentsRankScalarFieldEnum = (typeof AgentsRankScalarFieldEnum)[keyof typeof AgentsRankScalarFieldEnum]
-
-
 export const AgentToThirdScalarFieldEnum = {
   id: 'id',
   serviceIdentifier: 'serviceIdentifier',
@@ -2093,13 +2009,6 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -2114,15 +2023,6 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
-export const JsonNullValueFilter = {
-  DbNull: DbNull,
-  JsonNull: JsonNull,
-  AnyNull: AnyNull
-} as const
-
-export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -2205,20 +2105,6 @@ export type EnumUserStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'UserStatus[]'
  */
 export type ListEnumUserStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2406,7 +2292,6 @@ export type GlobalOmitConfig = {
   leadDeskCustomData?: Prisma.LeadDeskCustomDataOmit
   manager?: Prisma.ManagerOmit
   agent?: Prisma.AgentOmit
-  agentsRank?: Prisma.AgentsRankOmit
   agentToThird?: Prisma.AgentToThirdOmit
   callee?: Prisma.CalleeOmit
   agentToCallee?: Prisma.agentToCalleeOmit

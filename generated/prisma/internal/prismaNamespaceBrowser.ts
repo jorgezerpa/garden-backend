@@ -57,7 +57,6 @@ export const ModelName = {
   LeadDeskCustomData: 'LeadDeskCustomData',
   Manager: 'Manager',
   Agent: 'Agent',
-  AgentsRank: 'AgentsRank',
   AgentToThird: 'AgentToThird',
   Callee: 'Callee',
   agentToCallee: 'agentToCallee',
@@ -156,15 +155,6 @@ export const AgentScalarFieldEnum = {
 } as const
 
 export type AgentScalarFieldEnum = (typeof AgentScalarFieldEnum)[keyof typeof AgentScalarFieldEnum]
-
-
-export const AgentsRankScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  indexes: 'indexes'
-} as const
-
-export type AgentsRankScalarFieldEnum = (typeof AgentsRankScalarFieldEnum)[keyof typeof AgentsRankScalarFieldEnum]
 
 
 export const AgentToThirdScalarFieldEnum = {
@@ -314,13 +304,6 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -335,13 +318,4 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
-export const JsonNullValueFilter = {
-  DbNull: DbNull,
-  JsonNull: JsonNull,
-  AnyNull: AnyNull
-} as const
-
-export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

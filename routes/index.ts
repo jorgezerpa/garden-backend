@@ -30,7 +30,6 @@ router.use('/agent-dashboard', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MAN
 router.use('/shared-screen', authenticateJWT, allowedRoles(["MAIN_ADMIN", "MANAGER", "AGENT"]), sharedScreenRouter); 
 router.use('/upload', authenticateJWT, allowedRoles(["AGENT"]), uploadRouter); 
 router.use('/events', authenticateJWTInQuery, eventRouter)
-// @todo create routes for big screen dashboard
 router.use('/leaddesk', authenticateBasic, leadDeskWebhookRouter);
 // mock and dev helpers 
 router.use('/mock', mockRouter);

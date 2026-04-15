@@ -5,11 +5,12 @@ import { JWTAuthRequest } from '../types/request';
 const sharedScreenRoute = Router();
 
 // GET /api/datavis/get_agents_positions
+// @todo add validation middleware
 sharedScreenRoute.get('/get_agents_positions', async (req: JWTAuthRequest, res: Response) => {
   try {
     const { 
-      from, 
-      to, 
+      date, 
+      timegap,
       page, 
       pageSize 
     } = req.query;
@@ -21,14 +22,17 @@ sharedScreenRoute.get('/get_agents_positions', async (req: JWTAuthRequest, res: 
     }
 
     // Basic validation for dates
-    if (!from || !to) {
-      return res.status(400).json({ error: "Parameters 'from' and 'to' are required (YYYY-MM-DD)" });
+    if (!date) {
+      return res.status(400).json({ error: "No date provided (YYYY-MM-DD)" });
+    }
+    if (!timegap) {
+      return res.status(400).json({ error: "No timegap provided" });
     }
 
     const report = await SharedScreenController.getAgentPerformanceReport(
       Number(companyId),
-      from as string,
-      to as string,
+      date as string,
+      timegap as "daily"|"weekly", 
       Number(page) || 1,      // Default to page 1
       Number(pageSize) || 10  // Default to 10 items
     );

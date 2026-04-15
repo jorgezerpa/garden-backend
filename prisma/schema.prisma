@@ -91,7 +91,6 @@ model Company {
   apiKey            APIKeysAuth?
   // Third party custom data 
   leadDeskCustomData LeadDeskCustomData?
-  AgentsRank AgentsRank?
 }
 
 // 1-to-1 company-key (used to authenticate webhook call origin)
@@ -151,14 +150,6 @@ model Agent {
   agentLevel            AgentLevel[]
   // 
   profileImg            String?
-}
-
-model AgentsRank {
-  id                     Int                  @id @default(autoincrement())
-  company               Company         @relation(fields: [companyId], references: [id])
-  companyId             Int             @unique 
-
-  indexes               Json   // key: agentId, value: agentPosition  
 }
 
 model AgentToThird {

@@ -1,16 +1,28 @@
 import { prisma } from "../lib/prisma";
 import { EventType } from "../generated/prisma/client";
-import { getDayBoundariesInUTC, getZonedLocalTime } from "../utils/date";
+import { getDailyWeekBoundariesInUTC, getDayBoundariesInUTC, getYYYYMMDD, getZonedLocalTime } from "../utils/date";
 
 export const getAgentPerformanceReport = async (
   companyId: number,
-  startDateStr: string,
-  endDateStr: string,
+  date: string, // YYYYMMDD
+  timeGap: `weekly`|`daily`,
   page: number = 1,
   size: number = 10
-) => {
-  const startDate = new Date(startDateStr);
-  const endDate = new Date(endDateStr);
+) => {  
+  let startDate: Date = new Date()
+  let endDate: Date = new Date()
+  
+  if(timeGap=="daily") {
+    const boundaries = getDayBoundariesInUTC(date, "Europe/Amsterdam")
+    startDate = boundaries.startDate
+    endDate = boundaries.endDate
+  }
+  if(timeGap=="weekly") {
+    const boundaries = getDailyWeekBoundariesInUTC(date, "Europe/Amsterdam") 
+    startDate = boundaries[0].startDate
+    endDate = boundaries[boundaries.length - 1].endDate
+  }
+  
   const offset = (page - 1) * size;
 
   /**
@@ -79,32 +91,6 @@ export const getAgentPerformanceReport = async (
     direction: "static" 
   }))
 
-  // CALCULATE AGENTS RANK MOVEMENTS
-  const agentsRank = await prisma.agentsRank.findUnique({ where: { companyId } })
-  const newPositions = [...data.map(a => a.id as number)] // index is the new position, value is the related agent
-
-  if(agentsRank) {
-    const previousPositions = agentsRank?.indexes as { [key:number]: number } // { agentId: position }
-
-    // For each position, compare with the previous agent position, to now if increases, decreases or stays the same
-    for(let i = 0; i<newPositions.length; i++) {
-      const agentId = newPositions[i]
-      const previousAgentPosition = previousPositions[agentId]
-      if(previousAgentPosition == i) data[i].direction = "static"
-      if(previousAgentPosition > i) data[i].direction = "desc"
-      if(previousAgentPosition < i) data[i].direction = "asc"
-    }
-  }
-
-  try {
-    await prisma.agentsRank.upsert({
-      where: { companyId },
-      create: { indexes: { ...newPositions }, companyId },
-      update: { indexes: { ...newPositions } }
-    })
-  } catch (error) {
-    // still returns even if creation fails 
-  }
 
   return {
     data,

@@ -193,7 +193,7 @@ CREATE TABLE "AgentLevel" (
     "agentId" INTEGER NOT NULL,
     "since" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "till" TIMESTAMP(3),
-    "durationInWeeks" INTEGER NOT NULL DEFAULT 0,
+    "durationInWeeks" DECIMAL(10,1) NOT NULL DEFAULT 0,
     "level" INTEGER NOT NULL,
 
     CONSTRAINT "AgentLevel_pkey" PRIMARY KEY ("id")

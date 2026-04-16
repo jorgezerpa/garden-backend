@@ -11,7 +11,7 @@ leadDeskWebhookRouter.get('/webhook', async (req: BasicAuthRequest, res: Respons
             // 3. Get the last_call_id from the query parameters (GET request)
             const lastCallId = req.query.last_call_id as string;
             const companyId = req.user?.companyId
-
+            const isSimulation = req.query.isSimulation ? true : false
             if (!lastCallId) {
             return res.status(400).send('Missing last_call_id');
             }
@@ -21,7 +21,7 @@ leadDeskWebhookRouter.get('/webhook', async (req: BasicAuthRequest, res: Respons
             }
 
             // 4. Execute the service logic
-            const result = await handleCallWebhook(lastCallId, companyId);
+            const result = await handleCallWebhook(lastCallId, companyId, isSimulation);
 
             // 5. Send event to connected frontends 
             eventHub.emit(

@@ -1,5 +1,6 @@
 // mock.router.ts
 import { Router } from 'express';
+import { getCurrentZonedIsoString } from '../utils/date';
 const mockRouter = Router();
 
 mockRouter.get('/leaddesk-api-mock', (req, res) => {
@@ -9,7 +10,7 @@ mockRouter.get('/leaddesk-api-mock', (req, res) => {
   const talk_time = Math.floor(Math.random() * 600) + 1; // 1 to 600 seconds
 
   // 2. Generate a random start time for "today"
-  const start = new Date(`2026-04-16T00:00:00.000Z`);
+  const start = new Date(getCurrentZonedIsoString("Europe/Amsterdam"))
   start.setUTCHours(Math.floor(Math.random() * 24));
   start.setUTCMinutes(Math.floor(Math.random() * 60));
   start.setUTCSeconds(Math.floor(Math.random() * 60));

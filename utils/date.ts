@@ -361,3 +361,58 @@ function convertWallTimeToUTC(date: Date, timeZone: string): Date {
 // Example Usage:
 // const schedule = getWeekDaysInTimezone("2024-05-20T12:00:00Z", "Europe/Amsterdam");
 // console.log(schedule);
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Gets the current UTC time, converts it to the provided IANA timezone's 
+ * wall-clock time, and returns that as a UTC ISO string.
+ * * Example: If server time is 2026-04-16T15:10:00Z and zone is America/Bogota (UTC-5):
+ * Result: "2026-04-16T10:10:00.000Z"
+ */
+export const getCurrentZonedIsoString = (ianaTimezone: string): string => {
+  // 1. Get the current time on the server
+  const now = new Date();
+
+  // 2. Format the date into the target timezone's wall-clock time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: ianaTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(now);
+  const p: Record<string, string> = {};
+  parts.forEach((part) => (p[part.type] = part.value));
+
+  // 3. Construct a UTC date based on the "wall-clock" numbers 
+  // extracted from the target timezone.
+  const utcEquivalent = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+    Number(p.second)
+  );
+
+  return new Date(utcEquivalent).toISOString();
+};
+
+// Usage:
+// getCurrentZonedIsoString("America/Bogota");

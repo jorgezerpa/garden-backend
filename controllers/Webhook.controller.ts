@@ -9,7 +9,7 @@ const AUTH = ""; // Leaddesk Auth Token
  * handleCallWebhook
  * Logic: Receives last_call_id -> Fetches full details from Leaddesk -> Upserts Agent/Callee -> Creates Call
  */
-export const handleCallWebhook = async (lastCallId: string, companyId: number): Promise<{call:Call, userId: number, agentId: number, agentName: string, performanceNotifications: PerformanceNotifications, agentImg: string|null}> => {
+export const handleCallWebhook = async (lastCallId: string, companyId: number, isSimulation=false): Promise<{call:Call, userId: number, agentId: number, agentName: string, performanceNotifications: PerformanceNotifications, agentImg: string|null, isSimulation?:boolean}> => {
     // 0. Check for company
     const company = await prisma.company.findUnique({
         where: { id: companyId },
@@ -22,7 +22,11 @@ export const handleCallWebhook = async (lastCallId: string, companyId: number): 
     if(company.leadDeskCustomData.SeedEventIds.length==0) throw("Should set LeadDesk Seed Event Ids")
     if(!company.leadDeskCustomData.authString) throw new Error("Should set LeadDesk Auth String")
   
-  const response = await axios.get(process.env.LEAD_DESK_API_BASE as string, {
+
+
+  const url = isSimulation ? process.env.API_URL + "/api/mock/leaddesk-api-mock" : process.env.LEAD_DESK_API_BASE
+
+  const response = await axios.get(url as string, {
     params: {
       auth: company.leadDeskCustomData.authString,
       mod: "call",
